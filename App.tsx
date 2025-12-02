@@ -1,8 +1,9 @@
-import React, { useState, useMemo } from 'react';
-import { ClipboardList, Sparkles, Copy, RefreshCw, AlertTriangle } from 'lucide-react';
+import React, { useState } from 'react';
+import { ClipboardList, Sparkles, Copy, RefreshCw, AlertTriangle, Keyboard } from 'lucide-react';
 import { EXPERT_ROSTER } from './utils/parser';
 import { analyzeProductivity } from './services/geminiService';
 import { ManualEntryData } from './types';
+import { PerformanceChart } from './components/PerformanceChart';
 
 function App() {
   // Use lazy initialization for state to avoid re-calculating on every render
@@ -33,6 +34,61 @@ function App() {
     }));
   };
 
+  const handleKeyDown = (
+    e: React.KeyboardEvent<HTMLInputElement>,
+    index: number,
+    field: 'tratado' | 'finalizado',
+    expertListLength: number
+  ) => {
+    // Helper function to focus specific input by ID
+    const focusInput = (idx: number, f: 'tratado' | 'finalizado') => {
+      const el = document.getElementById(`input-${idx}-${f}`);
+      if (el) {
+        (el as HTMLInputElement).focus();
+      }
+    };
+
+    if (e.key === 'ArrowRight') {
+      e.preventDefault();
+      if (field === 'tratado') {
+        focusInput(index, 'finalizado');
+      } else {
+        // Move to next row's 'tratado' if at the end of the row
+        if (index + 1 < expertListLength) {
+          focusInput(index + 1, 'tratado');
+        }
+      }
+    } else if (e.key === 'ArrowLeft') {
+      e.preventDefault();
+      if (field === 'finalizado') {
+        focusInput(index, 'tratado');
+      } else {
+        // Move to prev row's 'finalizado' if at start of row
+        if (index - 1 >= 0) {
+          focusInput(index - 1, 'finalizado');
+        }
+      }
+    } else if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      if (index + 1 < expertListLength) {
+        focusInput(index + 1, field);
+      }
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      if (index - 1 >= 0) {
+        focusInput(index - 1, field);
+      }
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      // Enter behaves like Tab/Next
+      if (field === 'tratado') {
+        focusInput(index, 'finalizado');
+      } else if (index + 1 < expertListLength) {
+        focusInput(index + 1, 'tratado');
+      }
+    }
+  };
+
   const calculateTotal = (expert: string) => {
     return (data[expert]?.tratado || 0) + (data[expert]?.finalizado || 0);
   };
@@ -51,7 +107,10 @@ function App() {
     let md = `| Expert | Tratado (Em andamento) | Finalizado | Total |\n`;
     md += `| :--- | :---: | :---: | :---: |\n`;
 
-    Object.keys(data).forEach(expert => {
+    // Sort keys to ensure deterministic order in report
+    const sortedExperts = Object.keys(data).sort((a, b) => a.localeCompare(b));
+
+    sortedExperts.forEach(expert => {
       const { tratado, finalizado } = data[expert];
       const total = tratado + finalizado;
       md += `| ${expert} | ${tratado} | ${finalizado} | ${total} |\n`;
@@ -69,10 +128,10 @@ function App() {
     alert('Relatório copiado para a área de transferência!');
   };
 
-  const handleReset = () => {
-    if (confirm("Tem certeza que deseja zerar todos os campos?")) {
-      const sortedRoster = [...EXPERT_ROSTER].sort((a, b) => a.localeCompare(b));
-      const resetData = sortedRoster.reduce((acc, name) => {
+  const handleReset = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (window.confirm("Tem certeza que deseja zerar todos os campos?")) {
+      const resetData = EXPERT_ROSTER.reduce((acc, name) => {
         acc[name] = { tratado: 0, finalizado: 0 };
         return acc;
       }, {} as ManualEntryData);
@@ -95,7 +154,7 @@ function App() {
   };
 
   const grandTotals = getGrandTotals();
-  const experts = Object.keys(data);
+  const experts = Object.keys(data).sort((a, b) => a.localeCompare(b));
 
   if (experts.length === 0) {
     return (
@@ -127,21 +186,29 @@ function App() {
         </div>
 
         {/* Action Bar */}
-        <div className="flex justify-end gap-3 sticky top-4 z-10 bg-gray-100/90 py-2 backdrop-blur-sm">
-           <button
-            onClick={handleReset}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-red-600 bg-white border border-red-200 rounded-md hover:bg-red-50 shadow-sm"
-          >
-            <RefreshCw className="w-4 h-4" />
-            Limpar Tudo
-          </button>
-          <button
-            onClick={handleCopyMarkdown}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 shadow-sm"
-          >
-            <Copy className="w-4 h-4" />
-            Copiar Relatório
-          </button>
+        <div className="flex flex-wrap justify-between items-center gap-3 sticky top-4 z-10 bg-gray-100/90 py-2 backdrop-blur-sm">
+           <div className="hidden sm:flex items-center gap-2 text-xs text-gray-500 bg-white px-3 py-1.5 rounded-full shadow-sm border border-gray-200">
+              <Keyboard className="w-4 h-4" />
+              <span>Use <strong>Setas</strong> para navegar e <strong>Enter</strong> para avançar</span>
+           </div>
+           <div className="flex gap-3 ml-auto">
+             <button
+              type="button"
+              onClick={handleReset}
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-red-600 bg-white border border-red-200 rounded-md hover:bg-red-50 shadow-sm transition-colors cursor-pointer active:bg-red-100"
+            >
+              <RefreshCw className="w-4 h-4" />
+              Limpar Tudo
+            </button>
+            <button
+              type="button"
+              onClick={handleCopyMarkdown}
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 shadow-sm transition-colors cursor-pointer active:bg-indigo-800"
+            >
+              <Copy className="w-4 h-4" />
+              Copiar Relatório
+            </button>
+           </div>
         </div>
 
         {/* Manual Entry Grid */}
@@ -165,27 +232,31 @@ function App() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 bg-white">
-                {experts.map((expert) => (
+                {experts.map((expert, index) => (
                   <tr key={expert} className="hover:bg-gray-50 transition-colors">
                     <td className="whitespace-nowrap py-3 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6">
                       {expert}
                     </td>
                     <td className="whitespace-nowrap px-3 py-2 text-center bg-yellow-50/30">
                       <input
+                        id={`input-${index}-tratado`}
                         type="number"
                         min="0"
-                        value={data[expert].tratado === 0 ? '' : data[expert].tratado}
+                        value={data[expert].tratado || ''}
                         onChange={(e) => handleInputChange(expert, 'tratado', e.target.value)}
+                        onKeyDown={(e) => handleKeyDown(e, index, 'tratado', experts.length)}
                         className="block w-full text-center rounded-md border-gray-300 shadow-sm focus:border-yellow-500 focus:ring-yellow-500 sm:text-sm py-1.5"
                         placeholder="0"
                       />
                     </td>
                     <td className="whitespace-nowrap px-3 py-2 text-center bg-green-50/30">
                       <input
+                        id={`input-${index}-finalizado`}
                         type="number"
                         min="0"
-                        value={data[expert].finalizado === 0 ? '' : data[expert].finalizado}
+                        value={data[expert].finalizado || ''}
                         onChange={(e) => handleInputChange(expert, 'finalizado', e.target.value)}
+                        onKeyDown={(e) => handleKeyDown(e, index, 'finalizado', experts.length)}
                         className="block w-full text-center rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm py-1.5"
                         placeholder="0"
                       />
@@ -216,6 +287,9 @@ function App() {
           </div>
         </div>
 
+        {/* Chart Section */}
+        <PerformanceChart data={data} />
+
         {/* AI Analysis Section */}
         <div className="bg-gradient-to-r from-indigo-50 to-purple-50 shadow-md rounded-xl p-6 border border-indigo-100">
           <div className="flex justify-between items-start mb-4">
@@ -230,9 +304,10 @@ function App() {
             </div>
             {!aiAnalysis && (
               <button 
+                type="button"
                 onClick={handleAiAnalysis}
                 disabled={isAnalyzing}
-                className="px-4 py-2 bg-purple-600 text-white rounded-lg text-sm font-medium hover:bg-purple-700 transition shadow-sm disabled:opacity-50"
+                className="px-4 py-2 bg-purple-600 text-white rounded-lg text-sm font-medium hover:bg-purple-700 transition shadow-sm disabled:opacity-50 cursor-pointer"
               >
                 {isAnalyzing ? 'Analisando...' : 'Gerar Análise'}
               </button>
