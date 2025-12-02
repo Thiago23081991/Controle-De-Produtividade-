@@ -2,12 +2,20 @@ import { GoogleGenAI } from "@google/genai";
 import { MatrixData, ManualEntryData } from "../types";
 
 export const analyzeProductivity = async (data: MatrixData | ManualEntryData): Promise<string> => {
-  if (!process.env.API_KEY) {
+  // Safe check for API Key presence
+  let apiKey = '';
+  try {
+    apiKey = process.env.API_KEY || '';
+  } catch (e) {
+    console.warn("Could not access process.env");
+  }
+
+  if (!apiKey) {
     return "API Key não configurada. Não é possível gerar análise com IA.";
   }
 
   try {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    const ai = new GoogleGenAI({ apiKey: apiKey });
     
     // Prepare data for the prompt
     const dataString = JSON.stringify(data, null, 2);

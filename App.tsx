@@ -1,22 +1,29 @@
-import React, { useState } from 'react';
-import { ClipboardList, Sparkles, Copy, RefreshCw } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { ClipboardList, Sparkles, Copy, RefreshCw, AlertTriangle } from 'lucide-react';
 import { EXPERT_ROSTER } from './utils/parser';
 import { analyzeProductivity } from './services/geminiService';
 import { ManualEntryData } from './types';
 
 function App() {
-  // Initialize state with roster names, sorted alphabetically
-  const initialData: ManualEntryData = EXPERT_ROSTER.sort().reduce((acc, name) => {
-    acc[name] = { tratado: 0, finalizado: 0 };
-    return acc;
-  }, {} as ManualEntryData);
+  // Use lazy initialization for state to avoid re-calculating on every render
+  const [data, setData] = useState<ManualEntryData>(() => {
+    // Create a safe copy of the roster and sort it
+    const sortedRoster = [...EXPERT_ROSTER].sort((a, b) => a.localeCompare(b));
+    return sortedRoster.reduce((acc, name) => {
+      acc[name] = { tratado: 0, finalizado: 0 };
+      return acc;
+    }, {} as ManualEntryData);
+  });
 
-  const [data, setData] = useState<ManualEntryData>(initialData);
   const [aiAnalysis, setAiAnalysis] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   const handleInputChange = (expert: string, field: 'tratado' | 'finalizado', value: string) => {
-    const numValue = parseInt(value) || 0;
+    // Allow empty string for better typing experience, convert to 0 for logic
+    const numValue = value === '' ? 0 : parseInt(value);
+    
+    if (isNaN(numValue)) return;
+
     setData(prev => ({
       ...prev,
       [expert]: {
@@ -27,15 +34,15 @@ function App() {
   };
 
   const calculateTotal = (expert: string) => {
-    return data[expert].tratado + data[expert].finalizado;
+    return (data[expert]?.tratado || 0) + (data[expert]?.finalizado || 0);
   };
 
   const getGrandTotals = () => {
     let tratado = 0;
     let finalizado = 0;
     Object.values(data).forEach(entry => {
-      tratado += entry.tratado;
-      finalizado += entry.finalizado;
+      tratado += entry.tratado || 0;
+      finalizado += entry.finalizado || 0;
     });
     return { tratado, finalizado, total: tratado + finalizado };
   };
@@ -64,19 +71,45 @@ function App() {
 
   const handleReset = () => {
     if (confirm("Tem certeza que deseja zerar todos os campos?")) {
-      setData(initialData);
+      const sortedRoster = [...EXPERT_ROSTER].sort((a, b) => a.localeCompare(b));
+      const resetData = sortedRoster.reduce((acc, name) => {
+        acc[name] = { tratado: 0, finalizado: 0 };
+        return acc;
+      }, {} as ManualEntryData);
+      
+      setData(resetData);
       setAiAnalysis(null);
     }
   };
 
   const handleAiAnalysis = async () => {
     setIsAnalyzing(true);
-    const analysis = await analyzeProductivity(data);
-    setAiAnalysis(analysis);
-    setIsAnalyzing(false);
+    try {
+      const analysis = await analyzeProductivity(data);
+      setAiAnalysis(analysis);
+    } catch (e) {
+      setAiAnalysis("Erro ao gerar análise. Verifique o console.");
+    } finally {
+      setIsAnalyzing(false);
+    }
   };
 
   const grandTotals = getGrandTotals();
+  const experts = Object.keys(data);
+
+  if (experts.length === 0) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+        <div className="text-center p-8 bg-white rounded-xl shadow-lg border border-red-100 max-w-md">
+          <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+          <h2 className="text-xl font-bold text-gray-800">Erro no Carregamento</h2>
+          <p className="text-gray-600 mt-2">
+            A lista de Experts não foi carregada corretamente. Verifique o arquivo de configuração.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-100 py-10 px-4 sm:px-6 lg:px-8 font-sans">
@@ -132,7 +165,7 @@ function App() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 bg-white">
-                {Object.keys(data).map((expert) => (
+                {experts.map((expert) => (
                   <tr key={expert} className="hover:bg-gray-50 transition-colors">
                     <td className="whitespace-nowrap py-3 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6">
                       {expert}
