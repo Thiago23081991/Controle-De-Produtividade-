@@ -1,23 +1,85 @@
-import React, { useState } from 'react';
-import { ClipboardList, Sparkles, Copy, RefreshCw, AlertTriangle, Keyboard } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { ClipboardList, Sparkles, Copy, RefreshCw, AlertTriangle, Keyboard, Calendar } from 'lucide-react';
 import { EXPERT_ROSTER } from './utils/parser';
 import { analyzeProductivity } from './services/geminiService';
 import { ManualEntryData } from './types';
 import { PerformanceChart } from './components/PerformanceChart';
 
+// Helper to get YYYY-MM-DD
+const getTodayString = () => new Date().toISOString().split('T')[0];
+
 function App() {
-  // Use lazy initialization for state to avoid re-calculating on every render
+  const [selectedDate, setSelectedDate] = useState<string>(getTodayString());
+  const [aiAnalysis, setAiAnalysis] = useState<string | null>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+
+  // Initialize data based on the selected date (load from LocalStorage or default)
   const [data, setData] = useState<ManualEntryData>(() => {
-    // Create a safe copy of the roster and sort it
+    const storageKey = `productivity_${getTodayString()}`;
+    const stored = localStorage.getItem(storageKey);
+    
+    // Base empty structure based on current Roster
     const sortedRoster = [...EXPERT_ROSTER].sort((a, b) => a.localeCompare(b));
-    return sortedRoster.reduce((acc, name) => {
+    const emptyData = sortedRoster.reduce((acc, name) => {
       acc[name] = { tratado: 0, finalizado: 0 };
       return acc;
     }, {} as ManualEntryData);
+
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+        // Merge stored data with current roster (handles cases where roster changed)
+        return { ...emptyData, ...parsed };
+      } catch (e) {
+        return emptyData;
+      }
+    }
+    return emptyData;
   });
 
-  const [aiAnalysis, setAiAnalysis] = useState<string | null>(null);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  // Effect: Save to LocalStorage whenever data changes
+  useEffect(() => {
+    const storageKey = `productivity_${selectedDate}`;
+    localStorage.setItem(storageKey, JSON.stringify(data));
+  }, [data, selectedDate]);
+
+  // Handle Date Change
+  const handleDateChange = (newDate: string) => {
+    if (!newDate) return;
+    
+    setSelectedDate(newDate);
+    
+    // Load data for the new date
+    const storageKey = `productivity_${newDate}`;
+    const stored = localStorage.getItem(storageKey);
+    
+    const sortedRoster = [...EXPERT_ROSTER].sort((a, b) => a.localeCompare(b));
+    const emptyData = sortedRoster.reduce((acc, name) => {
+      acc[name] = { tratado: 0, finalizado: 0 };
+      return acc;
+    }, {} as ManualEntryData);
+
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+        // Merge to ensure all experts exist even in old records
+        const mergedData = { ...emptyData };
+        Object.keys(parsed).forEach(key => {
+            if (mergedData[key]) {
+                mergedData[key] = parsed[key];
+            }
+        });
+        setData(mergedData);
+      } catch (e) {
+        setData(emptyData);
+      }
+    } else {
+      setData(emptyData);
+    }
+    
+    // Reset Analysis when date changes
+    setAiAnalysis(null);
+  };
 
   const handleInputChange = (expert: string, field: 'tratado' | 'finalizado', value: string) => {
     // Allow empty string for better typing experience, convert to 0 for logic
@@ -104,7 +166,12 @@ function App() {
   };
 
   const generateMarkdown = () => {
-    let md = `| Expert | Tratado (Em andamento) | Finalizado | Total |\n`;
+    // Format date for the report
+    const [y, m, d] = selectedDate.split('-');
+    const dateFormatted = `${d}/${m}/${y}`;
+
+    let md = `## Relatório de Produtividade - ${dateFormatted}\n\n`;
+    md += `| Expert | Tratado (Em andamento) | Finalizado | Total |\n`;
     md += `| :--- | :---: | :---: | :---: |\n`;
 
     // Sort keys to ensure deterministic order in report
@@ -130,7 +197,7 @@ function App() {
 
   const handleReset = (e: React.MouseEvent) => {
     e.preventDefault();
-    if (window.confirm("Tem certeza que deseja zerar todos os campos?")) {
+    if (window.confirm("Tem certeza que deseja zerar todos os campos para esta data?")) {
       const resetData = EXPERT_ROSTER.reduce((acc, name) => {
         acc[name] = { tratado: 0, finalizado: 0 };
         return acc;
@@ -178,27 +245,40 @@ function App() {
         <div className="text-center">
           <h1 className="text-3xl font-extrabold text-indigo-700 flex justify-center items-center gap-3">
             <ClipboardList className="w-10 h-10" />
-            Controle de Produtividade Manual
+            Controle de Produtividade
           </h1>
           <p className="mt-2 text-gray-600">
-            Insira os dados de produção diária para cada Expert.
+            Gerencie a produção diária da equipe.
           </p>
         </div>
 
         {/* Action Bar */}
-        <div className="flex flex-wrap justify-between items-center gap-3 sticky top-4 z-10 bg-gray-100/90 py-2 backdrop-blur-sm">
-           <div className="hidden sm:flex items-center gap-2 text-xs text-gray-500 bg-white px-3 py-1.5 rounded-full shadow-sm border border-gray-200">
-              <Keyboard className="w-4 h-4" />
-              <span>Use <strong>Setas</strong> para navegar e <strong>Enter</strong> para avançar</span>
+        <div className="flex flex-col sm:flex-row justify-between items-center gap-4 sticky top-4 z-10 bg-gray-100/90 py-3 backdrop-blur-sm border-b border-gray-200/50">
+           
+           {/* Date Picker */}
+           <div className="flex items-center gap-2 bg-white px-3 py-2 rounded-lg shadow-sm border border-gray-300">
+              <Calendar className="w-5 h-5 text-indigo-600" />
+              <input 
+                type="date"
+                value={selectedDate}
+                onChange={(e) => handleDateChange(e.target.value)}
+                className="text-gray-700 text-sm font-medium focus:outline-none"
+              />
            </div>
-           <div className="flex gap-3 ml-auto">
+
+           <div className="hidden lg:flex items-center gap-2 text-xs text-gray-500 bg-white px-3 py-2 rounded-full shadow-sm border border-gray-200">
+              <Keyboard className="w-4 h-4" />
+              <span>Navegação: <strong>Setas</strong> | <strong>Enter</strong></span>
+           </div>
+
+           <div className="flex gap-3 w-full sm:w-auto justify-end">
              <button
               type="button"
               onClick={handleReset}
               className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-red-600 bg-white border border-red-200 rounded-md hover:bg-red-50 shadow-sm transition-colors cursor-pointer active:bg-red-100"
             >
               <RefreshCw className="w-4 h-4" />
-              Limpar Tudo
+              Limpar
             </button>
             <button
               type="button"
