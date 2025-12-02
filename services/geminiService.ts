@@ -2,16 +2,11 @@ import { GoogleGenAI } from "@google/genai";
 import { MatrixData, ManualEntryData } from "../types";
 
 export const analyzeProductivity = async (data: MatrixData | ManualEntryData): Promise<string> => {
-  // Safe check for API Key presence
-  let apiKey = '';
-  try {
-    apiKey = process.env.API_KEY || '';
-  } catch (e) {
-    console.warn("Could not access process.env");
-  }
+  // API Key must be obtained exclusively from process.env.API_KEY
+  const apiKey = process.env.API_KEY;
 
   if (!apiKey) {
-    return "API Key não configurada. Não é possível gerar análise com IA.";
+    return "API Key não configurada ou inacessível no ambiente. Não é possível gerar análise com IA.";
   }
 
   try {
@@ -46,6 +41,6 @@ export const analyzeProductivity = async (data: MatrixData | ManualEntryData): P
     return response.text || "Não foi possível gerar a análise.";
   } catch (error) {
     console.error("Gemini Analysis Error:", error);
-    return "Erro ao conectar com a IA para análise.";
+    return "Erro ao conectar com a IA para análise. Verifique o console para mais detalhes.";
   }
 };
