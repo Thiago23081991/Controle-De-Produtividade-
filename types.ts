@@ -33,5 +33,6 @@ export interface ManualEntryData {
   [expertName: string]: {
     tratado: number;
     finalizado: number;
+    observacao?: string;
   };
 }

@@ -21,7 +21,7 @@ function App() {
     // Base empty structure based on current Roster
     const sortedRoster = [...EXPERT_ROSTER].sort((a, b) => a.localeCompare(b));
     const emptyData = sortedRoster.reduce((acc, name) => {
-      acc[name] = { tratado: 0, finalizado: 0 };
+      acc[name] = { tratado: 0, finalizado: 0, observacao: '' };
       return acc;
     }, {} as ManualEntryData);
 
@@ -55,7 +55,7 @@ function App() {
     
     const sortedRoster = [...EXPERT_ROSTER].sort((a, b) => a.localeCompare(b));
     const emptyData = sortedRoster.reduce((acc, name) => {
-      acc[name] = { tratado: 0, finalizado: 0 };
+      acc[name] = { tratado: 0, finalizado: 0, observacao: '' };
       return acc;
     }, {} as ManualEntryData);
 
@@ -81,7 +81,18 @@ function App() {
     setAiAnalysis(null);
   };
 
-  const handleInputChange = (expert: string, field: 'tratado' | 'finalizado', value: string) => {
+  const handleInputChange = (expert: string, field: 'tratado' | 'finalizado' | 'observacao', value: string) => {
+    if (field === 'observacao') {
+      setData(prev => ({
+        ...prev,
+        [expert]: {
+          ...prev[expert],
+          observacao: value
+        }
+      }));
+      return;
+    }
+
     // Allow empty string for better typing experience, convert to 0 for logic
     const numValue = value === '' ? 0 : parseInt(value);
     
@@ -99,11 +110,11 @@ function App() {
   const handleKeyDown = (
     e: React.KeyboardEvent<HTMLInputElement>,
     index: number,
-    field: 'tratado' | 'finalizado',
+    field: 'tratado' | 'finalizado' | 'observacao',
     expertListLength: number
   ) => {
     // Helper function to focus specific input by ID
-    const focusInput = (idx: number, f: 'tratado' | 'finalizado') => {
+    const focusInput = (idx: number, f: 'tratado' | 'finalizado' | 'observacao') => {
       const el = document.getElementById(`input-${idx}-${f}`);
       if (el) {
         (el as HTMLInputElement).focus();
@@ -114,20 +125,24 @@ function App() {
       e.preventDefault();
       if (field === 'tratado') {
         focusInput(index, 'finalizado');
+      } else if (field === 'finalizado') {
+        focusInput(index, 'observacao');
       } else {
-        // Move to next row's 'tratado' if at the end of the row
+        // From observation, go to next row's tratado
         if (index + 1 < expertListLength) {
           focusInput(index + 1, 'tratado');
         }
       }
     } else if (e.key === 'ArrowLeft') {
       e.preventDefault();
-      if (field === 'finalizado') {
+      if (field === 'observacao') {
+        focusInput(index, 'finalizado');
+      } else if (field === 'finalizado') {
         focusInput(index, 'tratado');
       } else {
-        // Move to prev row's 'finalizado' if at start of row
+        // From tratado, go to prev row's observacao
         if (index - 1 >= 0) {
-          focusInput(index - 1, 'finalizado');
+          focusInput(index - 1, 'observacao');
         }
       }
     } else if (e.key === 'ArrowDown') {
@@ -145,6 +160,8 @@ function App() {
       // Enter behaves like Tab/Next
       if (field === 'tratado') {
         focusInput(index, 'finalizado');
+      } else if (field === 'finalizado') {
+        focusInput(index, 'observacao');
       } else if (index + 1 < expertListLength) {
         focusInput(index + 1, 'tratado');
       }
@@ -158,7 +175,7 @@ function App() {
   const getGrandTotals = () => {
     let tratado = 0;
     let finalizado = 0;
-    Object.values(data).forEach(entry => {
+    Object.values(data).forEach((entry: any) => {
       tratado += entry.tratado || 0;
       finalizado += entry.finalizado || 0;
     });
@@ -171,20 +188,21 @@ function App() {
     const dateFormatted = `${d}/${m}/${y}`;
 
     let md = `## Relatório de Produtividade - ${dateFormatted}\n\n`;
-    md += `| Expert | Tratado (Em andamento) | Finalizado | Total |\n`;
-    md += `| :--- | :---: | :---: | :---: |\n`;
+    md += `| Expert | Tratado (Em andamento) | Finalizado | Total | Observação |\n`;
+    md += `| :--- | :---: | :---: | :---: | :--- |\n`;
 
     // Sort keys to ensure deterministic order in report
     const sortedExperts = Object.keys(data).sort((a, b) => a.localeCompare(b));
 
     sortedExperts.forEach(expert => {
-      const { tratado, finalizado } = data[expert];
+      const { tratado, finalizado, observacao } = data[expert];
       const total = tratado + finalizado;
-      md += `| ${expert} | ${tratado} | ${finalizado} | ${total} |\n`;
+      const obsSafe = observacao ? observacao.replace(/\|/g, '-') : ''; // Prevent breaking md table
+      md += `| ${expert} | ${tratado} | ${finalizado} | ${total} | ${obsSafe} |\n`;
     });
 
     const grand = getGrandTotals();
-    md += `| **TOTAL GERAL** | **${grand.tratado}** | **${grand.finalizado}** | **${grand.total}** |`;
+    md += `| **TOTAL GERAL** | **${grand.tratado}** | **${grand.finalizado}** | **${grand.total}** | - |`;
     
     return md;
   };
@@ -199,7 +217,7 @@ function App() {
     e.preventDefault();
     if (window.confirm("Tem certeza que deseja zerar todos os campos para esta data?")) {
       const resetData = EXPERT_ROSTER.reduce((acc, name) => {
-        acc[name] = { tratado: 0, finalizado: 0 };
+        acc[name] = { tratado: 0, finalizado: 0, observacao: '' };
         return acc;
       }, {} as ManualEntryData);
       
@@ -239,7 +257,7 @@ function App() {
 
   return (
     <div className="min-h-screen bg-gray-100 py-10 px-4 sm:px-6 lg:px-8 font-sans">
-      <div className="max-w-6xl mx-auto space-y-8">
+      <div className="max-w-7xl mx-auto space-y-8">
         
         {/* Header */}
         <div className="text-center">
@@ -297,17 +315,20 @@ function App() {
             <table className="min-w-full divide-y divide-gray-300">
               <thead className="bg-gray-50">
                 <tr>
-                  <th scope="col" className="py-3.5 pl-4 pr-3 text-left text-sm font-bold text-gray-900 sm:pl-6 uppercase tracking-wider">
+                  <th scope="col" className="py-3.5 pl-4 pr-3 text-left text-sm font-bold text-gray-900 sm:pl-6 uppercase tracking-wider w-1/4">
                     Expert
                   </th>
-                  <th scope="col" className="px-3 py-3.5 text-center text-sm font-bold text-yellow-700 bg-yellow-50 uppercase tracking-wider w-32">
+                  <th scope="col" className="px-3 py-3.5 text-center text-sm font-bold text-yellow-700 bg-yellow-50 uppercase tracking-wider w-24">
                     Tratado
                   </th>
-                  <th scope="col" className="px-3 py-3.5 text-center text-sm font-bold text-green-700 bg-green-50 uppercase tracking-wider w-32">
+                  <th scope="col" className="px-3 py-3.5 text-center text-sm font-bold text-green-700 bg-green-50 uppercase tracking-wider w-24">
                     Finalizado
                   </th>
-                  <th scope="col" className="px-3 py-3.5 text-center text-sm font-bold text-gray-900 bg-gray-100 uppercase tracking-wider w-24">
+                   <th scope="col" className="px-3 py-3.5 text-center text-sm font-bold text-gray-900 bg-gray-100 uppercase tracking-wider w-20">
                     Total
+                  </th>
+                  <th scope="col" className="px-3 py-3.5 text-left text-sm font-bold text-gray-600 bg-gray-50 uppercase tracking-wider">
+                    Observação (Justificativa)
                   </th>
                 </tr>
               </thead>
@@ -344,6 +365,17 @@ function App() {
                     <td className="whitespace-nowrap px-3 py-2 text-center text-sm font-bold text-gray-700 bg-gray-50">
                       {calculateTotal(expert)}
                     </td>
+                    <td className="whitespace-nowrap px-3 py-2">
+                      <input
+                        id={`input-${index}-observacao`}
+                        type="text"
+                        value={data[expert].observacao || ''}
+                        onChange={(e) => handleInputChange(expert, 'observacao', e.target.value)}
+                        onKeyDown={(e) => handleKeyDown(e, index, 'observacao', experts.length)}
+                        className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm py-1.5 px-3"
+                        placeholder="Ex: Atestado, Erro Sistêmico..."
+                      />
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -361,6 +393,7 @@ function App() {
                    <td className="px-3 py-4 text-center text-lg font-extrabold text-indigo-700">
                      {grandTotals.total}
                    </td>
+                   <td className="px-3 py-4"></td>
                 </tr>
               </tfoot>
             </table>
