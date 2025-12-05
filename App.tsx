@@ -5,8 +5,14 @@ import { analyzeProductivity } from './services/geminiService';
 import { ManualEntryData } from './types';
 import { PerformanceChart } from './components/PerformanceChart';
 
-// Helper to get YYYY-MM-DD
-const getTodayString = () => new Date().toISOString().split('T')[0];
+// Helper to get YYYY-MM-DD in Local Time (prevents timezone issues)
+const getTodayString = () => {
+  const date = new Date();
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
 
 function App() {
   const [selectedDate, setSelectedDate] = useState<string>(getTodayString());
@@ -15,7 +21,8 @@ function App() {
 
   // Initialize data based on the selected date (load from LocalStorage or default)
   const [data, setData] = useState<ManualEntryData>(() => {
-    const storageKey = `productivity_${getTodayString()}`;
+    const today = getTodayString();
+    const storageKey = `productivity_${today}`;
     const stored = localStorage.getItem(storageKey);
     
     // Base empty structure based on current Roster
@@ -372,7 +379,7 @@ function App() {
               className="flex items-center gap-2 px-3 py-2 text-xs sm:text-sm font-medium text-red-600 bg-white border border-red-200 rounded-md hover:bg-red-50 shadow-sm transition-colors cursor-pointer active:bg-red-100"
             >
               <RefreshCw className="w-4 h-4" />
-              Limpar
+              Limpar Dia
             </button>
             <button
               type="button"
