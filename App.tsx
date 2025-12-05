@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ClipboardList, Sparkles, Copy, RefreshCw, AlertTriangle, Keyboard, Calendar, Siren, FileSpreadsheet } from 'lucide-react';
+import { ClipboardList, Sparkles, Copy, RefreshCw, AlertTriangle, Keyboard, Calendar, Siren, FileSpreadsheet, Trophy } from 'lucide-react';
 import { EXPERT_ROSTER } from './utils/parser';
 import { analyzeProductivity } from './services/geminiService';
 import { ManualEntryData } from './types';
@@ -209,6 +209,11 @@ function App() {
     return { tratado, finalizado, total: tratado + finalizado, urgentes };
   };
 
+  // Find the highest number of Finalized cases
+  const maxFinalized = React.useMemo(() => {
+    return Math.max(...Object.values(data).map((d: any) => d.finalizado || 0));
+  }, [data]);
+
   const generateMarkdown = () => {
     // Format date for the report
     const [y, m, d] = selectedDate.split('-');
@@ -226,9 +231,13 @@ function App() {
       const total = tratado + finalizado;
       const efficiency = total > 0 ? Math.round((finalizado / total) * 100) : 0;
       const obsSafe = observacao ? observacao.replace(/\|/g, '-') : ''; 
+      const isTopPerformer = maxFinalized > 0 && finalizado === maxFinalized;
       
       // Add Urgency Indicator to Name or Observation
-      const nameDisplay = isUrgent ? `${expert} 🚨` : expert;
+      let nameDisplay = expert;
+      if (isUrgent) nameDisplay += " 🚨";
+      if (isTopPerformer) nameDisplay += " 🏆";
+
       const obsDisplay = isUrgent ? `**[URGÊNCIA]** ${obsSafe}` : obsSafe;
 
       md += `| ${nameDisplay} | ${tratado} | ${finalizado} | ${total} | ${efficiency}% | ${obsDisplay} |\n`;
@@ -253,7 +262,7 @@ function App() {
     const dateFormatted = `${d}-${m}-${y}`;
     
     let csvContent = "data:text/csv;charset=utf-8,\uFEFF"; // UTF-8 BOM for Excel
-    csvContent += "Data,Expert,Urgente,Tratado,Finalizado,Total,Eficiência (%),Observação\n";
+    csvContent += "Data,Expert,Urgente,Top Performer,Tratado,Finalizado,Total,Eficiência (%),Observação\n";
 
     const sortedExperts = Object.keys(data).sort((a, b) => a.localeCompare(b));
 
@@ -261,12 +270,14 @@ function App() {
       const { tratado, finalizado, observacao, isUrgent } = data[expert];
       const total = tratado + finalizado;
       const efficiency = total > 0 ? Math.round((finalizado / total) * 100) : 0;
-      
+      const isTopPerformer = maxFinalized > 0 && finalizado === maxFinalized;
+
       // Escape quotes for CSV
       const obsSafe = observacao ? `"${observacao.replace(/"/g, '""')}"` : "";
       const urgentFlag = isUrgent ? "SIM" : "NAO";
+      const topFlag = isTopPerformer ? "SIM" : "NAO";
 
-      csvContent += `${dateFormatted},"${expert}",${urgentFlag},${tratado},${finalizado},${total},${efficiency}%,${obsSafe}\n`;
+      csvContent += `${dateFormatted},"${expert}",${urgentFlag},${topFlag},${tratado},${finalizado},${total},${efficiency}%,${obsSafe}\n`;
     });
 
     const encodedUri = encodeURI(csvContent);
@@ -414,6 +425,8 @@ function App() {
               <tbody className="divide-y divide-gray-200 bg-white">
                 {experts.map((expert, index) => {
                   const isUrgent = data[expert].isUrgent || false;
+                  const finalizadoCount = data[expert].finalizado || 0;
+                  const isTopPerformer = maxFinalized > 0 && finalizadoCount === maxFinalized;
                   const efficiency = getEfficiency(expert);
                   
                   // Color coding for efficiency
@@ -442,6 +455,7 @@ function App() {
                         <div className="flex items-center gap-2">
                             {expert}
                             {isUrgent && <Siren className="w-5 h-5 text-red-600 animate-pulse" />}
+                            {isTopPerformer && <Trophy className="w-5 h-5 text-yellow-500 animate-bounce" />}
                         </div>
                       </td>
                       <td className="whitespace-nowrap px-3 py-2 text-center bg-yellow-50/30">
@@ -456,7 +470,7 @@ function App() {
                           placeholder="0"
                         />
                       </td>
-                      <td className="whitespace-nowrap px-3 py-2 text-center bg-green-50/30">
+                      <td className={`whitespace-nowrap px-3 py-2 text-center ${isTopPerformer ? 'bg-green-200' : 'bg-green-50/30'}`}>
                         <input
                           id={`input-${index}-finalizado`}
                           type="number"
@@ -464,7 +478,7 @@ function App() {
                           value={data[expert].finalizado === 0 ? '' : data[expert].finalizado}
                           onChange={(e) => handleInputChange(expert, 'finalizado', e.target.value)}
                           onKeyDown={(e) => handleKeyDown(e, index, 'finalizado', experts.length)}
-                          className="block w-full text-center rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm py-1.5"
+                          className={`block w-full text-center rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm py-1.5 ${isTopPerformer ? 'font-bold text-green-900 border-green-500 ring-1 ring-green-500' : ''}`}
                           placeholder="0"
                         />
                       </td>
