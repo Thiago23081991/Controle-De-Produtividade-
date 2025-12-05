@@ -28,16 +28,21 @@ export const analyzeProductivity = async (data: MatrixData | ManualEntryData): P
         Os campos são: 
         - "Tratado": Casos em andamento/análise.
         - "Finalizado": Casos resolvidos/vendidos com sucesso.
-        - "Observacao": Justificativas para baixa produtividade (ex: atestado, falha sistêmica, treinamento).
+        - "Observacao": Justificativas operacionais (ex: atestado, falha sistêmica, treinamento, feedback).
+        - "isUrgent": Booleano (true/false) que indica se o expert está focado em "Tratativa de Caso de Urgência".
         
         DADOS:
         ${dataString}
 
-        Forneça um resumo executivo curto (máximo 3 parágrafos) em Português do Brasil destacando:
-        1. Quem é o Top Performer em volume TOTAL (Tratado + Finalizado) e quem mais Finalizou.
-        2. Visão geral da eficiência da equipe (Proporção de Finalizados vs Tratados).
-        3. Pontos de atenção. IMPORTANTE: Ao apontar baixa produtividade, verifique se existe uma "Observacao" justificando (ex: atestado). Se houver justificativa, mencione isso para não penalizar o expert injustamente.
-        
+        Forneça um resumo executivo estratégico em Português do Brasil seguindo estritamente esta estrutura:
+
+        1. **Destaques de Performance**: Quem é o Top Performer em volume TOTAL e quem mais converteu em FINALIZADOS.
+        2. **Eficiência Operacional**: Visão geral da equipe (Proporção de Finalizados vs Tratados).
+        3. **Casos de Urgência & Observações**:
+           - Liste explicitamente os Experts marcados com urgência ("isUrgent": true) e explique que eles estão em atendimento prioritário, o que justifica números diferentes.
+           - Agrupe e sumarize as outras justificativas do campo "Observacao".
+        4. **Pontos de Atenção**: Aponte experts com baixa produção não justificada. IMPORTANTE: Se houver "Observacao" (como Atestado) ou "Urgência", ISENTE o expert de crítica negativa.
+
         Use formatação Markdown simples (negrito, bullet points). Seja direto e profissional.
       `;
     } else {

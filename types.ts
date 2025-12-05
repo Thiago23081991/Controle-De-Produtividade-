@@ -34,5 +34,6 @@ export interface ManualEntryData {
     tratado: number;
     finalizado: number;
     observacao?: string;
+    isUrgent?: boolean;
   };
 }

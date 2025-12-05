@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ClipboardList, Sparkles, Copy, RefreshCw, AlertTriangle, Keyboard, Calendar } from 'lucide-react';
+import { ClipboardList, Sparkles, Copy, RefreshCw, AlertTriangle, Keyboard, Calendar, Siren } from 'lucide-react';
 import { EXPERT_ROSTER } from './utils/parser';
 import { analyzeProductivity } from './services/geminiService';
 import { ManualEntryData } from './types';
@@ -21,7 +21,7 @@ function App() {
     // Base empty structure based on current Roster
     const sortedRoster = [...EXPERT_ROSTER].sort((a, b) => a.localeCompare(b));
     const emptyData = sortedRoster.reduce((acc, name) => {
-      acc[name] = { tratado: 0, finalizado: 0, observacao: '' };
+      acc[name] = { tratado: 0, finalizado: 0, observacao: '', isUrgent: false };
       return acc;
     }, {} as ManualEntryData);
 
@@ -55,7 +55,7 @@ function App() {
     
     const sortedRoster = [...EXPERT_ROSTER].sort((a, b) => a.localeCompare(b));
     const emptyData = sortedRoster.reduce((acc, name) => {
-      acc[name] = { tratado: 0, finalizado: 0, observacao: '' };
+      acc[name] = { tratado: 0, finalizado: 0, observacao: '', isUrgent: false };
       return acc;
     }, {} as ManualEntryData);
 
@@ -66,7 +66,7 @@ function App() {
         const mergedData = { ...emptyData };
         Object.keys(parsed).forEach(key => {
             if (mergedData[key]) {
-                mergedData[key] = parsed[key];
+                mergedData[key] = { ...mergedData[key], ...parsed[key] };
             }
         });
         setData(mergedData);
@@ -107,6 +107,16 @@ function App() {
     }));
   };
 
+  const toggleUrgency = (expert: string) => {
+    setData(prev => ({
+      ...prev,
+      [expert]: {
+        ...prev[expert],
+        isUrgent: !prev[expert].isUrgent
+      }
+    }));
+  };
+
   const handleKeyDown = (
     e: React.KeyboardEvent<HTMLInputElement>,
     index: number,
@@ -122,27 +132,34 @@ function App() {
     };
 
     if (e.key === 'ArrowRight') {
-      e.preventDefault();
+      // Allow default behavior if cursor is not at end of text, but for numbers we usually just navigate
+      // Only prevent default if we actually move focus
       if (field === 'tratado') {
+        e.preventDefault();
         focusInput(index, 'finalizado');
       } else if (field === 'finalizado') {
+        e.preventDefault();
         focusInput(index, 'observacao');
       } else {
         // From observation, go to next row's tratado
         if (index + 1 < expertListLength) {
-          focusInput(index + 1, 'tratado');
+          // e.preventDefault(); // Optional: Keep default behavior in text field or move? Usually move is better for power users
+          // focusInput(index + 1, 'tratado');
         }
       }
     } else if (e.key === 'ArrowLeft') {
-      e.preventDefault();
       if (field === 'observacao') {
-        focusInput(index, 'finalizado');
+        // Check if cursor is at start? Simplified: just move
+        // e.preventDefault(); 
+        // focusInput(index, 'finalizado');
       } else if (field === 'finalizado') {
+        e.preventDefault();
         focusInput(index, 'tratado');
       } else {
         // From tratado, go to prev row's observacao
         if (index - 1 >= 0) {
-          focusInput(index - 1, 'observacao');
+           e.preventDefault();
+           focusInput(index - 1, 'observacao');
         }
       }
     } else if (e.key === 'ArrowDown') {
@@ -175,11 +192,13 @@ function App() {
   const getGrandTotals = () => {
     let tratado = 0;
     let finalizado = 0;
+    let urgentes = 0;
     Object.values(data).forEach((entry: any) => {
       tratado += entry.tratado || 0;
       finalizado += entry.finalizado || 0;
+      if (entry.isUrgent) urgentes++;
     });
-    return { tratado, finalizado, total: tratado + finalizado };
+    return { tratado, finalizado, total: tratado + finalizado, urgentes };
   };
 
   const generateMarkdown = () => {
@@ -195,14 +214,19 @@ function App() {
     const sortedExperts = Object.keys(data).sort((a, b) => a.localeCompare(b));
 
     sortedExperts.forEach(expert => {
-      const { tratado, finalizado, observacao } = data[expert];
+      const { tratado, finalizado, observacao, isUrgent } = data[expert];
       const total = tratado + finalizado;
-      const obsSafe = observacao ? observacao.replace(/\|/g, '-') : ''; // Prevent breaking md table
-      md += `| ${expert} | ${tratado} | ${finalizado} | ${total} | ${obsSafe} |\n`;
+      const obsSafe = observacao ? observacao.replace(/\|/g, '-') : ''; 
+      
+      // Add Urgency Indicator to Name or Observation
+      const nameDisplay = isUrgent ? `${expert} 🚨` : expert;
+      const obsDisplay = isUrgent ? `**[URGÊNCIA]** ${obsSafe}` : obsSafe;
+
+      md += `| ${nameDisplay} | ${tratado} | ${finalizado} | ${total} | ${obsDisplay} |\n`;
     });
 
     const grand = getGrandTotals();
-    md += `| **TOTAL GERAL** | **${grand.tratado}** | **${grand.finalizado}** | **${grand.total}** | - |`;
+    md += `| **TOTAL GERAL** | **${grand.tratado}** | **${grand.finalizado}** | **${grand.total}** | **${grand.urgentes} Casos Urgentes** |`;
     
     return md;
   };
@@ -217,7 +241,7 @@ function App() {
     e.preventDefault();
     if (window.confirm("Tem certeza que deseja zerar todos os campos para esta data?")) {
       const resetData = EXPERT_ROSTER.reduce((acc, name) => {
-        acc[name] = { tratado: 0, finalizado: 0, observacao: '' };
+        acc[name] = { tratado: 0, finalizado: 0, observacao: '', isUrgent: false };
         return acc;
       }, {} as ManualEntryData);
       
@@ -315,7 +339,10 @@ function App() {
             <table className="min-w-full divide-y divide-gray-300">
               <thead className="bg-gray-50">
                 <tr>
-                  <th scope="col" className="py-3.5 pl-4 pr-3 text-left text-sm font-bold text-gray-900 sm:pl-6 uppercase tracking-wider w-1/4">
+                  <th scope="col" className="px-3 py-3.5 text-center text-xs font-bold text-gray-500 uppercase tracking-wider w-12" title="Marcar Caso Urgente">
+                    <Siren className="w-4 h-4 mx-auto" />
+                  </th>
+                  <th scope="col" className="py-3.5 pl-2 pr-3 text-left text-sm font-bold text-gray-900 uppercase tracking-wider w-1/4">
                     Expert
                   </th>
                   <th scope="col" className="px-3 py-3.5 text-center text-sm font-bold text-yellow-700 bg-yellow-50 uppercase tracking-wider w-24">
@@ -333,55 +360,73 @@ function App() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 bg-white">
-                {experts.map((expert, index) => (
-                  <tr key={expert} className="hover:bg-gray-50 transition-colors">
-                    <td className="whitespace-nowrap py-3 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6">
-                      {expert}
-                    </td>
-                    <td className="whitespace-nowrap px-3 py-2 text-center bg-yellow-50/30">
-                      <input
-                        id={`input-${index}-tratado`}
-                        type="number"
-                        min="0"
-                        value={data[expert].tratado || ''}
-                        onChange={(e) => handleInputChange(expert, 'tratado', e.target.value)}
-                        onKeyDown={(e) => handleKeyDown(e, index, 'tratado', experts.length)}
-                        className="block w-full text-center rounded-md border-gray-300 shadow-sm focus:border-yellow-500 focus:ring-yellow-500 sm:text-sm py-1.5"
-                        placeholder="0"
-                      />
-                    </td>
-                    <td className="whitespace-nowrap px-3 py-2 text-center bg-green-50/30">
-                      <input
-                        id={`input-${index}-finalizado`}
-                        type="number"
-                        min="0"
-                        value={data[expert].finalizado || ''}
-                        onChange={(e) => handleInputChange(expert, 'finalizado', e.target.value)}
-                        onKeyDown={(e) => handleKeyDown(e, index, 'finalizado', experts.length)}
-                        className="block w-full text-center rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm py-1.5"
-                        placeholder="0"
-                      />
-                    </td>
-                    <td className="whitespace-nowrap px-3 py-2 text-center text-sm font-bold text-gray-700 bg-gray-50">
-                      {calculateTotal(expert)}
-                    </td>
-                    <td className="whitespace-nowrap px-3 py-2">
-                      <input
-                        id={`input-${index}-observacao`}
-                        type="text"
-                        value={data[expert].observacao || ''}
-                        onChange={(e) => handleInputChange(expert, 'observacao', e.target.value)}
-                        onKeyDown={(e) => handleKeyDown(e, index, 'observacao', experts.length)}
-                        className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm py-1.5 px-3"
-                        placeholder="Ex: Atestado, Erro Sistêmico..."
-                      />
-                    </td>
-                  </tr>
-                ))}
+                {experts.map((expert, index) => {
+                  const isUrgent = data[expert].isUrgent || false;
+                  return (
+                    <tr key={expert} className={`transition-colors ${isUrgent ? 'bg-red-50 hover:bg-red-100' : 'hover:bg-gray-50'}`}>
+                      <td className="px-3 py-2 text-center">
+                        <button
+                          onClick={() => toggleUrgency(expert)}
+                          className={`p-1.5 rounded-full transition-all duration-200 ${
+                            isUrgent 
+                              ? 'bg-red-100 text-red-600 ring-2 ring-red-400 shadow-sm' 
+                              : 'text-gray-300 hover:text-red-400 hover:bg-gray-100'
+                          }`}
+                          title={isUrgent ? "Desmarcar Urgência" : "Marcar como Caso de Urgência"}
+                        >
+                          <Siren className={`w-4 h-4 ${isUrgent ? 'animate-pulse' : ''}`} />
+                        </button>
+                      </td>
+                      <td className="whitespace-nowrap py-3 pl-2 pr-3 text-sm font-medium text-gray-900">
+                        {expert}
+                        {isUrgent && <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">Urgente</span>}
+                      </td>
+                      <td className="whitespace-nowrap px-3 py-2 text-center bg-yellow-50/30">
+                        <input
+                          id={`input-${index}-tratado`}
+                          type="number"
+                          min="0"
+                          value={data[expert].tratado === 0 ? '' : data[expert].tratado}
+                          onChange={(e) => handleInputChange(expert, 'tratado', e.target.value)}
+                          onKeyDown={(e) => handleKeyDown(e, index, 'tratado', experts.length)}
+                          className="block w-full text-center rounded-md border-gray-300 shadow-sm focus:border-yellow-500 focus:ring-yellow-500 sm:text-sm py-1.5"
+                          placeholder="0"
+                        />
+                      </td>
+                      <td className="whitespace-nowrap px-3 py-2 text-center bg-green-50/30">
+                        <input
+                          id={`input-${index}-finalizado`}
+                          type="number"
+                          min="0"
+                          value={data[expert].finalizado === 0 ? '' : data[expert].finalizado}
+                          onChange={(e) => handleInputChange(expert, 'finalizado', e.target.value)}
+                          onKeyDown={(e) => handleKeyDown(e, index, 'finalizado', experts.length)}
+                          className="block w-full text-center rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm py-1.5"
+                          placeholder="0"
+                        />
+                      </td>
+                      <td className="whitespace-nowrap px-3 py-2 text-center text-sm font-bold text-gray-700 bg-gray-50">
+                        {calculateTotal(expert)}
+                      </td>
+                      <td className="whitespace-nowrap px-3 py-2">
+                        <input
+                          id={`input-${index}-observacao`}
+                          type="text"
+                          value={data[expert].observacao || ''}
+                          onChange={(e) => handleInputChange(expert, 'observacao', e.target.value)}
+                          onKeyDown={(e) => handleKeyDown(e, index, 'observacao', experts.length)}
+                          className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm py-1.5 px-3"
+                          placeholder="Ex: Atestado, Erro Sistêmico..."
+                        />
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
               <tfoot className="bg-gray-100 border-t-2 border-gray-300">
                 <tr>
-                   <td className="py-4 pl-4 pr-3 text-left text-base font-bold text-gray-900 sm:pl-6">
+                   <td className="px-3 py-4"></td>
+                   <td className="py-4 pl-2 pr-3 text-left text-base font-bold text-gray-900">
                      TOTAL DA EQUIPE
                    </td>
                    <td className="px-3 py-4 text-center text-base font-bold text-yellow-700">
@@ -393,7 +438,9 @@ function App() {
                    <td className="px-3 py-4 text-center text-lg font-extrabold text-indigo-700">
                      {grandTotals.total}
                    </td>
-                   <td className="px-3 py-4"></td>
+                   <td className="px-3 py-4 text-xs text-gray-500 italic text-center">
+                     {grandTotals.urgentes > 0 ? `${grandTotals.urgentes} caso(s) de urgência sinalizados` : ''}
+                   </td>
                 </tr>
               </tfoot>
             </table>
