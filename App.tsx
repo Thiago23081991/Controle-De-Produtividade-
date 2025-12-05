@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ClipboardList, Sparkles, Copy, RefreshCw, AlertTriangle, Keyboard, Calendar, Siren } from 'lucide-react';
+import { ClipboardList, Sparkles, Copy, RefreshCw, AlertTriangle, Keyboard, Calendar, Siren, FileSpreadsheet } from 'lucide-react';
 import { EXPERT_ROSTER } from './utils/parser';
 import { analyzeProductivity } from './services/geminiService';
 import { ManualEntryData } from './types';
@@ -189,6 +189,14 @@ function App() {
     return (data[expert]?.tratado || 0) + (data[expert]?.finalizado || 0);
   };
 
+  const getEfficiency = (expert: string) => {
+    const tratado = data[expert]?.tratado || 0;
+    const finalizado = data[expert]?.finalizado || 0;
+    const total = tratado + finalizado;
+    if (total === 0) return 0;
+    return Math.round((finalizado / total) * 100);
+  };
+
   const getGrandTotals = () => {
     let tratado = 0;
     let finalizado = 0;
@@ -207,8 +215,8 @@ function App() {
     const dateFormatted = `${d}/${m}/${y}`;
 
     let md = `## Relatório de Produtividade - ${dateFormatted}\n\n`;
-    md += `| Expert | Tratado (Em andamento) | Finalizado | Total | Observação |\n`;
-    md += `| :--- | :---: | :---: | :---: | :--- |\n`;
+    md += `| Expert | Tratado (Em andamento) | Finalizado | Total | Eficiência | Observação |\n`;
+    md += `| :--- | :---: | :---: | :---: | :---: | :--- |\n`;
 
     // Sort keys to ensure deterministic order in report
     const sortedExperts = Object.keys(data).sort((a, b) => a.localeCompare(b));
@@ -216,17 +224,19 @@ function App() {
     sortedExperts.forEach(expert => {
       const { tratado, finalizado, observacao, isUrgent } = data[expert];
       const total = tratado + finalizado;
+      const efficiency = total > 0 ? Math.round((finalizado / total) * 100) : 0;
       const obsSafe = observacao ? observacao.replace(/\|/g, '-') : ''; 
       
       // Add Urgency Indicator to Name or Observation
       const nameDisplay = isUrgent ? `${expert} 🚨` : expert;
       const obsDisplay = isUrgent ? `**[URGÊNCIA]** ${obsSafe}` : obsSafe;
 
-      md += `| ${nameDisplay} | ${tratado} | ${finalizado} | ${total} | ${obsDisplay} |\n`;
+      md += `| ${nameDisplay} | ${tratado} | ${finalizado} | ${total} | ${efficiency}% | ${obsDisplay} |\n`;
     });
 
     const grand = getGrandTotals();
-    md += `| **TOTAL GERAL** | **${grand.tratado}** | **${grand.finalizado}** | **${grand.total}** | **${grand.urgentes} Casos Urgentes** |`;
+    const grandEfficiency = grand.total > 0 ? Math.round((grand.finalizado / grand.total) * 100) : 0;
+    md += `| **TOTAL GERAL** | **${grand.tratado}** | **${grand.finalizado}** | **${grand.total}** | **${grandEfficiency}%** | **${grand.urgentes} Casos Urgentes** |`;
     
     return md;
   };
@@ -235,6 +245,37 @@ function App() {
     const md = generateMarkdown();
     navigator.clipboard.writeText(md);
     alert('Relatório copiado para a área de transferência!');
+  };
+
+  const handleExportCSV = () => {
+    // Format date for the filename
+    const [y, m, d] = selectedDate.split('-');
+    const dateFormatted = `${d}-${m}-${y}`;
+    
+    let csvContent = "data:text/csv;charset=utf-8,\uFEFF"; // UTF-8 BOM for Excel
+    csvContent += "Data,Expert,Urgente,Tratado,Finalizado,Total,Eficiência (%),Observação\n";
+
+    const sortedExperts = Object.keys(data).sort((a, b) => a.localeCompare(b));
+
+    sortedExperts.forEach(expert => {
+      const { tratado, finalizado, observacao, isUrgent } = data[expert];
+      const total = tratado + finalizado;
+      const efficiency = total > 0 ? Math.round((finalizado / total) * 100) : 0;
+      
+      // Escape quotes for CSV
+      const obsSafe = observacao ? `"${observacao.replace(/"/g, '""')}"` : "";
+      const urgentFlag = isUrgent ? "SIM" : "NAO";
+
+      csvContent += `${dateFormatted},"${expert}",${urgentFlag},${tratado},${finalizado},${total},${efficiency}%,${obsSafe}\n`;
+    });
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `produtividade_equipe_${dateFormatted}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   const handleReset = (e: React.MouseEvent) => {
@@ -295,7 +336,7 @@ function App() {
         </div>
 
         {/* Action Bar */}
-        <div className="flex flex-col sm:flex-row justify-between items-center gap-4 sticky top-4 z-10 bg-gray-100/90 py-3 backdrop-blur-sm border-b border-gray-200/50">
+        <div className="flex flex-col xl:flex-row justify-between items-center gap-4 sticky top-4 z-10 bg-gray-100/90 py-3 backdrop-blur-sm border-b border-gray-200/50">
            
            {/* Date Picker */}
            <div className="flex items-center gap-2 bg-white px-3 py-2 rounded-lg shadow-sm border border-gray-300">
@@ -308,24 +349,32 @@ function App() {
               />
            </div>
 
-           <div className="hidden lg:flex items-center gap-2 text-xs text-gray-500 bg-white px-3 py-2 rounded-full shadow-sm border border-gray-200">
+           <div className="hidden xl:flex items-center gap-2 text-xs text-gray-500 bg-white px-3 py-2 rounded-full shadow-sm border border-gray-200">
               <Keyboard className="w-4 h-4" />
               <span>Navegação: <strong>Setas</strong> | <strong>Enter</strong></span>
            </div>
 
-           <div className="flex gap-3 w-full sm:w-auto justify-end">
+           <div className="flex flex-wrap gap-2 w-full sm:w-auto justify-center sm:justify-end">
              <button
               type="button"
               onClick={handleReset}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-red-600 bg-white border border-red-200 rounded-md hover:bg-red-50 shadow-sm transition-colors cursor-pointer active:bg-red-100"
+              className="flex items-center gap-2 px-3 py-2 text-xs sm:text-sm font-medium text-red-600 bg-white border border-red-200 rounded-md hover:bg-red-50 shadow-sm transition-colors cursor-pointer active:bg-red-100"
             >
               <RefreshCw className="w-4 h-4" />
               Limpar
             </button>
             <button
               type="button"
+              onClick={handleExportCSV}
+              className="flex items-center gap-2 px-3 py-2 text-xs sm:text-sm font-medium text-green-700 bg-white border border-green-200 rounded-md hover:bg-green-50 shadow-sm transition-colors cursor-pointer active:bg-green-100"
+            >
+              <FileSpreadsheet className="w-4 h-4" />
+              Exportar CSV
+            </button>
+            <button
+              type="button"
               onClick={handleCopyMarkdown}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 shadow-sm transition-colors cursor-pointer active:bg-indigo-800"
+              className="flex items-center gap-2 px-3 py-2 text-xs sm:text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 shadow-sm transition-colors cursor-pointer active:bg-indigo-800"
             >
               <Copy className="w-4 h-4" />
               Copiar Relatório
@@ -340,9 +389,9 @@ function App() {
               <thead className="bg-gray-50">
                 <tr>
                   <th scope="col" className="px-3 py-3.5 text-center text-xs font-bold text-gray-500 uppercase tracking-wider w-12" title="Marcar Caso Urgente">
-                    <Siren className="w-4 h-4 mx-auto" />
+                    Urg.
                   </th>
-                  <th scope="col" className="py-3.5 pl-2 pr-3 text-left text-sm font-bold text-gray-900 uppercase tracking-wider w-1/4">
+                  <th scope="col" className="py-3.5 pl-2 pr-3 text-left text-sm font-bold text-gray-900 uppercase tracking-wider min-w-[200px]">
                     Expert
                   </th>
                   <th scope="col" className="px-3 py-3.5 text-center text-sm font-bold text-yellow-700 bg-yellow-50 uppercase tracking-wider w-24">
@@ -354,7 +403,10 @@ function App() {
                    <th scope="col" className="px-3 py-3.5 text-center text-sm font-bold text-gray-900 bg-gray-100 uppercase tracking-wider w-20">
                     Total
                   </th>
-                  <th scope="col" className="px-3 py-3.5 text-left text-sm font-bold text-gray-600 bg-gray-50 uppercase tracking-wider">
+                  <th scope="col" className="px-2 py-3.5 text-center text-xs font-bold text-blue-700 bg-blue-50 uppercase tracking-wider w-16" title="Eficiência (Finalizado / Total)">
+                    % Efic.
+                  </th>
+                  <th scope="col" className="px-3 py-3.5 text-left text-sm font-bold text-gray-600 bg-gray-50 uppercase tracking-wider min-w-[200px]">
                     Observação (Justificativa)
                   </th>
                 </tr>
@@ -362,20 +414,29 @@ function App() {
               <tbody className="divide-y divide-gray-200 bg-white">
                 {experts.map((expert, index) => {
                   const isUrgent = data[expert].isUrgent || false;
+                  const efficiency = getEfficiency(expert);
+                  
+                  // Color coding for efficiency
+                  let effColor = 'text-gray-500';
+                  let effBg = '';
+                  const total = calculateTotal(expert);
+                  
+                  if (total > 0) {
+                    if (efficiency >= 80) { effColor = 'text-green-700'; effBg = 'bg-green-50'; }
+                    else if (efficiency < 50) { effColor = 'text-red-600'; effBg = 'bg-red-50'; }
+                    else { effColor = 'text-blue-600'; }
+                  }
+
                   return (
                     <tr key={expert} className={`transition-colors ${isUrgent ? 'bg-red-50 hover:bg-red-100' : 'hover:bg-gray-50'}`}>
                       <td className="px-3 py-2 text-center">
-                        <button
-                          onClick={() => toggleUrgency(expert)}
-                          className={`p-1.5 rounded-full transition-all duration-200 ${
-                            isUrgent 
-                              ? 'bg-red-100 text-red-600 ring-2 ring-red-400 shadow-sm' 
-                              : 'text-gray-300 hover:text-red-400 hover:bg-gray-100'
-                          }`}
-                          title={isUrgent ? "Desmarcar Urgência" : "Marcar como Caso de Urgência"}
-                        >
-                          <Siren className={`w-4 h-4 ${isUrgent ? 'animate-pulse' : ''}`} />
-                        </button>
+                        <input
+                            type="checkbox"
+                            checked={isUrgent}
+                            onChange={() => toggleUrgency(expert)}
+                            className="w-5 h-5 text-red-600 bg-gray-100 border-gray-300 rounded focus:ring-red-500 focus:ring-2 cursor-pointer accent-red-600"
+                            title="Marcar como Urgente"
+                        />
                       </td>
                       <td className="whitespace-nowrap py-3 pl-2 pr-3 text-sm font-medium text-gray-900">
                         {expert}
@@ -408,6 +469,9 @@ function App() {
                       <td className="whitespace-nowrap px-3 py-2 text-center text-sm font-bold text-gray-700 bg-gray-50">
                         {calculateTotal(expert)}
                       </td>
+                      <td className={`whitespace-nowrap px-2 py-2 text-center text-xs font-bold ${effColor} ${effBg}`}>
+                         {total > 0 ? `${efficiency}%` : '-'}
+                      </td>
                       <td className="whitespace-nowrap px-3 py-2">
                         <input
                           id={`input-${index}-observacao`}
@@ -438,8 +502,11 @@ function App() {
                    <td className="px-3 py-4 text-center text-lg font-extrabold text-indigo-700">
                      {grandTotals.total}
                    </td>
+                   <td className="px-3 py-4 text-center text-xs font-bold text-blue-700">
+                      {grandTotals.total > 0 ? `${Math.round((grandTotals.finalizado / grandTotals.total) * 100)}%` : '-'}
+                   </td>
                    <td className="px-3 py-4 text-xs text-gray-500 italic text-center">
-                     {grandTotals.urgentes > 0 ? `${grandTotals.urgentes} caso(s) de urgência sinalizados` : ''}
+                     {grandTotals.urgentes > 0 ? `${grandTotals.urgentes} urgência(s)` : ''}
                    </td>
                 </tr>
               </tfoot>
