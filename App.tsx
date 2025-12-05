@@ -428,7 +428,7 @@ function App() {
                   }
 
                   return (
-                    <tr key={expert} className={`transition-colors ${isUrgent ? 'bg-red-50 hover:bg-red-100' : 'hover:bg-gray-50'}`}>
+                    <tr key={expert} className={`transition-colors ${isUrgent ? 'bg-red-100 hover:bg-red-200' : 'hover:bg-gray-50'}`}>
                       <td className="px-3 py-2 text-center">
                         <input
                             type="checkbox"
@@ -439,8 +439,10 @@ function App() {
                         />
                       </td>
                       <td className="whitespace-nowrap py-3 pl-2 pr-3 text-sm font-medium text-gray-900">
-                        {expert}
-                        {isUrgent && <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">Urgente</span>}
+                        <div className="flex items-center gap-2">
+                            {expert}
+                            {isUrgent && <Siren className="w-5 h-5 text-red-600 animate-pulse" />}
+                        </div>
                       </td>
                       <td className="whitespace-nowrap px-3 py-2 text-center bg-yellow-50/30">
                         <input
