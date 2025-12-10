@@ -35,5 +35,6 @@ export interface ManualEntryData {
     finalizado: number;
     observacao?: string;
     isUrgent?: boolean;
+    goal?: number;
   };
 }

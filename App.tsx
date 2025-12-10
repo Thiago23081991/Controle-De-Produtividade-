@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ClipboardList, Sparkles, Copy, RefreshCw, AlertTriangle, Keyboard, Calendar, Siren, FileSpreadsheet, Trophy } from 'lucide-react';
+import { ClipboardList, Sparkles, Copy, RefreshCw, AlertTriangle, Keyboard, Calendar, Siren, FileSpreadsheet, Trophy, Target } from 'lucide-react';
 import { EXPERT_ROSTER } from './utils/parser';
 import { analyzeProductivity } from './services/geminiService';
 import { ManualEntryData } from './types';
@@ -28,7 +28,7 @@ function App() {
     // Base empty structure based on current Roster
     const sortedRoster = [...EXPERT_ROSTER].sort((a, b) => a.localeCompare(b));
     const emptyData = sortedRoster.reduce((acc, name) => {
-      acc[name] = { tratado: 0, finalizado: 0, observacao: '', isUrgent: false };
+      acc[name] = { tratado: 0, finalizado: 0, observacao: '', isUrgent: false, goal: 0 };
       return acc;
     }, {} as ManualEntryData);
 
@@ -62,7 +62,7 @@ function App() {
     
     const sortedRoster = [...EXPERT_ROSTER].sort((a, b) => a.localeCompare(b));
     const emptyData = sortedRoster.reduce((acc, name) => {
-      acc[name] = { tratado: 0, finalizado: 0, observacao: '', isUrgent: false };
+      acc[name] = { tratado: 0, finalizado: 0, observacao: '', isUrgent: false, goal: 0 };
       return acc;
     }, {} as ManualEntryData);
 
@@ -88,7 +88,7 @@ function App() {
     setAiAnalysis(null);
   };
 
-  const handleInputChange = (expert: string, field: 'tratado' | 'finalizado' | 'observacao', value: string) => {
+  const handleInputChange = (expert: string, field: 'tratado' | 'finalizado' | 'observacao' | 'goal', value: string) => {
     if (field === 'observacao') {
       setData(prev => ({
         ...prev,
@@ -127,11 +127,11 @@ function App() {
   const handleKeyDown = (
     e: React.KeyboardEvent<HTMLInputElement>,
     index: number,
-    field: 'tratado' | 'finalizado' | 'observacao',
+    field: 'tratado' | 'finalizado' | 'observacao' | 'goal',
     expertListLength: number
   ) => {
     // Helper function to focus specific input by ID
-    const focusInput = (idx: number, f: 'tratado' | 'finalizado' | 'observacao') => {
+    const focusInput = (idx: number, f: 'tratado' | 'finalizado' | 'observacao' | 'goal') => {
       const el = document.getElementById(`input-${idx}-${f}`);
       if (el) {
         (el as HTMLInputElement).focus();
@@ -139,35 +139,25 @@ function App() {
     };
 
     if (e.key === 'ArrowRight') {
-      // Allow default behavior if cursor is not at end of text, but for numbers we usually just navigate
-      // Only prevent default if we actually move focus
-      if (field === 'tratado') {
+      if (field === 'goal') {
+        e.preventDefault();
+        focusInput(index, 'tratado');
+      } else if (field === 'tratado') {
         e.preventDefault();
         focusInput(index, 'finalizado');
       } else if (field === 'finalizado') {
         e.preventDefault();
         focusInput(index, 'observacao');
-      } else {
-        // From observation, go to next row's tratado
-        if (index + 1 < expertListLength) {
-          // e.preventDefault(); // Optional: Keep default behavior in text field or move? Usually move is better for power users
-          // focusInput(index + 1, 'tratado');
-        }
       }
     } else if (e.key === 'ArrowLeft') {
       if (field === 'observacao') {
-        // Check if cursor is at start? Simplified: just move
-        // e.preventDefault(); 
-        // focusInput(index, 'finalizado');
+        // focusInput(index, 'finalizado'); // Let default behavior handle text nav often
       } else if (field === 'finalizado') {
         e.preventDefault();
         focusInput(index, 'tratado');
-      } else {
-        // From tratado, go to prev row's observacao
-        if (index - 1 >= 0) {
-           e.preventDefault();
-           focusInput(index - 1, 'observacao');
-        }
+      } else if (field === 'tratado') {
+        e.preventDefault();
+        focusInput(index, 'goal');
       }
     } else if (e.key === 'ArrowDown') {
       e.preventDefault();
@@ -182,12 +172,14 @@ function App() {
     } else if (e.key === 'Enter') {
       e.preventDefault();
       // Enter behaves like Tab/Next
-      if (field === 'tratado') {
+      if (field === 'goal') {
+        focusInput(index, 'tratado');
+      } else if (field === 'tratado') {
         focusInput(index, 'finalizado');
       } else if (field === 'finalizado') {
         focusInput(index, 'observacao');
       } else if (index + 1 < expertListLength) {
-        focusInput(index + 1, 'tratado');
+        focusInput(index + 1, 'goal');
       }
     }
   };
@@ -227,32 +219,35 @@ function App() {
     const dateFormatted = `${d}/${m}/${y}`;
 
     let md = `## Relatório de Produtividade - ${dateFormatted}\n\n`;
-    md += `| Expert | Tratado (Em andamento) | Finalizado | Total | Eficiência | Observação |\n`;
-    md += `| :--- | :---: | :---: | :---: | :---: | :--- |\n`;
+    md += `| Expert | Meta | Tratado | Finalizado | Total | Eficiência | Observação |\n`;
+    md += `| :--- | :---: | :---: | :---: | :---: | :---: | :--- |\n`;
 
     // Sort keys to ensure deterministic order in report
     const sortedExperts = Object.keys(data).sort((a, b) => a.localeCompare(b));
 
     sortedExperts.forEach(expert => {
-      const { tratado, finalizado, observacao, isUrgent } = data[expert];
+      const { tratado, finalizado, observacao, isUrgent, goal } = data[expert];
       const total = tratado + finalizado;
       const efficiency = total > 0 ? Math.round((finalizado / total) * 100) : 0;
       const obsSafe = observacao ? observacao.replace(/\|/g, '-') : ''; 
       const isTopPerformer = maxFinalized > 0 && finalizado === maxFinalized;
+      const metGoal = (goal || 0) > 0 && finalizado >= (goal || 0);
       
       // Add Urgency Indicator to Name or Observation
       let nameDisplay = expert;
       if (isUrgent) nameDisplay += " 🚨";
       if (isTopPerformer) nameDisplay += " 🏆";
+      if (metGoal) nameDisplay += " 🎯";
 
       const obsDisplay = isUrgent ? `**[URGÊNCIA]** ${obsSafe}` : obsSafe;
+      const goalDisplay = goal && goal > 0 ? goal : '-';
 
-      md += `| ${nameDisplay} | ${tratado} | ${finalizado} | ${total} | ${efficiency}% | ${obsDisplay} |\n`;
+      md += `| ${nameDisplay} | ${goalDisplay} | ${tratado} | ${finalizado} | ${total} | ${efficiency}% | ${obsDisplay} |\n`;
     });
 
     const grand = getGrandTotals();
     const grandEfficiency = grand.total > 0 ? Math.round((grand.finalizado / grand.total) * 100) : 0;
-    md += `| **TOTAL GERAL** | **${grand.tratado}** | **${grand.finalizado}** | **${grand.total}** | **${grandEfficiency}%** | **${grand.urgentes} Casos Urgentes** |`;
+    md += `| **TOTAL GERAL** | - | **${grand.tratado}** | **${grand.finalizado}** | **${grand.total}** | **${grandEfficiency}%** | **${grand.urgentes} Casos Urgentes** |`;
     
     return md;
   };
@@ -269,22 +264,25 @@ function App() {
     const dateFormatted = `${d}-${m}-${y}`;
     
     let csvContent = "data:text/csv;charset=utf-8,\uFEFF"; // UTF-8 BOM for Excel
-    csvContent += "Data,Expert,Urgente,Top Performer,Tratado,Finalizado,Total,Eficiência (%),Observação\n";
+    csvContent += "Data,Expert,Urgente,Meta,Bateu Meta,Top Performer,Tratado,Finalizado,Total,Eficiência (%),Observação\n";
 
     const sortedExperts = Object.keys(data).sort((a, b) => a.localeCompare(b));
 
     sortedExperts.forEach(expert => {
-      const { tratado, finalizado, observacao, isUrgent } = data[expert];
+      const { tratado, finalizado, observacao, isUrgent, goal } = data[expert];
       const total = tratado + finalizado;
       const efficiency = total > 0 ? Math.round((finalizado / total) * 100) : 0;
       const isTopPerformer = maxFinalized > 0 && finalizado === maxFinalized;
+      const metGoal = (goal || 0) > 0 && finalizado >= (goal || 0);
 
       // Escape quotes for CSV
       const obsSafe = observacao ? `"${observacao.replace(/"/g, '""')}"` : "";
       const urgentFlag = isUrgent ? "SIM" : "NAO";
       const topFlag = isTopPerformer ? "SIM" : "NAO";
+      const goalMetFlag = metGoal ? "SIM" : "NAO";
+      const goalVal = goal && goal > 0 ? goal : 0;
 
-      csvContent += `${dateFormatted},"${expert}",${urgentFlag},${topFlag},${tratado},${finalizado},${total},${efficiency}%,${obsSafe}\n`;
+      csvContent += `${dateFormatted},"${expert}",${urgentFlag},${goalVal},${goalMetFlag},${topFlag},${tratado},${finalizado},${total},${efficiency}%,${obsSafe}\n`;
     });
 
     const encodedUri = encodeURI(csvContent);
@@ -298,13 +296,31 @@ function App() {
 
   const handleReset = (e: React.MouseEvent) => {
     e.preventDefault();
-    if (window.confirm("Tem certeza que deseja zerar todos os campos para esta data?")) {
-      const resetData = EXPERT_ROSTER.reduce((acc, name) => {
-        acc[name] = { tratado: 0, finalizado: 0, observacao: '', isUrgent: false };
-        return acc;
-      }, {} as ManualEntryData);
-      
-      setData(resetData);
+    if (window.confirm("Confirma zerar a produção de hoje? (As Metas configuradas serão mantidas)")) {
+      setData(prev => {
+        const newData = { ...prev };
+        
+        // Reset current experts but keep goals
+        Object.keys(newData).forEach(key => {
+            newData[key] = {
+                ...newData[key],
+                tratado: 0,
+                finalizado: 0,
+                observacao: '',
+                isUrgent: false,
+                goal: newData[key].goal || 0 // Preserve goal
+            };
+        });
+
+        // Ensure Roster experts are present
+        EXPERT_ROSTER.forEach(name => {
+            if (!newData[name]) {
+                newData[name] = { tratado: 0, finalizado: 0, observacao: '', isUrgent: false, goal: 0 };
+            }
+        });
+
+        return newData;
+      });
       setAiAnalysis(null);
     }
   };
@@ -349,7 +365,7 @@ function App() {
             Controle de Produtividade
           </h1>
           <p className="mt-2 text-gray-600">
-            Gerencie a produção diária da equipe.
+            Gerencie a produção diária da equipe e monitore metas.
           </p>
         </div>
 
@@ -379,7 +395,7 @@ function App() {
               className="flex items-center gap-2 px-3 py-2 text-xs sm:text-sm font-medium text-red-600 bg-white border border-red-200 rounded-md hover:bg-red-50 shadow-sm transition-colors cursor-pointer active:bg-red-100"
             >
               <RefreshCw className="w-4 h-4" />
-              Limpar Dia
+              Zerar Produção
             </button>
             <button
               type="button"
@@ -412,6 +428,9 @@ function App() {
                   <th scope="col" className="py-3.5 pl-2 pr-3 text-left text-sm font-bold text-gray-900 uppercase tracking-wider min-w-[200px]">
                     Expert
                   </th>
+                  <th scope="col" className="px-3 py-3.5 text-center text-sm font-bold text-indigo-700 bg-indigo-50 uppercase tracking-wider w-20" title="Meta de Finalizados">
+                    Meta
+                  </th>
                   <th scope="col" className="px-3 py-3.5 text-center text-sm font-bold text-yellow-700 bg-yellow-50 uppercase tracking-wider w-24">
                     Tratado
                   </th>
@@ -436,6 +455,10 @@ function App() {
                   const isTopPerformer = maxFinalized > 0 && finalizadoCount === maxFinalized;
                   const efficiency = getEfficiency(expert);
                   
+                  // Goal Logic
+                  const goal = data[expert].goal || 0;
+                  const metGoal = goal > 0 && finalizadoCount >= goal;
+
                   // Color coding for efficiency
                   let effColor = 'text-gray-500';
                   let effBg = '';
@@ -463,7 +486,21 @@ function App() {
                             {expert}
                             {isUrgent && <Siren className="w-5 h-5 text-red-600 animate-pulse" />}
                             {isTopPerformer && <Trophy className="w-5 h-5 text-yellow-500 animate-bounce" />}
+                            {metGoal && <Target className="w-5 h-5 text-indigo-600" />}
                         </div>
+                      </td>
+                       {/* GOAL INPUT */}
+                       <td className="whitespace-nowrap px-3 py-2 text-center bg-indigo-50/20">
+                        <input
+                          id={`input-${index}-goal`}
+                          type="number"
+                          min="0"
+                          value={data[expert].goal === 0 ? '' : data[expert].goal}
+                          onChange={(e) => handleInputChange(expert, 'goal', e.target.value)}
+                          onKeyDown={(e) => handleKeyDown(e, index, 'goal', experts.length)}
+                          className="block w-full text-center rounded-md border-gray-300 border-dashed shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm py-1.5 text-gray-500"
+                          placeholder="-"
+                        />
                       </td>
                       <td className="whitespace-nowrap px-3 py-2 text-center bg-yellow-50/30">
                         <input
@@ -477,6 +514,7 @@ function App() {
                           placeholder="0"
                         />
                       </td>
+                      {/* FINALIZADO INPUT */}
                       <td className={`whitespace-nowrap px-3 py-2 text-center ${isTopPerformer ? 'bg-green-200' : 'bg-green-50/30'}`}>
                         <input
                           id={`input-${index}-finalizado`}
@@ -485,7 +523,7 @@ function App() {
                           value={data[expert].finalizado === 0 ? '' : data[expert].finalizado}
                           onChange={(e) => handleInputChange(expert, 'finalizado', e.target.value)}
                           onKeyDown={(e) => handleKeyDown(e, index, 'finalizado', experts.length)}
-                          className={`block w-full text-center rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm py-1.5 ${isTopPerformer ? 'font-bold text-green-900 border-green-500 ring-1 ring-green-500' : ''}`}
+                          className={`block w-full text-center rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm py-1.5 ${isTopPerformer ? 'font-bold text-green-900 border-green-500 ring-1 ring-green-500' : ''} ${metGoal ? 'ring-2 ring-indigo-500 bg-indigo-50 font-bold text-indigo-800' : ''}`}
                           placeholder="0"
                         />
                       </td>
@@ -515,6 +553,10 @@ function App() {
                    <td className="px-3 py-4"></td>
                    <td className="py-4 pl-2 pr-3 text-left text-base font-bold text-gray-900">
                      TOTAL DA EQUIPE
+                   </td>
+                   <td className="px-3 py-4 text-center text-sm font-bold text-indigo-500">
+                     {/* Sum of goals, just for reference, or empty */}
+                     -
                    </td>
                    <td className="px-3 py-4 text-center text-base font-bold text-yellow-700">
                      {grandTotals.tratado}
