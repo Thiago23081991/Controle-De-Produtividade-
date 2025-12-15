@@ -2,23 +2,34 @@ import { GoogleGenAI } from "@google/genai";
 import { MatrixData, ManualEntryData, TimeSlot } from "../types";
 
 export const analyzeProductivity = async (data: MatrixData | ManualEntryData): Promise<string> => {
-  let apiKey: string | undefined;
-  
-  // 1. Try accessing standard process.env (Node/Bundler environment)
+  let apiKey = '';
+
+  // 1. Tenta recuperar do process.env (Node/Webpack/Polyfill)
   try {
-    apiKey = process.env.API_KEY;
-  } catch (e) {
-    // Ignore ReferenceError if process is not defined
+    if (typeof process !== 'undefined' && process.env) {
+      apiKey = process.env.API_KEY || '';
+    }
+  } catch (e) {}
+
+  // 2. Tenta recuperar do import.meta.env (Padrão Vite)
+  if (!apiKey) {
+    try {
+      // @ts-ignore - import.meta pode não existir em todos os ambientes TS
+      if (typeof import.meta !== 'undefined' && import.meta.env) {
+        // @ts-ignore
+        apiKey = import.meta.env.API_KEY || import.meta.env.VITE_API_KEY || import.meta.env.GOOGLE_API_KEY || '';
+      }
+    } catch (e) {}
   }
 
-  // 2. Fallback: Access via window object (Browser Polyfill from index.tsx)
+  // 3. Fallback: Tenta recuperar do window object (Browser direto)
   if (!apiKey && typeof window !== 'undefined') {
     const win = window as any;
-    apiKey = win.process?.env?.API_KEY;
+    apiKey = win.process?.env?.API_KEY || win.API_KEY || '';
   }
 
   if (!apiKey) {
-    return "⚠️ **Configuração Necessária**: A variável de ambiente `API_KEY` não foi encontrada.\n\nPor favor, configure uma chave válida do Google Gemini (começando com 'AIza...') para utilizar a análise inteligente.";
+    return "⚠️ **Configuração Necessária**: A variável de ambiente `API_KEY` não foi encontrada.\n\nPor favor, verifique se sua chave (começando com 'AIza...') está definida no arquivo `.env` (como `API_KEY` ou `VITE_API_KEY`) ou nas configurações do seu provedor de hospedagem.";
   }
 
   try {
