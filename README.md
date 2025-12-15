@@ -1,20 +1,47 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# Produtividade Service Desk
 
-# Run and deploy your AI Studio app
+Ferramenta para gestão e análise de produtividade da equipe de atendimento, permitindo o registro manual de casos e fornecendo insights via Inteligência Artificial.
 
-This contains everything you need to run your app locally.
+## Funcionalidades
 
-View your app in AI Studio: https://ai.studio/apps/drive/1TwV1LxP7UK6s3TJIxtdrP7EeZEC5t5Jb
+- **Gestão de Produtividade**:
+  - Registro de casos "Tratados" (em andamento) e "Finalizados".
+  - Definição e acompanhamento de **Metas** individuais.
+  - Checkbox para sinalizar **Casos Urgentes** (🚨).
+  - Campo de observação para justificativas (Atestados, falhas, etc.).
 
-## Run Locally
+- **Indicadores Visuais**:
+  - Cálculo automático de eficiência (%).
+  - Destaque para **Top Performer** (🏆).
+  - Indicador de **Meta Batida** (🎯).
+  - Gráfico de barras comparativo (Tratado vs Finalizado vs Meta).
 
-**Prerequisites:**  Node.js
+- **Inteligência Artificial (Gemini)**:
+  - Geração de resumos executivos detalhados.
+  - Análise de performance e pontos de atenção.
 
+- **Utilitários**:
+  - Persistência de dados local (LocalStorage).
+  - Exportação para **CSV** (Excel).
+  - Cópia de relatório em formato **Markdown** para comunicação rápida.
+  - Navegação via teclado para preenchimento rápido.
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+## Tecnologias Utilizadas
+
+- **Frontend**: React 19, TypeScript, Tailwind CSS.
+- **AI**: Google GenAI SDK (Gemini 2.5 Flash).
+- **Ícones**: Lucide React.
+
+## Como Executar
+
+Este projeto foi desenhado para rodar em ambientes web modernos que suportam ES Modules.
+
+1. Configure a variável de ambiente `API_KEY` com sua chave do Google Gemini.
+2. Inicie a aplicação.
+
+## Estrutura do Projeto
+
+- `App.tsx`: Componente principal e lógica de estado.
+- `services/geminiService.ts`: Integração com a API do Google Gemini.
+- `utils/parser.ts`: Lista de Experts e utilitários de parsing.
+- `components/`: Componentes de UI (Gráficos, Tabelas).

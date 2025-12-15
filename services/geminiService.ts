@@ -2,83 +2,98 @@ import { GoogleGenAI } from "@google/genai";
 import { MatrixData, ManualEntryData, TimeSlot } from "../types";
 
 export const analyzeProductivity = async (data: MatrixData | ManualEntryData): Promise<string> => {
-  // Utilizando a API Key fornecida explicitamente.
-  const apiKey = "sk-0f2650b9f3384bd288f46137cfe37ae7";
+  let apiKey: string | undefined;
+  
+  try {
+    // Safely access process.env to avoid ReferenceError in some browser environments
+    apiKey = process.env.API_KEY;
+  } catch (e) {
+    console.error("Error accessing process.env:", e);
+    return "❌ **Erro de Configuração**: O ambiente não suporta `process.env`. Verifique a configuração do bundler (Vite/Webpack).";
+  }
 
   if (!apiKey) {
-    return "API Key não configurada. Não é possível gerar análise com IA.";
+    return "⚠️ **Configuração Necessária**: A variável de ambiente `API_KEY` não foi encontrada. Certifique-se de que sua chave do Google Gemini está configurada.";
   }
 
   try {
     const ai = new GoogleGenAI({ apiKey: apiKey });
     
-    // Detect data type to customize the prompt
-    // Check the first entry to see if it has 'tratado' property
     const keys = Object.keys(data);
-    const isManualEntry = keys.length > 0 && 'tratado' in (data[keys[0]] as any);
+    if (keys.length === 0) {
+      return "⚠️ Não há dados suficientes para análise.";
+    }
 
+    // Detect data type to customize the prompt
+    // We check if the first entry has the 'tratado' property which is specific to ManualEntryData
+    const isManualEntry = typeof (data[keys[0]] as any).tratado !== 'undefined';
     const dataString = JSON.stringify(data, null, 2);
-    let prompt = "";
+    
+    const systemInstruction = "Você é um Controlador de Produtividade de Atendimento. Sua função é ler uma lista de registros de suporte, identificar tendências de produtividade, avaliar a eficiência da equipe e destacar pontos de atenção e destaque.";
+
+    let userPrompt = "";
 
     if (isManualEntry) {
-      // Prompt for Manual Entry (Tratado vs Finalizado)
-      prompt = `
-        Atue como um Gerente de Atendimento Sênior. 
-        Analise os dados de produtividade abaixo, que foram inseridos manualmente.
-        Os campos são: 
-        - "Tratado": Casos em andamento/análise.
-        - "Finalizado": Casos resolvidos/vendidos com sucesso.
-        - "Observacao": Justificativas operacionais (ex: atestado, falha sistêmica, treinamento, feedback).
-        - "isUrgent": Booleano (true/false) que indica se o expert está focado em "Tratativa de Caso de Urgência".
+      // Prompt for Manual Entry
+      userPrompt = `
+        Analise os dados de produtividade abaixo (Manual Entry).
+        Campos: "Tratado" (andamento), "Finalizado" (resolvido), "Observacao" (justificativa), "isUrgent" (prioridade), "goal" (meta).
         
         DADOS:
         ${dataString}
 
-        Forneça um resumo executivo estratégico em Português do Brasil seguindo estritamente esta estrutura:
+        Gere um resumo executivo em Português do Brasil:
+        1. **Destaques de Performance**: Top Performer (maior 'Finalizado') e quem bateu a Meta.
+        2. **Eficiência**: Análise da taxa de conversão (Finalizado/Total).
+        3. **Gestão de Urgência**: Liste quem está marcado como urgente ('isUrgent': true) e isente-os de cobrança por volume.
+        4. **Observações**: Resuma as justificativas do campo 'Observacao'.
+        5. **Pontos de Atenção**: Baixa performance sem justificativa.
 
-        1. **Destaques de Performance**: Quem é o Top Performer em volume TOTAL e quem mais converteu em FINALIZADOS.
-        2. **Eficiência Operacional**: Visão geral da equipe (Proporção de Finalizados vs Tratados).
-        3. **Casos de Urgência & Observações**:
-           - Liste explicitamente os Experts marcados com urgência ("isUrgent": true) e explique que eles estão em atendimento prioritário, o que justifica números diferentes.
-           - Agrupe e sumarize as outras justificativas do campo "Observacao".
-        4. **Pontos de Atenção**: Aponte experts com baixa produção não justificada. IMPORTANTE: Se houver "Observacao" (como Atestado) ou "Urgência", ISENTE o expert de crítica negativa.
-
-        Use formatação Markdown simples (negrito, bullet points). Seja direto e profissional.
+        Seja direto, profissional e use Markdown.
       `;
     } else {
-      // Prompt for Matrix Data (Time Slots)
-      prompt = `
-        Atue como um Controlador de Produtividade Sênior.
-        Analise a Matriz de Produtividade abaixo.
-        Os dados mostram a quantidade de casos FINALIZADOS por faixa de horário (Time Slots).
+      // Prompt for Matrix Data
+      userPrompt = `
+        Analise a Matriz de Produtividade (Time Slots) abaixo.
+        Dados: Quantidade de casos FINALIZADOS por faixa de horário.
         
         DADOS:
         ${dataString}
 
-        As faixas de horário são:
-        - ${TimeSlot.EARLY}
-        - ${TimeSlot.MORNING}
-        - ${TimeSlot.LUNCH}
-        - ${TimeSlot.AFTERNOON}
-        - ${TimeSlot.LATE}
+        Faixas: ${TimeSlot.EARLY}, ${TimeSlot.MORNING}, ${TimeSlot.LUNCH}, ${TimeSlot.AFTERNOON}, ${TimeSlot.LATE}.
 
-        Forneça um resumo executivo curto (máximo 3 parágrafos) em Português do Brasil destacando:
-        1. **Top Performers**: Quem teve maior entrega total de casos finalizados.
-        2. **Análise de Horários**: Qual foi o período do dia mais produtivo da equipe em geral?
-        3. **Consistência**: Identifique quem manteve um ritmo constante vs. quem teve picos de produção em horários específicos.
-
-        Use formatação Markdown simples (negrito, bullet points). Seja conciso.
+        Gere um resumo em Português do Brasil (max 3 parágrafos):
+        1. **Top Performers**: Maior volume total.
+        2. **Pico de Produtividade**: Qual horário a equipe produz mais.
+        3. **Consistência**: Quem mantém ritmo constante vs picos isolados.
       `;
     }
 
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
-      contents: prompt,
+      contents: [{ text: userPrompt }], // Using explicit parts array for best practice
+      config: {
+        systemInstruction: systemInstruction,
+      }
     });
 
-    return response.text || "Não foi possível gerar a análise.";
-  } catch (error) {
+    return response.text || "⚠️ A IA processou a solicitação mas não retornou texto.";
+
+  } catch (error: any) {
     console.error("Gemini Analysis Error:", error);
-    return "Erro ao conectar com a IA para análise. Verifique o console para mais detalhes.";
+    
+    let errorMsg = error.message || JSON.stringify(error);
+    
+    if (errorMsg.includes("401") || errorMsg.includes("INVALID_ARGUMENT")) {
+      return `❌ **Erro de Autenticação (401)**: A API Key fornecida é inválida ou expirou. Verifique se você está usando uma chave Google ('AIza...') válida.`;
+    }
+    if (errorMsg.includes("403")) {
+        return `❌ **Acesso Negado (403)**: A chave de API não tem permissão para usar este modelo ou está restrita por região.`;
+    }
+    if (errorMsg.includes("404") || errorMsg.includes("NOT_FOUND")) {
+      return `❌ **Modelo não encontrado (404)**: O modelo 'gemini-2.5-flash' pode não estar disponível para sua chave atual.`;
+    }
+    
+    return `❌ **Erro de Conexão**: ${errorMsg}`;
   }
 };

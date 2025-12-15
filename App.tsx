@@ -327,11 +327,12 @@ function App() {
 
   const handleAiAnalysis = async () => {
     setIsAnalyzing(true);
+    setAiAnalysis(null); // Clear previous
     try {
       const analysis = await analyzeProductivity(data);
       setAiAnalysis(analysis);
     } catch (e) {
-      setAiAnalysis("Erro ao gerar análise. Verifique o console.");
+      setAiAnalysis("❌ **Erro Inesperado**: Consulte o console do desenvolvedor.");
     } finally {
       setIsAnalyzing(false);
     }
@@ -339,6 +340,9 @@ function App() {
 
   const grandTotals = getGrandTotals();
   const experts = Object.keys(data).sort((a, b) => a.localeCompare(b));
+
+  // Determine if the analysis result is an error message to style it
+  const isAnalysisError = aiAnalysis?.startsWith("❌") || aiAnalysis?.startsWith("⚠️");
 
   if (experts.length === 0) {
     return (
@@ -583,16 +587,18 @@ function App() {
         <PerformanceChart data={data} />
 
         {/* AI Analysis Section */}
-        <div className="bg-gradient-to-r from-indigo-50 to-purple-50 shadow-md rounded-xl p-6 border border-indigo-100">
+        <div className={`shadow-md rounded-xl p-6 border ${isAnalysisError ? 'bg-red-50 border-red-200' : 'bg-gradient-to-r from-indigo-50 to-purple-50 border-indigo-100'}`}>
           <div className="flex justify-between items-start mb-4">
             <div>
-                <h3 className="text-lg font-bold text-indigo-900 flex items-center gap-2">
-                <Sparkles className="w-5 h-5 text-purple-600" />
-                Análise Inteligente (IA)
+                <h3 className={`text-lg font-bold flex items-center gap-2 ${isAnalysisError ? 'text-red-800' : 'text-indigo-900'}`}>
+                {isAnalysisError ? <AlertTriangle className="w-5 h-5 text-red-600"/> : <Sparkles className="w-5 h-5 text-purple-600" />}
+                {isAnalysisError ? 'Erro na Análise' : 'Análise Inteligente (IA)'}
               </h3>
-              <p className="text-sm text-indigo-700 mt-1">
-                Obtenha um resumo executivo sobre a performance da equipe hoje.
-              </p>
+              {!isAnalysisError && (
+                  <p className="text-sm text-indigo-700 mt-1">
+                    Obtenha um resumo executivo sobre a performance da equipe hoje.
+                  </p>
+              )}
             </div>
             {!aiAnalysis && (
               <button 
@@ -604,10 +610,20 @@ function App() {
                 {isAnalyzing ? 'Analisando...' : 'Gerar Análise'}
               </button>
             )}
+            {aiAnalysis && (
+               <button 
+               type="button"
+               onClick={handleAiAnalysis}
+               disabled={isAnalyzing}
+               className="px-3 py-1.5 text-xs bg-white text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50 transition shadow-sm"
+             >
+               Regerar
+             </button>
+            )}
           </div>
           
           {aiAnalysis && (
-            <div className="bg-white/80 p-5 rounded-lg border border-indigo-100 text-gray-800 prose prose-sm max-w-none">
+            <div className={`p-5 rounded-lg border ${isAnalysisError ? 'bg-red-100 border-red-200 text-red-800' : 'bg-white/80 border-indigo-100 text-gray-800'} prose prose-sm max-w-none`}>
               <div dangerouslySetInnerHTML={{ __html: aiAnalysis.replace(/\n/g, '<br/>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') }} />
             </div>
           )}
