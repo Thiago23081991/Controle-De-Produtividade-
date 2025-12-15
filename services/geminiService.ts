@@ -18,7 +18,7 @@ export const analyzeProductivity = async (data: MatrixData | ManualEntryData): P
   }
 
   if (!apiKey) {
-    return "⚠️ **Configuração Necessária**: A variável de ambiente `API_KEY` não foi encontrada. Certifique-se de que sua chave do Google Gemini está configurada.";
+    return "⚠️ **Configuração Necessária**: A variável de ambiente `API_KEY` não foi encontrada.\n\nPor favor, configure uma chave válida do Google Gemini (começando com 'AIza...') para utilizar a análise inteligente.";
   }
 
   try {

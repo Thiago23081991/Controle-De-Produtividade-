@@ -12,11 +12,9 @@ if (typeof win.process.env === 'undefined') {
   win.process.env = {};
 }
 
-// Inject the API Key provided in the configuration
-// Note: In a real production build, this should be handled by the bundler (Vite/Webpack)
-if (!win.process.env.API_KEY) {
-  win.process.env.API_KEY = 'sk-0f2650b9f3384bd288f46137cfe37ae7';
-}
+// Note: The API_KEY must be provided via the environment. 
+// If you are running this locally, ensure your build tool injects it.
+// Do not hardcode invalid keys here.
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
