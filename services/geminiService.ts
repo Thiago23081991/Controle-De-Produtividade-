@@ -2,11 +2,11 @@ import { GoogleGenAI } from "@google/genai";
 import { MatrixData, ManualEntryData, TimeSlot } from "../types";
 
 export const analyzeProductivity = async (data: MatrixData | ManualEntryData): Promise<string> => {
-  // API Key must be obtained exclusively from process.env.API_KEY
-  const apiKey = process.env.API_KEY;
+  // Utilizando a API Key fornecida explicitamente.
+  const apiKey = "sk-0f2650b9f3384bd288f46137cfe37ae7";
 
   if (!apiKey) {
-    return "API Key não configurada ou inacessível no ambiente. Não é possível gerar análise com IA.";
+    return "API Key não configurada. Não é possível gerar análise com IA.";
   }
 
   try {
