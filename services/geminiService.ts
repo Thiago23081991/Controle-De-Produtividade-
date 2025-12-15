@@ -4,12 +4,17 @@ import { MatrixData, ManualEntryData, TimeSlot } from "../types";
 export const analyzeProductivity = async (data: MatrixData | ManualEntryData): Promise<string> => {
   let apiKey: string | undefined;
   
+  // 1. Try accessing standard process.env (Node/Bundler environment)
   try {
-    // Safely access process.env to avoid ReferenceError in some browser environments
     apiKey = process.env.API_KEY;
   } catch (e) {
-    console.error("Error accessing process.env:", e);
-    return "❌ **Erro de Configuração**: O ambiente não suporta `process.env`. Verifique a configuração do bundler (Vite/Webpack).";
+    // Ignore ReferenceError if process is not defined
+  }
+
+  // 2. Fallback: Access via window object (Browser Polyfill from index.tsx)
+  if (!apiKey && typeof window !== 'undefined') {
+    const win = window as any;
+    apiKey = win.process?.env?.API_KEY;
   }
 
   if (!apiKey) {
