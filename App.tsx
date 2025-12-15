@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ClipboardList, Sparkles, Copy, RefreshCw, AlertTriangle, Keyboard, Calendar, Siren, FileSpreadsheet, Trophy, Target } from 'lucide-react';
+import { ClipboardList, Sparkles, Copy, RefreshCw, AlertTriangle, Keyboard, Calendar, Siren, FileSpreadsheet, Trophy, Target, CheckCircle, X } from 'lucide-react';
 import { EXPERT_ROSTER } from './utils/parser';
 import { analyzeProductivity } from './services/geminiService';
 import { ManualEntryData } from './types';
@@ -14,10 +14,39 @@ const getTodayString = () => {
   return `${year}-${month}-${day}`;
 };
 
+// Sound Effect Helper using Web Audio API (No external assets needed)
+const playSuccessSound = () => {
+  try {
+    const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioContext) return;
+    
+    const ctx = new AudioContext();
+    const osc = ctx.createOscillator();
+    const gainNode = ctx.createGain();
+
+    osc.connect(gainNode);
+    gainNode.connect(ctx.destination);
+
+    // Play a pleasant "ding" sound (Sine wave ramping up pitch)
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(523.25, ctx.currentTime); // C5
+    osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.1); // A5
+
+    gainNode.gain.setValueAtTime(0.05, ctx.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
+
+    osc.start();
+    osc.stop(ctx.currentTime + 0.5);
+  } catch (e) {
+    console.error("Audio playback failed", e);
+  }
+};
+
 function App() {
   const [selectedDate, setSelectedDate] = useState<string>(getTodayString());
   const [aiAnalysis, setAiAnalysis] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [notification, setNotification] = useState<{ message: string; visible: boolean } | null>(null);
 
   // Initialize data based on the selected date (load from LocalStorage or default)
   const [data, setData] = useState<ManualEntryData>(() => {
@@ -49,6 +78,16 @@ function App() {
     const storageKey = `productivity_${selectedDate}`;
     localStorage.setItem(storageKey, JSON.stringify(data));
   }, [data, selectedDate]);
+
+  // Effect: Auto-dismiss notification
+  useEffect(() => {
+    if (notification?.visible) {
+      const timer = setTimeout(() => {
+        setNotification(prev => prev ? { ...prev, visible: false } : null);
+      }, 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [notification]);
 
   // Handle Date Change
   const handleDateChange = (newDate: string) => {
@@ -104,6 +143,21 @@ function App() {
     const numValue = value === '' ? 0 : parseInt(value);
     
     if (isNaN(numValue)) return;
+
+    // Check for Goal Achievement Notification
+    if (field === 'finalizado') {
+        const currentGoal = data[expert].goal || 0;
+        const previousFinalizado = data[expert].finalizado || 0;
+        
+        // Trigger if: Goal is set (>0), Old Value was below goal, New Value is >= goal
+        if (currentGoal > 0 && previousFinalizado < currentGoal && numValue >= currentGoal) {
+            playSuccessSound();
+            setNotification({
+                message: `🎉 Parabéns! ${expert} bateu a meta de ${currentGoal} casos!`,
+                visible: true
+            });
+        }
+    }
 
     setData(prev => ({
       ...prev,
@@ -359,7 +413,7 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 py-10 px-4 sm:px-6 lg:px-8 font-sans">
+    <div className="min-h-screen bg-gray-100 py-10 px-4 sm:px-6 lg:px-8 font-sans relative">
       <div className="max-w-7xl mx-auto space-y-8">
         
         {/* Header */}
@@ -628,8 +682,27 @@ function App() {
             </div>
           )}
         </div>
-
       </div>
+
+      {/* Goal Achievement Toast Notification */}
+      {notification && notification.visible && (
+        <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50 animate-bounce">
+            <div className="bg-indigo-900 text-white px-6 py-4 rounded-xl shadow-2xl flex items-center gap-4 border border-indigo-500">
+                <CheckCircle className="w-8 h-8 text-green-400" />
+                <div className="flex flex-col">
+                    <span className="font-bold text-lg">Meta Batida!</span>
+                    <span className="text-sm text-indigo-200">{notification.message}</span>
+                </div>
+                <button 
+                    onClick={() => setNotification(null)}
+                    className="ml-2 text-indigo-300 hover:text-white"
+                >
+                    <X className="w-5 h-5" />
+                </button>
+            </div>
+        </div>
+      )}
+
     </div>
   );
 }
