@@ -31,17 +31,31 @@ Ferramenta para gestão e análise de produtividade da equipe de atendimento, pe
 - **Frontend**: React 19, TypeScript, Tailwind CSS.
 - **AI**: Google GenAI SDK (Gemini 2.5 Flash).
 - **Ícones**: Lucide React.
+- **Deploy**: Vercel (Serverless Functions).
 
-## Como Executar
+## Configuração e Instalação
 
-Este projeto foi desenhado para rodar em ambientes web modernos que suportam ES Modules.
+### 1. Obter API Key
+Gere uma chave gratuita no [Google AI Studio](https://aistudio.google.com/app/apikey).
 
-1. Configure a variável de ambiente `API_KEY` com sua chave do Google Gemini.
-2. Inicie a aplicação.
+### 2. Ambiente Local
+Crie um arquivo chamado `.env` na raiz do projeto e adicione sua chave:
+
+```env
+API_KEY=AIzaSuaChaveAqui
+VITE_API_KEY=AIzaSuaChaveAqui
+```
+
+### 3. Produção (Vercel)
+Se estiver hospedando na Vercel:
+1. Vá em **Settings** > **Environment Variables**.
+2. Adicione uma chave chamada `API_KEY` com o valor da sua credencial Google.
+3. Faça um **Redeploy** para aplicar as alterações.
 
 ## Estrutura do Projeto
 
 - `App.tsx`: Componente principal e lógica de estado.
-- `services/geminiService.ts`: Integração com a API do Google Gemini.
+- `api/analyze.ts`: Função Serverless (Backend Vercel) para proteger a API Key.
+- `services/geminiService.ts`: Integração híbrida (Serverless + Fallback Client-Side).
 - `utils/parser.ts`: Lista de Experts e utilitários de parsing.
 - `components/`: Componentes de UI (Gráficos, Tabelas).
