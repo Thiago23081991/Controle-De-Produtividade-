@@ -1,3 +1,4 @@
+
 import { GoogleGenAI } from "@google/genai";
 import { MatrixData, ManualEntryData, TimeSlot } from "../types";
 
@@ -7,7 +8,7 @@ export const analyzeProductivity = async (data: MatrixData | ManualEntryData): P
     return "⚠️ Não há dados suficientes para análise.";
   }
 
-  // --- 1. PREPARAÇÃO DO PROMPT (Comum para ambos os métodos) ---
+  // --- 1. PREPARAÇÃO DO PROMPT ---
   
   // Detect data type to customize the prompt
   const isManualEntry = typeof ((data as any)[keys[0]] || {}).tratado !== 'undefined';
@@ -52,9 +53,7 @@ export const analyzeProductivity = async (data: MatrixData | ManualEntryData): P
   }
 
   // --- 2. TENTATIVA VIA API SERVERLESS (Vercel) ---
-  // Isso protege a chave de API em produção
   try {
-    // Verifica se estamos rodando em um ambiente que suporta API routes relativas ou absolutas
     const apiEndpoint = '/api/analyze';
     
     const apiResponse = await fetch(apiEndpoint, {
@@ -66,57 +65,33 @@ export const analyzeProductivity = async (data: MatrixData | ManualEntryData): P
     if (apiResponse.ok) {
         const result = await apiResponse.json();
         if (result.text) return result.text;
-    } else {
-        // Se a API retornar erro (ex: 404 localmente), loga e segue para fallback
-        console.warn("API Serverless indisponível, tentando Client-Side...", apiResponse.status);
     }
   } catch (e) {
-    console.warn("Falha na conexão com API Serverless, tentando Client-Side.", e);
+    console.warn("API Serverless unavailable.");
   }
 
-  // --- 3. FALLBACK: EXECUÇÃO CLIENT-SIDE (Local/Browser) ---
-  
-  let apiKey = '';
-
-  // Tenta recuperar do process.env (Node/Webpack/Polyfill)
-  try {
-    if (typeof process !== 'undefined' && process.env) {
-      apiKey = process.env.API_KEY || '';
-    }
-  } catch (e) {}
-
-  // Tenta recuperar do import.meta.env (Padrão Vite)
-  if (!apiKey) {
-    try {
-      // @ts-ignore
-      if (typeof import.meta !== 'undefined' && import.meta.env) {
-        // @ts-ignore
-        apiKey = import.meta.env.API_KEY || import.meta.env.VITE_API_KEY || import.meta.env.GOOGLE_API_KEY || '';
-      }
-    } catch (e) {}
-  }
-
-  // Tenta recuperar do window object
-  if (!apiKey && typeof window !== 'undefined') {
-    const win = window as any;
-    apiKey = win.process?.env?.API_KEY || win.API_KEY || '';
-  }
+  // --- 3. FALLBACK: CLIENT-SIDE EXECUTION ---
+  // API key is obtained exclusively from process.env.API_KEY as per instructions.
+  const apiKey = process.env.API_KEY;
 
   if (!apiKey) {
-    return "⚠️ **Configuração Necessária**: Não foi possível acessar a API Key.\n\nPara **Produção (Vercel)**: Adicione `API_KEY` nas Environment Variables do projeto.\nPara **Local**: Configure seu `.env` ou variável global.";
+    return "⚠️ **Configuração Necessária**: Não foi possível acessar a API Key. Verifique se process.env.API_KEY está configurado.";
   }
 
   try {
+    // Correct initialization with named parameter
     const ai = new GoogleGenAI({ apiKey: apiKey });
     
+    // Use gemini-3-flash-preview for summarization task
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: [{ text: userPrompt }],
+      model: 'gemini-3-flash-preview',
+      contents: userPrompt,
       config: {
         systemInstruction: systemInstruction,
       }
     });
 
+    // Access text property directly (it's a getter, not a method)
     return response.text || "⚠️ A IA processou a solicitação mas não retornou texto.";
 
   } catch (error: any) {

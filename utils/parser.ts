@@ -1,32 +1,50 @@
-import { TimeSlot, RecordStatus, ParsedRecord, MatrixData } from '../types';
+import { TimeSlot, RecordStatus, ParsedRecord, MatrixData, ExpertInfo } from '../types';
 
 // Keywords that indicate a finished task
 const DONE_KEYWORDS = ['finalizado', 'resolvido', 'vendido', 'concluido', 'concluído', 'encerrado', 'ok'];
 // Keywords that indicate a pending task
 const PENDING_KEYWORDS = ['tratativa', 'pendente', 'andamento', 'analise', 'análise', 'aguardando'];
 
-export const EXPERT_ROSTER = [
-  "CAIO FELIPE DA SILVA",
-  "ROBERTA NICOLETTI PORTELA",
-  "JOAO PEDRO MARTINS CARVALHO",
-  "TATIANE APARECIDA DE ARAUJO JACINTO",
-  "EDUARDA TACIANA DA SILVA AVELINO FERREIRA",
-  "HELEN NARA SALES DE SOUZA",
-  "EDUARDO NASCIMENTO E SILVA",
-  "SABRINA DA SILVA",
-  "EDENILZA MIRANDA SANTANA",
-  "DANIEL DOS SANTOS",
-  "DIENE KELY ARCELINO DE LIMA",
-  "JOÃO MARCOS DA SILVA CASTRO",
-  "KARINA JESUS VIEIRA",
-  "KETLYN DAIANE DA SILVA FREIRE",
-  "DANIELE NASCIMENTO DOS COSTA",
-  "CRISLANE LIMA DE SOUZA",
-  "LUIZ FERNANDO DE SOUZA DA SILVA",
-  "CARINE PEREIRA DOS SANTOS REIS",
-  "WENNY BIANCA DOS SANTOS FARIA",
-  "INGRYD OLIVEIRA MENDES DE BRITO"
+export const EXPERT_LIST: ExpertInfo[] = [
+  { matricula: "340021", login: "213638", name: "DOUGLAS FALCAO CAVALCANTE" },
+  { matricula: "339943", login: "213621", name: "FABIO DA SILVA FERREIRA" },
+  { matricula: "339944", login: "213637", name: "RODRIGO FERREIRA DE VASCONCELOS" },
+  { matricula: "372438", login: "213681", name: "THAIS APARECIDA SOUZA DOS SANTOS" },
+  { matricula: "372581", login: "213682", name: "ANNA BEATRIZ FERREIRA MENDES" },
+  { matricula: "372436", login: "213683", name: "ESTER ALVES FERREIRA" },
+  { matricula: "308652", login: "213716", name: "LUIZ GABRIEL DE FREITAS TEMOTEO" },
+  { matricula: "300031", login: "213745", name: "VALERIA SILVA LEITE" },
+  { matricula: "368131", login: "213678", name: "CAIO FELIPE DA SILVA" },
+  { matricula: "358255", login: "213662", name: "ROBERTA NICOLETTI PORTELA" },
+  { matricula: "321773", login: "213612", name: "JOAO PEDRO MARTINS CARVALHO" },
+  { matricula: "360691", login: "213664", name: "TATIANE APARECIDA DE ARAUJO JACINTO" },
+  { matricula: "315013", login: "213622", name: "EDUARDA TACIANA DA SILVA AVELINO FERREIRA" },
+  { matricula: "243176", login: "213776", name: "HELEN NARA SALES DE SOUZA" },
+  { matricula: "363744", login: "213669", name: "EDUARDO NASCIMENTO E SILVA" },
+  { matricula: "335425", login: "213609", name: "SABRINA DA SILVA" },
+  { matricula: "304244", login: "213710", name: "EDENILZA MIRANDA SANTANA" },
+  { matricula: "353560", login: "213659", name: "PATRICIA RABELO DA SILVA SABARA" },
+  { matricula: "284336", login: "213629", name: "DANIEL DOS SANTOS" },
+  { matricula: "306700", login: "213693", name: "DIENE KELY ARCELINO DE LIMA" },
+  { matricula: "298615", login: "213748", name: "JOÃO MARCOS DA SILVA CASTRO" },
+  { matricula: "284397", login: "213633", name: "KARINA JESUS VIEIRA" },
+  { matricula: "349577", login: "213654", name: "KETLYN DAIANE DA SILVA FREIRE" },
+  { matricula: "282194", login: "213771", name: "DANIELE NASCIMENTO DOS COSTA" },
+  { matricula: "330636", login: "213646", name: "CRISLANE LIMA DE SOUZA" },
+  { matricula: "333601", login: "213651", name: "LUIZ FERNANDO DE SOUZA DA SILVA" },
+  { matricula: "284396", login: "213632", name: "CARINE PEREIRA DOS SANTOS REIS" },
+  { matricula: "317094", login: "213618", name: "WENNY BIANCA DOS SANTOS FARIA" },
+  { matricula: "315015", login: "213619", name: "INGRYD OLIVEIRA MENDES DE BRITO" },
+  { matricula: "377504", login: "213689", name: "EMANUELLE COBO SALLES" }
 ];
+
+export const EXPERT_ROSTER = EXPERT_LIST.map(e => e.name);
+
+// Map for quick lookup of expert info by name
+export const EXPERT_MAP = EXPERT_LIST.reduce((acc, expert) => {
+  acc[expert.name] = expert;
+  return acc;
+}, {} as Record<string, ExpertInfo>);
 
 // Helper to normalize string for comparison (remove accents, lowercase)
 const normalizeStr = (str: string) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
@@ -37,16 +55,9 @@ export const determineTimeSlot = (timeStr: string): TimeSlot | null => {
   const [hours, minutes] = timeStr.split(':').map(Number);
   const totalMinutes = hours * 60 + minutes;
 
-  // 10:00 = 600 minutes
   if (totalMinutes <= 600) return TimeSlot.EARLY;
-  
-  // 12:00 = 720 minutes
   if (totalMinutes <= 720) return TimeSlot.MORNING;
-  
-  // 14:00 = 840 minutes
   if (totalMinutes <= 840) return TimeSlot.LUNCH;
-  
-  // 16:00 = 960 minutes
   if (totalMinutes <= 960) return TimeSlot.AFTERNOON;
   
   return TimeSlot.LATE;
@@ -59,11 +70,9 @@ export const parseInputText = (text: string): ParsedRecord[] => {
     const cleanLine = line.trim();
     const id = `rec-${index}`;
 
-    // 1. Extract Time (HH:MM)
     const timeMatch = cleanLine.match(/\b([0-1]?[0-9]|2[0-3]):([0-5][0-9])\b/);
     const timeStr = timeMatch ? timeMatch[0] : null;
 
-    // 2. Determine Status
     const lowerLine = cleanLine.toLowerCase();
     let status = RecordStatus.UNKNOWN;
     
@@ -73,18 +82,14 @@ export const parseInputText = (text: string): ParsedRecord[] => {
       status = RecordStatus.PENDENTE;
     }
 
-    // 3. Determine Expert Name
     let expertName = 'Desconhecido';
     const normalizedLine = normalizeStr(cleanLine);
     
-    // Strategy A: Check if a Roster Name is fully contained in the line (Highest Confidence)
     const strictMatch = EXPERT_ROSTER.find(expert => normalizedLine.includes(normalizeStr(expert)));
     
     if (strictMatch) {
       expertName = strictMatch;
     } else {
-      // Strategy B: Heuristic extraction + Fuzzy/Partial Roster Match
-      // First, clean the line to isolate the potential name
       let tempName = cleanLine;
       if (timeStr) tempName = tempName.replace(timeStr, '');
       
@@ -99,24 +104,19 @@ export const parseInputText = (text: string): ParsedRecord[] => {
       const candidateName = tempName.length > 0 ? capitalizeWords(tempName) : '';
 
       if (candidateName) {
-        // Check if the extracted candidate is a substring of any Roster name (e.g. "Caio" -> "CAIO FELIPE...")
         const normCandidate = normalizeStr(candidateName);
         const potentialMatches = EXPERT_ROSTER.filter(r => normalizeStr(r).includes(normCandidate));
 
         if (potentialMatches.length === 1) {
-          // Unique match found (e.g. "Caio" matches only one Caio)
           expertName = potentialMatches[0];
         } else {
-          // No match or Ambiguous (multiple matches like "João") -> Use extracted name as is
           expertName = candidateName;
         }
       }
     }
 
-    // 4. Determine Slot
     const timeSlot = timeStr ? determineTimeSlot(timeStr) : null;
 
-    // 5. Validation Logic
     let isValid = true;
     let reason = '';
 
@@ -124,7 +124,7 @@ export const parseInputText = (text: string): ParsedRecord[] => {
       isValid = false;
       reason = 'Horário não identificado';
     } else if (status !== RecordStatus.FINALIZADO) {
-      isValid = false; // For the purpose of the matrix, only finalized are "valid count"
+      isValid = false;
       reason = status === RecordStatus.PENDENTE ? 'Em tratativa/Pendente' : 'Status não identificado (assumido não finalizado)';
     }
 
@@ -148,7 +148,6 @@ const capitalizeWords = (str: string) => {
 export const calculateMatrix = (records: ParsedRecord[]): MatrixData => {
   const matrix: MatrixData = {};
 
-  // 1. Initialize Matrix with all Roster Experts (ensure they appear even with 0 counts)
   EXPERT_ROSTER.forEach(name => {
     matrix[name] = {
       [TimeSlot.EARLY]: 0,
@@ -159,10 +158,8 @@ export const calculateMatrix = (records: ParsedRecord[]): MatrixData => {
     };
   });
 
-  // 2. Populate with data
   records.forEach(record => {
     if (record.isValid && record.status === RecordStatus.FINALIZADO && record.timeSlot) {
-      // If the expert was not in the roster (e.g. a name we couldn't match), initialize them now
       if (!matrix[record.expertName]) {
         matrix[record.expertName] = {
           [TimeSlot.EARLY]: 0,
@@ -180,18 +177,19 @@ export const calculateMatrix = (records: ParsedRecord[]): MatrixData => {
 };
 
 export const generateMarkdownTable = (matrix: MatrixData): string => {
-  const headers = ['Expert', TimeSlot.EARLY, TimeSlot.MORNING, TimeSlot.LUNCH, TimeSlot.AFTERNOON, TimeSlot.LATE, 'TOTAL'];
+  const headers = ['Matrícula', 'Expert', TimeSlot.EARLY, TimeSlot.MORNING, TimeSlot.LUNCH, TimeSlot.AFTERNOON, TimeSlot.LATE, 'TOTAL'];
   
   let md = `| ${headers.join(' | ')} |\n`;
   md += `| ${headers.map(() => '---').join(' | ')} |\n`;
 
-  // Sort experts alphabetically for the report
   const experts = Object.keys(matrix).sort();
 
   experts.forEach((name) => {
     const slots = matrix[name];
+    const info = EXPERT_MAP[name];
     const total = Object.values(slots).reduce((a, b) => a + b, 0);
     const row = [
+      info?.matricula || '-',
       name,
       slots[TimeSlot.EARLY],
       slots[TimeSlot.MORNING],

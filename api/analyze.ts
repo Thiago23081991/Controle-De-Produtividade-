@@ -1,3 +1,4 @@
+
 import { GoogleGenAI } from "@google/genai";
 
 export default async function handler(req: any, res: any) {
@@ -32,16 +33,18 @@ export default async function handler(req: any, res: any) {
         return res.status(400).json({ error: "Prompt is required" });
     }
 
+    // Initialize with named parameter and updated model selection
     const ai = new GoogleGenAI({ apiKey });
     
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: [{ text: prompt }],
+      model: 'gemini-3-flash-preview',
+      contents: prompt,
       config: {
         systemInstruction: systemInstruction,
       }
     });
 
+    // Access response.text directly
     return res.status(200).json({ text: response.text });
   } catch (error: any) {
     console.error("API Error:", error);

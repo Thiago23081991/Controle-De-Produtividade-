@@ -1,3 +1,4 @@
+
 export enum TimeSlot {
   EARLY = 'Até 10:00',
   MORNING = '10:01 - 12:00',
@@ -10,6 +11,12 @@ export enum RecordStatus {
   FINALIZADO = 'FINALIZADO',
   PENDENTE = 'PENDENTE',
   UNKNOWN = 'DESCONHECIDO'
+}
+
+export interface ExpertInfo {
+  matricula: string;
+  login: string;
+  name: string;
 }
 
 export interface ParsedRecord {
@@ -36,5 +43,6 @@ export interface ManualEntryData {
     observacao?: string;
     isUrgent?: boolean;
     goal?: number;
+    managerMessage?: string;
   };
 }
