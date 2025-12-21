@@ -1,6 +1,6 @@
 import React from 'react';
 import { ManualEntryData } from '../types';
-import { BarChart as BarIcon, Target } from 'lucide-react';
+import { BarChart as BarIcon, Target, CheckCircle2 } from 'lucide-react';
 
 interface Props {
   data: ManualEntryData;
@@ -8,24 +8,17 @@ interface Props {
 
 export const PerformanceChart: React.FC<Props> = ({ data }) => {
   const experts = Object.keys(data).sort();
-  
-  // Filter only experts with some activity OR a set goal
   const activeExperts = experts.filter(e => (data[e].tratado > 0 || data[e].finalizado > 0 || (data[e].goal || 0) > 0));
 
-  // Find maximum value to normalize bar widths
   let maxVal = 0;
   activeExperts.forEach(e => {
-    // Include goal in max calculation so the goal marker fits
     const goal = data[e].goal || 0;
     maxVal = Math.max(maxVal, data[e].tratado, data[e].finalizado, goal);
   });
   
-  // Avoid division by zero and provide some headroom (10%)
-  const safeMax = maxVal === 0 ? 10 : maxVal * 1.1;
+  const safeMax = maxVal === 0 ? 10 : maxVal * 1.2; // Aumentado o respiro para caber as porcentagens
 
-  if (activeExperts.length === 0) {
-    return null;
-  }
+  if (activeExperts.length === 0) return null;
 
   return (
     <div className="bg-white shadow-xl rounded-xl p-6 border border-gray-200 mt-8">
@@ -35,75 +28,73 @@ export const PerformanceChart: React.FC<Props> = ({ data }) => {
             Visualização de Performance vs Metas
         </h3>
         <div className="flex gap-4 text-xs font-medium">
-            <div className="flex items-center gap-1.5">
-                <div className="w-3 h-3 bg-yellow-400 rounded-sm"></div>
-                <span className="text-gray-600">Tratado</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-                <div className="w-3 h-3 bg-green-500 rounded-sm"></div>
-                <span className="text-gray-600">Finalizado</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-                <div className="w-1 h-3 bg-indigo-500 rounded-sm"></div>
-                <span className="text-gray-600">Meta</span>
-            </div>
+            <div className="flex items-center gap-1.5"><div className="w-3 h-3 bg-yellow-400 rounded-sm"></div><span className="text-gray-600">Tratado</span></div>
+            <div className="flex items-center gap-1.5"><div className="w-3 h-3 bg-green-500 rounded-sm"></div><span className="text-gray-600">Finalizado</span></div>
+            <div className="flex items-center gap-1.5"><div className="w-1 h-3 bg-indigo-500 border-l-2 border-dashed border-indigo-300 rounded-sm"></div><span className="text-gray-600">Meta</span></div>
         </div>
       </div>
 
-      <div className="space-y-5">
+      <div className="space-y-6">
         {activeExperts.map(expert => {
             const tratado = data[expert].tratado;
             const finalizado = data[expert].finalizado;
             const goal = data[expert].goal || 0;
             const metGoal = goal > 0 && finalizado >= goal;
+            
+            const completionPercent = goal > 0 ? Math.round((finalizado / goal) * 100) : 0;
 
-            // Calculate percentages with explicit clamping to 100%
             const goalPercent = Math.min((goal / safeMax) * 100, 100);
             const tratadoPercent = Math.min((tratado / safeMax) * 100, 100);
             const finalizadoPercent = Math.min((finalizado / safeMax) * 100, 100);
 
             return (
-                <div key={expert} className="flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-4">
-                    <div className="w-full sm:w-48 text-xs font-semibold text-gray-700 truncate pt-1 flex items-center gap-1" title={expert}>
-                        {expert}
-                        {metGoal && <Target className="w-3 h-3 text-indigo-600" />}
+                <div key={expert} className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                    <div className="w-full sm:w-56 text-xs font-bold text-gray-700 truncate flex items-center gap-2">
+                        {metGoal ? <CheckCircle2 className="w-4 h-4 text-indigo-600" /> : <Target className="w-4 h-4 text-gray-400" />}
+                        <span className={metGoal ? 'text-indigo-700' : ''}>{expert}</span>
                     </div>
-                    <div className="flex-1 w-full flex flex-col gap-2 border-l border-gray-100 pl-2 sm:pl-0 sm:border-0 relative">
-                        
-                        {/* Goal Marker Line (Absolute positioned over the bars area) */}
+                    
+                    <div className="flex-1 w-full flex flex-col gap-1.5 relative pt-4">
                         {goal > 0 && (
                              <div 
                                 style={{ left: `${goalPercent}%` }}
-                                className="absolute top-0 bottom-0 w-px border-l-2 border-dashed border-indigo-300 z-10 flex flex-col justify-end"
-                                title={`Meta: ${goal}`}
+                                className="absolute top-0 bottom-0 w-px border-l-2 border-dashed border-indigo-400/50 z-10 flex flex-col justify-start"
                              >
-                                <span className="text-[9px] text-indigo-500 font-bold -ml-1.5 -mb-4 bg-white px-0.5 rounded">
+                                <span className="text-[10px] text-indigo-600 font-extrabold -ml-1.5 -mt-4 bg-white px-1 rounded shadow-sm border border-indigo-100">
                                     {goal}
                                 </span>
                              </div>
                         )}
 
-                        {/* Tratado Bar */}
-                        <div className="flex items-center gap-2 h-5 w-full z-0">
+                        {/* Barra Tratado */}
+                        <div className="h-4 w-full bg-gray-50 rounded-r-md overflow-hidden flex items-center">
                             <div 
                                 style={{ width: `${Math.max(tratadoPercent, 1)}%` }}
-                                className={`h-full rounded-r-md transition-all duration-700 ease-out relative flex items-center ${tratado > 0 ? 'bg-yellow-400' : 'bg-gray-100 w-px'}`}
+                                className={`h-full rounded-r-md transition-all duration-1000 ease-out flex items-center px-2 ${tratado > 0 ? 'bg-yellow-400' : 'bg-transparent'}`}
                             >
-                                {tratado > 0 && <span className="absolute right-2 text-[10px] font-bold text-yellow-900 leading-none">{tratado}</span>}
+                                {tratado > 0 && tratadoPercent > 5 && <span className="text-[9px] font-bold text-yellow-900">{tratado}</span>}
                             </div>
                         </div>
-                        {/* Finalizado Bar */}
-                        <div className="flex items-center gap-2 h-5 w-full z-0">
+
+                        {/* Barra Finalizado */}
+                        <div className="h-4 w-full bg-gray-50 rounded-r-md overflow-hidden flex items-center">
                             <div 
                                 style={{ width: `${Math.max(finalizadoPercent, 1)}%` }}
-                                className={`h-full rounded-r-md transition-all duration-700 ease-out relative flex items-center ${
+                                className={`h-full rounded-r-md transition-all duration-1000 delay-100 ease-out flex items-center px-2 ${
                                     finalizado > 0 
-                                      ? (metGoal ? 'bg-indigo-500' : 'bg-green-500') 
-                                      : 'bg-gray-100 w-px'
+                                      ? (metGoal ? 'bg-gradient-to-r from-indigo-400 to-indigo-600 shadow-sm' : 'bg-green-500') 
+                                      : 'bg-transparent'
                                 }`}
                             >
-                                {finalizado > 0 && <span className={`absolute right-2 text-[10px] font-bold leading-none ${metGoal ? 'text-white' : 'text-green-900'}`}>{finalizado}</span>}
+                                {finalizado > 0 && finalizadoPercent > 5 && <span className={`text-[9px] font-bold ${metGoal ? 'text-white' : 'text-green-900'}`}>{finalizado}</span>}
                             </div>
+                            
+                            {/* Porcentagem de Conclusão da Meta */}
+                            {goal > 0 && (
+                              <span className={`ml-3 text-[10px] font-black italic tracking-tighter ${metGoal ? 'text-indigo-600 animate-pulse' : 'text-gray-400'}`}>
+                                {completionPercent}%
+                              </span>
+                            )}
                         </div>
                     </div>
                 </div>

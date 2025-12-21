@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { ClipboardList, Sparkles, Copy, RefreshCw, AlertTriangle, Keyboard, Calendar, Siren, FileSpreadsheet, Trophy, Target, CheckCircle, X } from 'lucide-react';
+import { ClipboardList, Sparkles, Copy, RefreshCw, AlertTriangle, Keyboard, Calendar, Siren, FileSpreadsheet, Trophy, Target, CheckCircle, X, Award } from 'lucide-react';
 import { EXPERT_ROSTER } from './utils/parser';
 import { analyzeProductivity } from './services/geminiService';
 import { ManualEntryData } from './types';
 import { PerformanceChart } from './components/PerformanceChart';
 
-// Helper to get YYYY-MM-DD in Local Time (prevents timezone issues)
 const getTodayString = () => {
   const date = new Date();
   const year = date.getFullYear();
@@ -14,7 +13,6 @@ const getTodayString = () => {
   return `${year}-${month}-${day}`;
 };
 
-// Sound Effect Helper using Web Audio API (No external assets needed)
 const playSuccessSound = () => {
   try {
     const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
@@ -27,10 +25,9 @@ const playSuccessSound = () => {
     osc.connect(gainNode);
     gainNode.connect(ctx.destination);
 
-    // Play a pleasant "ding" sound (Sine wave ramping up pitch)
     osc.type = 'sine';
-    osc.frequency.setValueAtTime(523.25, ctx.currentTime); // C5
-    osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.1); // A5
+    osc.frequency.setValueAtTime(523.25, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.1);
 
     gainNode.gain.setValueAtTime(0.05, ctx.currentTime);
     gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
@@ -48,13 +45,11 @@ function App() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [notification, setNotification] = useState<{ message: string; visible: boolean } | null>(null);
 
-  // Initialize data based on the selected date (load from LocalStorage or default)
   const [data, setData] = useState<ManualEntryData>(() => {
     const today = getTodayString();
     const storageKey = `productivity_${today}`;
     const stored = localStorage.getItem(storageKey);
     
-    // Base empty structure based on current Roster
     const sortedRoster = [...EXPERT_ROSTER].sort((a, b) => a.localeCompare(b));
     const emptyData = sortedRoster.reduce((acc, name) => {
       acc[name] = { tratado: 0, finalizado: 0, observacao: '', isUrgent: false, goal: 0 };
@@ -64,7 +59,6 @@ function App() {
     if (stored) {
       try {
         const parsed = JSON.parse(stored);
-        // Merge stored data with current roster (handles cases where roster changed)
         return { ...emptyData, ...parsed };
       } catch (e) {
         return emptyData;
@@ -73,13 +67,11 @@ function App() {
     return emptyData;
   });
 
-  // Effect: Save to LocalStorage whenever data changes
   useEffect(() => {
     const storageKey = `productivity_${selectedDate}`;
     localStorage.setItem(storageKey, JSON.stringify(data));
   }, [data, selectedDate]);
 
-  // Effect: Auto-dismiss notification
   useEffect(() => {
     if (notification?.visible) {
       const timer = setTimeout(() => {
@@ -89,16 +81,11 @@ function App() {
     }
   }, [notification]);
 
-  // Handle Date Change
   const handleDateChange = (newDate: string) => {
     if (!newDate) return;
-    
     setSelectedDate(newDate);
-    
-    // Load data for the new date
     const storageKey = `productivity_${newDate}`;
     const stored = localStorage.getItem(storageKey);
-    
     const sortedRoster = [...EXPERT_ROSTER].sort((a, b) => a.localeCompare(b));
     const emptyData = sortedRoster.reduce((acc, name) => {
       acc[name] = { tratado: 0, finalizado: 0, observacao: '', isUrgent: false, goal: 0 };
@@ -108,7 +95,6 @@ function App() {
     if (stored) {
       try {
         const parsed = JSON.parse(stored);
-        // Merge to ensure all experts exist even in old records
         const mergedData = { ...emptyData };
         Object.keys(parsed).forEach(key => {
             if (mergedData[key]) {
@@ -122,34 +108,20 @@ function App() {
     } else {
       setData(emptyData);
     }
-    
-    // Reset Analysis when date changes
     setAiAnalysis(null);
   };
 
   const handleInputChange = (expert: string, field: 'tratado' | 'finalizado' | 'observacao' | 'goal', value: string) => {
     if (field === 'observacao') {
-      setData(prev => ({
-        ...prev,
-        [expert]: {
-          ...prev[expert],
-          observacao: value
-        }
-      }));
+      setData(prev => ({ ...prev, [expert]: { ...prev[expert], observacao: value } }));
       return;
     }
-
-    // Allow empty string for better typing experience, convert to 0 for logic
     const numValue = value === '' ? 0 : parseInt(value);
-    
     if (isNaN(numValue)) return;
 
-    // Check for Goal Achievement Notification
     if (field === 'finalizado') {
         const currentGoal = data[expert].goal || 0;
         const previousFinalizado = data[expert].finalizado || 0;
-        
-        // Trigger if: Goal is set (>0), Old Value was below goal, New Value is >= goal
         if (currentGoal > 0 && previousFinalizado < currentGoal && numValue >= currentGoal) {
             playSuccessSound();
             setNotification({
@@ -158,102 +130,50 @@ function App() {
             });
         }
     }
-
-    setData(prev => ({
-      ...prev,
-      [expert]: {
-        ...prev[expert],
-        [field]: Math.max(0, numValue)
-      }
-    }));
+    setData(prev => ({ ...prev, [expert]: { ...prev[expert], [field]: Math.max(0, numValue) } }));
   };
 
   const toggleUrgency = (expert: string) => {
-    setData(prev => ({
-      ...prev,
-      [expert]: {
-        ...prev[expert],
-        isUrgent: !prev[expert].isUrgent
-      }
-    }));
+    setData(prev => ({ ...prev, [expert]: { ...prev[expert], isUrgent: !prev[expert].isUrgent } }));
   };
 
-  const handleKeyDown = (
-    e: React.KeyboardEvent<HTMLInputElement>,
-    index: number,
-    field: 'tratado' | 'finalizado' | 'observacao' | 'goal',
-    expertListLength: number
-  ) => {
-    // Helper function to focus specific input by ID
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, index: number, field: 'tratado' | 'finalizado' | 'observacao' | 'goal', expertListLength: number) => {
     const focusInput = (idx: number, f: 'tratado' | 'finalizado' | 'observacao' | 'goal') => {
       const el = document.getElementById(`input-${idx}-${f}`);
-      if (el) {
-        (el as HTMLInputElement).focus();
-      }
+      if (el) (el as HTMLInputElement).focus();
     };
 
     if (e.key === 'ArrowRight') {
-      if (field === 'goal') {
-        e.preventDefault();
-        focusInput(index, 'tratado');
-      } else if (field === 'tratado') {
-        e.preventDefault();
-        focusInput(index, 'finalizado');
-      } else if (field === 'finalizado') {
-        e.preventDefault();
-        focusInput(index, 'observacao');
-      }
+      if (field === 'goal') { e.preventDefault(); focusInput(index, 'tratado'); }
+      else if (field === 'tratado') { e.preventDefault(); focusInput(index, 'finalizado'); }
+      else if (field === 'finalizado') { e.preventDefault(); focusInput(index, 'observacao'); }
     } else if (e.key === 'ArrowLeft') {
-      if (field === 'observacao') {
-        // focusInput(index, 'finalizado'); // Let default behavior handle text nav often
-      } else if (field === 'finalizado') {
-        e.preventDefault();
-        focusInput(index, 'tratado');
-      } else if (field === 'tratado') {
-        e.preventDefault();
-        focusInput(index, 'goal');
-      }
+      if (field === 'finalizado') { e.preventDefault(); focusInput(index, 'tratado'); }
+      else if (field === 'tratado') { e.preventDefault(); focusInput(index, 'goal'); }
     } else if (e.key === 'ArrowDown') {
       e.preventDefault();
-      if (index + 1 < expertListLength) {
-        focusInput(index + 1, field);
-      }
+      if (index + 1 < expertListLength) focusInput(index + 1, field);
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
-      if (index - 1 >= 0) {
-        focusInput(index - 1, field);
-      }
+      if (index - 1 >= 0) focusInput(index - 1, field);
     } else if (e.key === 'Enter') {
       e.preventDefault();
-      // Enter behaves like Tab/Next
-      if (field === 'goal') {
-        focusInput(index, 'tratado');
-      } else if (field === 'tratado') {
-        focusInput(index, 'finalizado');
-      } else if (field === 'finalizado') {
-        focusInput(index, 'observacao');
-      } else if (index + 1 < expertListLength) {
-        focusInput(index + 1, 'goal');
-      }
+      if (field === 'goal') focusInput(index, 'tratado');
+      else if (field === 'tratado') focusInput(index, 'finalizado');
+      else if (field === 'finalizado') focusInput(index, 'observacao');
+      else if (index + 1 < expertListLength) focusInput(index + 1, 'goal');
     }
   };
 
-  const calculateTotal = (expert: string) => {
-    return (data[expert]?.tratado || 0) + (data[expert]?.finalizado || 0);
-  };
-
+  const calculateTotal = (expert: string) => (data[expert]?.tratado || 0) + (data[expert]?.finalizado || 0);
   const getEfficiency = (expert: string) => {
-    const tratado = data[expert]?.tratado || 0;
-    const finalizado = data[expert]?.finalizado || 0;
-    const total = tratado + finalizado;
+    const total = calculateTotal(expert);
     if (total === 0) return 0;
-    return Math.round((finalizado / total) * 100);
+    return Math.round(((data[expert]?.finalizado || 0) / total) * 100);
   };
 
   const getGrandTotals = () => {
-    let tratado = 0;
-    let finalizado = 0;
-    let urgentes = 0;
+    let tratado = 0, finalizado = 0, urgentes = 0;
     Object.values(data).forEach((entry: any) => {
       tratado += entry.tratado || 0;
       finalizado += entry.finalizado || 0;
@@ -262,87 +182,48 @@ function App() {
     return { tratado, finalizado, total: tratado + finalizado, urgentes };
   };
 
-  // Find the highest number of Finalized cases
-  const maxFinalized = React.useMemo(() => {
-    return Math.max(...Object.values(data).map((d: any) => d.finalizado || 0));
-  }, [data]);
+  const maxFinalized = React.useMemo(() => Math.max(...Object.values(data).map((d: any) => d.finalizado || 0)), [data]);
 
   const generateMarkdown = () => {
-    // Format date for the report
     const [y, m, d] = selectedDate.split('-');
     const dateFormatted = `${d}/${m}/${y}`;
-
     let md = `## Relatório de Produtividade - ${dateFormatted}\n\n`;
     md += `| Expert | Meta | Tratado | Finalizado | Total | Eficiência | Observação |\n`;
     md += `| :--- | :---: | :---: | :---: | :---: | :---: | :--- |\n`;
-
-    // Sort keys to ensure deterministic order in report
     const sortedExperts = Object.keys(data).sort((a, b) => a.localeCompare(b));
-
     sortedExperts.forEach(expert => {
       const { tratado, finalizado, observacao, isUrgent, goal } = data[expert];
       const total = tratado + finalizado;
       const efficiency = total > 0 ? Math.round((finalizado / total) * 100) : 0;
-      const obsSafe = observacao ? observacao.replace(/\|/g, '-') : ''; 
-      const isTopPerformer = maxFinalized > 0 && finalizado === maxFinalized;
       const metGoal = (goal || 0) > 0 && finalizado >= (goal || 0);
-      
-      // Add Urgency Indicator to Name or Observation
       let nameDisplay = expert;
       if (isUrgent) nameDisplay += " 🚨";
-      if (isTopPerformer) nameDisplay += " 🏆";
+      if (maxFinalized > 0 && finalizado === maxFinalized) nameDisplay += " 🏆";
       if (metGoal) nameDisplay += " 🎯";
-
-      const obsDisplay = isUrgent ? `**[URGÊNCIA]** ${obsSafe}` : obsSafe;
-      const goalDisplay = goal && goal > 0 ? goal : '-';
-
-      md += `| ${nameDisplay} | ${goalDisplay} | ${tratado} | ${finalizado} | ${total} | ${efficiency}% | ${obsDisplay} |\n`;
+      const obsDisplay = isUrgent ? `**[URGÊNCIA]** ${observacao}` : observacao;
+      md += `| ${nameDisplay} | ${goal || '-'} | ${tratado} | ${finalizado} | ${total} | ${efficiency}% | ${obsDisplay} |\n`;
     });
-
     const grand = getGrandTotals();
-    const grandEfficiency = grand.total > 0 ? Math.round((grand.finalizado / grand.total) * 100) : 0;
-    md += `| **TOTAL GERAL** | - | **${grand.tratado}** | **${grand.finalizado}** | **${grand.total}** | **${grandEfficiency}%** | **${grand.urgentes} Casos Urgentes** |`;
-    
+    md += `| **TOTAL GERAL** | - | **${grand.tratado}** | **${grand.finalizado}** | **${grand.total}** | **${grand.total > 0 ? Math.round((grand.finalizado/grand.total)*100) : 0}%** | **${grand.urgentes} Casos Urgentes** |`;
     return md;
   };
 
   const handleCopyMarkdown = () => {
-    const md = generateMarkdown();
-    navigator.clipboard.writeText(md);
+    navigator.clipboard.writeText(generateMarkdown());
     alert('Relatório copiado para a área de transferência!');
   };
 
   const handleExportCSV = () => {
-    // Format date for the filename
     const [y, m, d] = selectedDate.split('-');
     const dateFormatted = `${d}-${m}-${y}`;
-    
-    let csvContent = "data:text/csv;charset=utf-8,\uFEFF"; // UTF-8 BOM for Excel
-    csvContent += "Data,Expert,Urgente,Meta,Bateu Meta,Top Performer,Tratado,Finalizado,Total,Eficiência (%),Observação\n";
-
-    const sortedExperts = Object.keys(data).sort((a, b) => a.localeCompare(b));
-
-    sortedExperts.forEach(expert => {
+    let csvContent = "data:text/csv;charset=utf-8,\uFEFFData,Expert,Urgente,Meta,Tratado,Finalizado,Total,Eficiência (%),Observação\n";
+    Object.keys(data).sort().forEach(expert => {
       const { tratado, finalizado, observacao, isUrgent, goal } = data[expert];
-      const total = tratado + finalizado;
-      const efficiency = total > 0 ? Math.round((finalizado / total) * 100) : 0;
-      const isTopPerformer = maxFinalized > 0 && finalizado === maxFinalized;
-      const metGoal = (goal || 0) > 0 && finalizado >= (goal || 0);
-
-      // Escape quotes for CSV
-      const obsSafe = observacao ? `"${observacao.replace(/"/g, '""')}"` : "";
-      const urgentFlag = isUrgent ? "SIM" : "NAO";
-      const topFlag = isTopPerformer ? "SIM" : "NAO";
-      const goalMetFlag = metGoal ? "SIM" : "NAO";
-      const goalVal = goal && goal > 0 ? goal : 0;
-
-      csvContent += `${dateFormatted},"${expert}",${urgentFlag},${goalVal},${goalMetFlag},${topFlag},${tratado},${finalizado},${total},${efficiency}%,${obsSafe}\n`;
+      csvContent += `${dateFormatted},"${expert}",${isUrgent?"SIM":"NAO"},${goal||0},${tratado},${finalizado},${tratado+finalizado},${getEfficiency(expert)}%,"${observacao}"\n`;
     });
-
-    const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `produtividade_equipe_${dateFormatted}.csv`);
+    link.setAttribute("href", encodeURI(csvContent));
+    link.setAttribute("download", `produtividade_${dateFormatted}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -350,29 +231,12 @@ function App() {
 
   const handleReset = (e: React.MouseEvent) => {
     e.preventDefault();
-    if (window.confirm("Confirma zerar a produção de hoje? (As Metas configuradas serão mantidas)")) {
+    if (window.confirm("Zerar a produção de hoje? (As Metas serão mantidas)")) {
       setData(prev => {
         const newData = { ...prev };
-        
-        // Reset current experts but keep goals
         Object.keys(newData).forEach(key => {
-            newData[key] = {
-                ...newData[key],
-                tratado: 0,
-                finalizado: 0,
-                observacao: '',
-                isUrgent: false,
-                goal: newData[key].goal || 0 // Preserve goal
-            };
+            newData[key] = { ...newData[key], tratado: 0, finalizado: 0, observacao: '', isUrgent: false };
         });
-
-        // Ensure Roster experts are present
-        EXPERT_ROSTER.forEach(name => {
-            if (!newData[name]) {
-                newData[name] = { tratado: 0, finalizado: 0, observacao: '', isUrgent: false, goal: 0 };
-            }
-        });
-
         return newData;
       });
       setAiAnalysis(null);
@@ -381,12 +245,12 @@ function App() {
 
   const handleAiAnalysis = async () => {
     setIsAnalyzing(true);
-    setAiAnalysis(null); // Clear previous
+    setAiAnalysis(null);
     try {
       const analysis = await analyzeProductivity(data);
       setAiAnalysis(analysis);
     } catch (e) {
-      setAiAnalysis("❌ **Erro Inesperado**: Consulte o console do desenvolvedor.");
+      setAiAnalysis("❌ **Erro Inesperado**.");
     } finally {
       setIsAnalyzing(false);
     }
@@ -395,296 +259,119 @@ function App() {
   const grandTotals = getGrandTotals();
   const experts = Object.keys(data).sort((a, b) => a.localeCompare(b));
 
-  // Determine if the analysis result is an error message to style it
-  const isAnalysisError = aiAnalysis?.startsWith("❌") || aiAnalysis?.startsWith("⚠️");
-
-  if (experts.length === 0) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-        <div className="text-center p-8 bg-white rounded-xl shadow-lg border border-red-100 max-w-md">
-          <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-          <h2 className="text-xl font-bold text-gray-800">Erro no Carregamento</h2>
-          <p className="text-gray-600 mt-2">
-            A lista de Experts não foi carregada corretamente. Verifique o arquivo de configuração.
-          </p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-gray-100 py-10 px-4 sm:px-6 lg:px-8 font-sans relative">
       <div className="max-w-7xl mx-auto space-y-8">
         
-        {/* Header */}
         <div className="text-center">
           <h1 className="text-3xl font-extrabold text-indigo-700 flex justify-center items-center gap-3">
             <ClipboardList className="w-10 h-10" />
             Controle de Produtividade
           </h1>
-          <p className="mt-2 text-gray-600">
-            Gerencie a produção diária da equipe e monitore metas.
-          </p>
+          <p className="mt-2 text-gray-600">Gestão de produção e metas da equipe de Service Desk.</p>
         </div>
 
-        {/* Action Bar */}
         <div className="flex flex-col xl:flex-row justify-between items-center gap-4 sticky top-4 z-10 bg-gray-100/90 py-3 backdrop-blur-sm border-b border-gray-200/50">
-           
-           {/* Date Picker */}
            <div className="flex items-center gap-2 bg-white px-3 py-2 rounded-lg shadow-sm border border-gray-300">
               <Calendar className="w-5 h-5 text-indigo-600" />
-              <input 
-                type="date"
-                value={selectedDate}
-                onChange={(e) => handleDateChange(e.target.value)}
-                className="text-gray-700 text-sm font-medium focus:outline-none"
-              />
+              <input type="date" value={selectedDate} onChange={(e) => handleDateChange(e.target.value)} className="text-gray-700 text-sm font-medium focus:outline-none" />
            </div>
-
-           <div className="hidden xl:flex items-center gap-2 text-xs text-gray-500 bg-white px-3 py-2 rounded-full shadow-sm border border-gray-200">
-              <Keyboard className="w-4 h-4" />
-              <span>Navegação: <strong>Setas</strong> | <strong>Enter</strong></span>
-           </div>
-
            <div className="flex flex-wrap gap-2 w-full sm:w-auto justify-center sm:justify-end">
-             <button
-              type="button"
-              onClick={handleReset}
-              className="flex items-center gap-2 px-3 py-2 text-xs sm:text-sm font-medium text-red-600 bg-white border border-red-200 rounded-md hover:bg-red-50 shadow-sm transition-colors cursor-pointer active:bg-red-100"
-            >
-              <RefreshCw className="w-4 h-4" />
-              Zerar Produção
-            </button>
-            <button
-              type="button"
-              onClick={handleExportCSV}
-              className="flex items-center gap-2 px-3 py-2 text-xs sm:text-sm font-medium text-green-700 bg-white border border-green-200 rounded-md hover:bg-green-50 shadow-sm transition-colors cursor-pointer active:bg-green-100"
-            >
-              <FileSpreadsheet className="w-4 h-4" />
-              Exportar CSV
-            </button>
-            <button
-              type="button"
-              onClick={handleCopyMarkdown}
-              className="flex items-center gap-2 px-3 py-2 text-xs sm:text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 shadow-sm transition-colors cursor-pointer active:bg-indigo-800"
-            >
-              <Copy className="w-4 h-4" />
-              Copiar Relatório
-            </button>
+             <button onClick={handleReset} className="flex items-center gap-2 px-3 py-2 text-xs sm:text-sm font-medium text-red-600 bg-white border border-red-200 rounded-md hover:bg-red-50 shadow-sm transition-colors cursor-pointer"><RefreshCw className="w-4 h-4" />Zerar</button>
+             <button onClick={handleExportCSV} className="flex items-center gap-2 px-3 py-2 text-xs sm:text-sm font-medium text-green-700 bg-white border border-green-200 rounded-md hover:bg-green-50 shadow-sm transition-colors cursor-pointer"><FileSpreadsheet className="w-4 h-4" />Exportar CSV</button>
+             <button onClick={handleCopyMarkdown} className="flex items-center gap-2 px-3 py-2 text-xs sm:text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 shadow-sm transition-colors cursor-pointer"><Copy className="w-4 h-4" />Copiar Relatório</button>
            </div>
         </div>
 
-        {/* Manual Entry Grid */}
         <div className="bg-white shadow-xl rounded-xl overflow-hidden border border-gray-200">
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-300">
               <thead className="bg-gray-50">
                 <tr>
-                  <th scope="col" className="px-3 py-3.5 text-center text-xs font-bold text-gray-500 uppercase tracking-wider w-12" title="Marcar Caso Urgente">
-                    Urg.
-                  </th>
-                  <th scope="col" className="py-3.5 pl-2 pr-3 text-left text-sm font-bold text-gray-900 uppercase tracking-wider min-w-[200px]">
-                    Expert
-                  </th>
-                  <th scope="col" className="px-3 py-3.5 text-center text-sm font-bold text-indigo-700 bg-indigo-50 uppercase tracking-wider w-20" title="Meta de Finalizados">
-                    Meta
-                  </th>
-                  <th scope="col" className="px-3 py-3.5 text-center text-sm font-bold text-yellow-700 bg-yellow-50 uppercase tracking-wider w-24">
-                    Tratado
-                  </th>
-                  <th scope="col" className="px-3 py-3.5 text-center text-sm font-bold text-green-700 bg-green-50 uppercase tracking-wider w-24">
-                    Finalizado
-                  </th>
-                   <th scope="col" className="px-3 py-3.5 text-center text-sm font-bold text-gray-900 bg-gray-100 uppercase tracking-wider w-20">
-                    Total
-                  </th>
-                  <th scope="col" className="px-2 py-3.5 text-center text-xs font-bold text-blue-700 bg-blue-50 uppercase tracking-wider w-16" title="Eficiência (Finalizado / Total)">
-                    % Efic.
-                  </th>
-                  <th scope="col" className="px-3 py-3.5 text-left text-sm font-bold text-gray-600 bg-gray-50 uppercase tracking-wider min-w-[200px]">
-                    Observação (Justificativa)
-                  </th>
+                  <th className="px-3 py-3.5 text-center text-xs font-bold text-gray-500 uppercase tracking-wider w-12">Urg.</th>
+                  <th className="py-3.5 pl-2 pr-3 text-left text-sm font-bold text-gray-900 uppercase tracking-wider min-w-[200px]">Expert</th>
+                  <th className="px-3 py-3.5 text-center text-sm font-bold text-indigo-700 bg-indigo-50 uppercase tracking-wider w-20">Meta</th>
+                  <th className="px-3 py-3.5 text-center text-sm font-bold text-yellow-700 bg-yellow-50 uppercase tracking-wider w-24">Tratado</th>
+                  <th className="px-3 py-3.5 text-center text-sm font-bold text-green-700 bg-green-50 uppercase tracking-wider w-24">Finalizado</th>
+                  <th className="px-3 py-3.5 text-center text-sm font-bold text-gray-900 bg-gray-100 uppercase tracking-wider w-20">Total</th>
+                  <th className="px-2 py-3.5 text-center text-xs font-bold text-blue-700 bg-blue-50 uppercase tracking-wider w-16">% Efic.</th>
+                  <th className="px-3 py-3.5 text-left text-sm font-bold text-gray-600 bg-gray-50 uppercase tracking-wider min-w-[200px]">Observação</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 bg-white">
                 {experts.map((expert, index) => {
                   const isUrgent = data[expert].isUrgent || false;
-                  const finalizadoCount = data[expert].finalizado || 0;
-                  const isTopPerformer = maxFinalized > 0 && finalizadoCount === maxFinalized;
-                  const efficiency = getEfficiency(expert);
-                  
-                  // Goal Logic
+                  const finalizado = data[expert].finalizado || 0;
                   const goal = data[expert].goal || 0;
-                  const metGoal = goal > 0 && finalizadoCount >= goal;
-
-                  // Color coding for efficiency
-                  let effColor = 'text-gray-500';
-                  let effBg = '';
+                  const metGoal = goal > 0 && finalizado >= goal;
+                  const isTopPerformer = maxFinalized > 0 && finalizado === maxFinalized;
+                  const efficiency = getEfficiency(expert);
                   const total = calculateTotal(expert);
-                  
-                  if (total > 0) {
-                    if (efficiency >= 80) { effColor = 'text-green-700'; effBg = 'bg-green-50'; }
-                    else if (efficiency < 50) { effColor = 'text-red-600'; effBg = 'bg-red-50'; }
-                    else { effColor = 'text-blue-600'; }
-                  }
 
                   return (
-                    <tr key={expert} className={`transition-colors ${isUrgent ? 'bg-red-100 hover:bg-red-200' : 'hover:bg-gray-50'}`}>
+                    <tr key={expert} className={`transition-all duration-300 ${isUrgent ? 'bg-red-50' : metGoal ? 'bg-green-50/40' : 'hover:bg-gray-50'} ${metGoal ? 'border-l-4 border-l-green-500' : 'border-l-4 border-l-transparent'}`}>
                       <td className="px-3 py-2 text-center">
-                        <input
-                            type="checkbox"
-                            checked={isUrgent}
-                            onChange={() => toggleUrgency(expert)}
-                            className="w-5 h-5 text-red-600 bg-gray-100 border-gray-300 rounded focus:ring-red-500 focus:ring-2 cursor-pointer accent-red-600"
-                            title="Marcar como Urgente"
-                        />
+                        <input type="checkbox" checked={isUrgent} onChange={() => toggleUrgency(expert)} className="w-5 h-5 text-red-600 bg-gray-100 border-gray-300 rounded focus:ring-red-500 cursor-pointer" />
                       </td>
                       <td className="whitespace-nowrap py-3 pl-2 pr-3 text-sm font-medium text-gray-900">
                         <div className="flex items-center gap-2">
-                            {expert}
-                            {isUrgent && <Siren className="w-5 h-5 text-red-600 animate-pulse" />}
-                            {isTopPerformer && <Trophy className="w-5 h-5 text-yellow-500 animate-bounce" />}
-                            {metGoal && <Target className="w-5 h-5 text-indigo-600" />}
+                            <span className={metGoal ? 'text-green-800 font-bold' : ''}>{expert}</span>
+                            {isUrgent && <Siren className="w-4 h-4 text-red-600 animate-pulse" />}
+                            {isTopPerformer && <Trophy className="w-4 h-4 text-yellow-500 animate-bounce" />}
+                            {metGoal && (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-green-100 text-green-700 border border-green-200 animate-pulse">
+                                <Award className="w-3 h-3" />
+                                META OK
+                              </span>
+                            )}
                         </div>
                       </td>
-                       {/* GOAL INPUT */}
-                       <td className="whitespace-nowrap px-3 py-2 text-center bg-indigo-50/20">
-                        <input
-                          id={`input-${index}-goal`}
-                          type="number"
-                          min="0"
-                          value={data[expert].goal === 0 ? '' : data[expert].goal}
-                          onChange={(e) => handleInputChange(expert, 'goal', e.target.value)}
-                          onKeyDown={(e) => handleKeyDown(e, index, 'goal', experts.length)}
-                          className="block w-full text-center rounded-md border-gray-300 border-dashed shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm py-1.5 text-gray-500"
-                          placeholder="-"
-                        />
+                      <td className={`whitespace-nowrap px-3 py-2 text-center ${metGoal ? 'bg-green-100/50' : 'bg-indigo-50/20'}`}>
+                        <input id={`input-${index}-goal`} type="number" min="0" value={data[expert].goal === 0 ? '' : data[expert].goal} onChange={(e) => handleInputChange(expert, 'goal', e.target.value)} onKeyDown={(e) => handleKeyDown(e, index, 'goal', experts.length)} className={`block w-full text-center rounded-md border-gray-300 shadow-sm focus:ring-indigo-500 sm:text-sm py-1.5 ${metGoal ? 'border-green-400 font-bold text-green-700 bg-white' : 'border-dashed text-gray-400'}`} placeholder="-" />
                       </td>
                       <td className="whitespace-nowrap px-3 py-2 text-center bg-yellow-50/30">
-                        <input
-                          id={`input-${index}-tratado`}
-                          type="number"
-                          min="0"
-                          value={data[expert].tratado === 0 ? '' : data[expert].tratado}
-                          onChange={(e) => handleInputChange(expert, 'tratado', e.target.value)}
-                          onKeyDown={(e) => handleKeyDown(e, index, 'tratado', experts.length)}
-                          className="block w-full text-center rounded-md border-gray-300 shadow-sm focus:border-yellow-500 focus:ring-yellow-500 sm:text-sm py-1.5"
-                          placeholder="0"
-                        />
+                        <input id={`input-${index}-tratado`} type="number" min="0" value={data[expert].tratado === 0 ? '' : data[expert].tratado} onChange={(e) => handleInputChange(expert, 'tratado', e.target.value)} onKeyDown={(e) => handleKeyDown(e, index, 'tratado', experts.length)} className="block w-full text-center rounded-md border-gray-300 shadow-sm focus:ring-yellow-500 sm:text-sm py-1.5" placeholder="0" />
                       </td>
-                      {/* FINALIZADO INPUT */}
-                      <td className={`whitespace-nowrap px-3 py-2 text-center ${isTopPerformer ? 'bg-green-200' : 'bg-green-50/30'}`}>
-                        <input
-                          id={`input-${index}-finalizado`}
-                          type="number"
-                          min="0"
-                          value={data[expert].finalizado === 0 ? '' : data[expert].finalizado}
-                          onChange={(e) => handleInputChange(expert, 'finalizado', e.target.value)}
-                          onKeyDown={(e) => handleKeyDown(e, index, 'finalizado', experts.length)}
-                          className={`block w-full text-center rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm py-1.5 ${isTopPerformer ? 'font-bold text-green-900 border-green-500 ring-1 ring-green-500' : ''} ${metGoal ? 'ring-2 ring-indigo-500 bg-indigo-50 font-bold text-indigo-800' : ''}`}
-                          placeholder="0"
-                        />
+                      <td className={`whitespace-nowrap px-3 py-2 text-center ${metGoal ? 'bg-green-100' : isTopPerformer ? 'bg-yellow-100' : 'bg-green-50/30'}`}>
+                        <input id={`input-${index}-finalizado`} type="number" min="0" value={data[expert].finalizado === 0 ? '' : data[expert].finalizado} onChange={(e) => handleInputChange(expert, 'finalizado', e.target.value)} onKeyDown={(e) => handleKeyDown(e, index, 'finalizado', experts.length)} className={`block w-full text-center rounded-md border-gray-300 shadow-sm sm:text-sm py-1.5 ${metGoal ? 'ring-2 ring-green-500 font-bold text-green-900' : isTopPerformer ? 'ring-2 ring-yellow-500 font-bold text-yellow-900' : ''}`} placeholder="0" />
                       </td>
-                      <td className="whitespace-nowrap px-3 py-2 text-center text-sm font-bold text-gray-700 bg-gray-50">
-                        {calculateTotal(expert)}
-                      </td>
-                      <td className={`whitespace-nowrap px-2 py-2 text-center text-xs font-bold ${effColor} ${effBg}`}>
-                         {total > 0 ? `${efficiency}%` : '-'}
-                      </td>
+                      <td className="whitespace-nowrap px-3 py-2 text-center text-sm font-bold text-gray-700 bg-gray-50">{total}</td>
+                      <td className={`whitespace-nowrap px-2 py-2 text-center text-xs font-bold ${total > 0 ? (efficiency >= 80 ? 'text-green-700 bg-green-50' : efficiency < 50 ? 'text-red-600 bg-red-50' : 'text-blue-600') : 'text-gray-300'}`}>{total > 0 ? `${efficiency}%` : '-'}</td>
                       <td className="whitespace-nowrap px-3 py-2">
-                        <input
-                          id={`input-${index}-observacao`}
-                          type="text"
-                          value={data[expert].observacao || ''}
-                          onChange={(e) => handleInputChange(expert, 'observacao', e.target.value)}
-                          onKeyDown={(e) => handleKeyDown(e, index, 'observacao', experts.length)}
-                          className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm py-1.5 px-3"
-                          placeholder="Ex: Atestado, Erro Sistêmico..."
-                        />
+                        <input id={`input-${index}-observacao`} type="text" value={data[expert].observacao || ''} onChange={(e) => handleInputChange(expert, 'observacao', e.target.value)} onKeyDown={(e) => handleKeyDown(e, index, 'observacao', experts.length)} className="block w-full rounded-md border-gray-300 shadow-sm focus:ring-indigo-500 sm:text-sm py-1.5 px-3" placeholder="..." />
                       </td>
                     </tr>
                   );
                 })}
               </tbody>
               <tfoot className="bg-gray-100 border-t-2 border-gray-300">
-                <tr>
-                   <td className="px-3 py-4"></td>
-                   <td className="py-4 pl-2 pr-3 text-left text-base font-bold text-gray-900">
-                     TOTAL DA EQUIPE
-                   </td>
-                   <td className="px-3 py-4 text-center text-sm font-bold text-indigo-500">
-                     {/* Sum of goals, just for reference, or empty */}
-                     -
-                   </td>
-                   <td className="px-3 py-4 text-center text-base font-bold text-yellow-700">
-                     {grandTotals.tratado}
-                   </td>
-                   <td className="px-3 py-4 text-center text-base font-bold text-green-700">
-                     {grandTotals.finalizado}
-                   </td>
-                   <td className="px-3 py-4 text-center text-lg font-extrabold text-indigo-700">
-                     {grandTotals.total}
-                   </td>
-                   <td className="px-3 py-4 text-center text-xs font-bold text-blue-700">
-                      {grandTotals.total > 0 ? `${Math.round((grandTotals.finalizado / grandTotals.total) * 100)}%` : '-'}
-                   </td>
-                   <td className="px-3 py-4 text-xs text-gray-500 italic text-center">
-                     {grandTotals.urgentes > 0 ? `${grandTotals.urgentes} urgência(s)` : ''}
-                   </td>
+                <tr className="font-bold text-gray-900">
+                   <td colSpan={2} className="py-4 pl-4 text-left">TOTAL EQUIPE</td>
+                   <td className="text-center">-</td>
+                   <td className="text-center text-yellow-700">{grandTotals.tratado}</td>
+                   <td className="text-center text-green-700">{grandTotals.finalizado}</td>
+                   <td className="text-center text-indigo-700 text-lg">{grandTotals.total}</td>
+                   <td className="text-center text-blue-700">{grandTotals.total > 0 ? `${Math.round((grandTotals.finalizado / grandTotals.total) * 100)}%` : '-'}</td>
+                   <td className="text-xs text-gray-500 italic px-4">{grandTotals.urgentes > 0 ? `${grandTotals.urgentes} urgência(s)` : ''}</td>
                 </tr>
               </tfoot>
             </table>
           </div>
         </div>
 
-        {/* Chart Section */}
         <PerformanceChart data={data} />
 
-        {/* AI Analysis Section */}
-        <div className={`shadow-md rounded-xl p-6 border ${isAnalysisError ? 'bg-red-50 border-red-200' : 'bg-gradient-to-r from-indigo-50 to-purple-50 border-indigo-100'}`}>
+        <div className={`shadow-md rounded-xl p-6 border ${aiAnalysis?.startsWith('❌') ? 'bg-red-50 border-red-200' : 'bg-gradient-to-r from-indigo-50 to-purple-50 border-indigo-100'}`}>
           <div className="flex justify-between items-start mb-4">
-            <div>
-                <h3 className={`text-lg font-bold flex items-center gap-2 ${isAnalysisError ? 'text-red-800' : 'text-indigo-900'}`}>
-                {isAnalysisError ? <AlertTriangle className="w-5 h-5 text-red-600"/> : <Sparkles className="w-5 h-5 text-purple-600" />}
-                {isAnalysisError ? 'Erro na Análise' : 'Análise Inteligente (IA)'}
-              </h3>
-              {!isAnalysisError && (
-                  <p className="text-sm text-indigo-700 mt-1">
-                    Obtenha um resumo executivo sobre a performance da equipe hoje.
-                  </p>
-              )}
-            </div>
-            {!aiAnalysis && (
-              <button 
-                type="button"
-                onClick={handleAiAnalysis}
-                disabled={isAnalyzing}
-                className="px-4 py-2 bg-purple-600 text-white rounded-lg text-sm font-medium hover:bg-purple-700 transition shadow-sm disabled:opacity-50 cursor-pointer"
-              >
-                {isAnalyzing ? 'Analisando...' : 'Gerar Análise'}
-              </button>
-            )}
-            {aiAnalysis && (
-               <button 
-               type="button"
-               onClick={handleAiAnalysis}
-               disabled={isAnalyzing}
-               className="px-3 py-1.5 text-xs bg-white text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50 transition shadow-sm"
-             >
-               Regerar
-             </button>
-            )}
+            <h3 className="text-lg font-bold flex items-center gap-2 text-indigo-900"><Sparkles className="w-5 h-5 text-purple-600" />Análise Inteligente (IA)</h3>
+            <button onClick={handleAiAnalysis} disabled={isAnalyzing} className="px-4 py-2 bg-purple-600 text-white rounded-lg text-sm font-medium hover:bg-purple-700 transition disabled:opacity-50">{isAnalyzing ? 'Analisando...' : aiAnalysis ? 'Regerar' : 'Gerar Análise'}</button>
           </div>
-          
           {aiAnalysis && (
-            <div className={`p-5 rounded-lg border ${isAnalysisError ? 'bg-red-100 border-red-200 text-red-800' : 'bg-white/80 border-indigo-100 text-gray-800'} prose prose-sm max-w-none`}>
-              <div dangerouslySetInnerHTML={{ __html: aiAnalysis.replace(/\n/g, '<br/>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') }} />
-            </div>
+            <div className="p-5 rounded-lg border bg-white/80 border-indigo-100 text-gray-800 prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: aiAnalysis.replace(/\n/g, '<br/>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') }} />
           )}
         </div>
       </div>
 
-      {/* Goal Achievement Toast Notification */}
       {notification && notification.visible && (
         <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50 animate-bounce">
             <div className="bg-indigo-900 text-white px-6 py-4 rounded-xl shadow-2xl flex items-center gap-4 border border-indigo-500">
@@ -693,16 +380,10 @@ function App() {
                     <span className="font-bold text-lg">Meta Batida!</span>
                     <span className="text-sm text-indigo-200">{notification.message}</span>
                 </div>
-                <button 
-                    onClick={() => setNotification(null)}
-                    className="ml-2 text-indigo-300 hover:text-white"
-                >
-                    <X className="w-5 h-5" />
-                </button>
+                <button onClick={() => setNotification(null)} className="ml-2 text-indigo-300 hover:text-white"><X className="w-5 h-5" /></button>
             </div>
         </div>
       )}
-
     </div>
   );
 }
