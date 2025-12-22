@@ -1,18 +1,10 @@
 
 import { createClient } from '@supabase/supabase-js';
 
-const getEnv = (key: string): string => {
-  const win = window as any;
-  return win.process?.env?.[key] || '';
-};
+// Configurações centralizadas para evitar dependência de window.process clobbering
+const supabaseUrl = 'https://vegxbxzitlvlbaljkbhz.supabase.co';
+const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZlZ3hieHppdGx2bGJhbGprYmh6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ0ODY5MzMsImV4cCI6MjA4MDA2MjkzM30.YeQtMW-bb_NnX8vZkdGs-IYbE_xfABf3HQYiQNaz6Ao';
 
-const supabaseUrl = getEnv('SUPABASE_URL');
-const supabaseAnonKey = getEnv('SUPABASE_ANON_KEY');
+export const isSupabaseConfigured = true;
 
-export const isSupabaseConfigured = !!(supabaseUrl && supabaseAnonKey);
-
-// Inicializa o cliente com as credenciais detectadas
-export const supabase = createClient(
-  supabaseUrl || 'https://placeholder.supabase.co',
-  supabaseAnonKey || 'placeholder'
-);
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);
