@@ -7,7 +7,7 @@ import { ManualEntryData, ExpertInfo, TimeSlot } from './types';
 import { PerformanceChart } from './components/PerformanceChart';
 import { supabase, isSupabaseConfigured } from './services/supabaseClient';
 
-const ADMIN_MATRICULAS = ['301052', '322110'];
+const ADMIN_MATRICULAS = ['301052', '322110', '221362', '333596', '246794'];
 const MESSAGE_DURATION_MS = 3 * 60 * 1000; // 3 minutos
 
 const SQL_SETUP_SCRIPT = `-- EXECUTE ESTE SCRIPT NO SQL EDITOR DO SUPABASE:
@@ -43,6 +43,32 @@ const getInitialData = (): ManualEntryData => {
     acc[name] = { tratado: 0, finalizado: 0, observacao: '', isUrgent: false, goal: 0, managerMessage: '' };
     return acc;
   }, {} as ManualEntryData);
+};
+
+// Som da Urna Eletrônica (Beep de confirmação/entrada)
+const playUrnaBeep = () => {
+  try {
+    const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioContext) return;
+    const ctx = new AudioContext();
+    
+    const playTone = (freq: number, start: number, duration: number) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, ctx.currentTime + start);
+      gain.gain.setValueAtTime(0.1, ctx.currentTime + start);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + start + duration);
+      osc.start(ctx.currentTime + start);
+      osc.stop(ctx.currentTime + start + duration);
+    };
+
+    // Duplo tom metálico curto
+    playTone(1100, 0, 0.12);
+    playTone(1350, 0.05, 0.12);
+  } catch (e) {}
 };
 
 const playBeepSound = () => {
@@ -100,12 +126,12 @@ function App() {
   const [tempMessages, setTempMessages] = useState<Record<string, string>>({});
 
   const [data, setData] = useState<ManualEntryData>(getInitialData);
+  const lastMessageRef = useRef<string>('');
 
   const loadSupabaseData = useCallback(async (date: string) => {
     if (!isSupabaseConfigured) return;
 
     setIsSyncing(true);
-    // Importante: Resetar para o estado inicial antes de carregar dados da nova data
     const freshSlate = getInitialData();
     
     try {
@@ -193,20 +219,16 @@ function App() {
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     setLoginError('');
-    
     const sanitizedInput = loginInput.trim();
-    
     if (!sanitizedInput) {
       setLoginError('Digite sua matrícula ou login.');
       return;
     }
-
     if (ADMIN_MATRICULAS.includes(sanitizedInput)) {
       setIsAdmin(true);
       setIsLoggedIn(true);
       return;
     }
-    
     const expert = EXPERT_LIST.find(e => e.matricula === sanitizedInput || e.login === sanitizedInput);
     if (expert) {
       setCurrentUser(expert);
@@ -224,6 +246,7 @@ function App() {
     setLoginInput('');
     setShowSqlHelp(false);
     setAiAnalysis(null);
+    lastMessageRef.current = '';
   };
 
   const handleInputChange = (expert: string, field: 'tratado' | 'finalizado' | 'observacao' | 'goal', value: string) => {
@@ -243,7 +266,6 @@ function App() {
   const handleSendMessage = (expert: string) => {
     const message = tempMessages[expert] || '';
     if (!message.trim()) return;
-
     playBeepSound();
     setData(prev => ({ ...prev, [expert]: { ...prev[expert], managerMessage: message } }));
     saveToSupabase(expert, { managerMessage: message });
@@ -262,7 +284,6 @@ function App() {
       handleSendMessage(expertName);
       return;
     }
-
     const focusInput = (idx: number, f: string) => {
       const el = document.getElementById(`input-${idx}-${f}`);
       if (el) (el as HTMLInputElement).focus();
@@ -299,7 +320,6 @@ function App() {
   const handleExportCSV = () => {
     const experts = Object.keys(data).sort();
     let csv = 'Matricula,Expert,Supervisor,Meta,Tratativa,Finalizado,Total,Eficiencia,Urgente,Observacao\n';
-    
     experts.forEach(name => {
       const info = EXPERT_MAP[name];
       const entry = data[name];
@@ -307,7 +327,6 @@ function App() {
       const eff = getEfficiency(name);
       csv += `${info?.matricula || '-'},"${name}","${info?.supervisor || ''}",${entry.goal || 0},${entry.tratado},${entry.finalizado},${total},${eff}%,${entry.isUrgent ? 'SIM' : 'NAO'},"${entry.observacao || ''}"\n`;
     });
-
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
@@ -321,7 +340,6 @@ function App() {
     let md = `### 🎨 Relatório Suvinil Service - ${selectedDate}\n\n`;
     md += `| Expert | Supervisor | Meta | Trat. | Fin. | % |\n`;
     md += `| :--- | :--- | :---: | :---: | :---: | :---: |\n`;
-    
     experts.forEach(name => {
       const entry = data[name];
       const info = EXPERT_MAP[name];
@@ -330,7 +348,6 @@ function App() {
         md += `| ${name} | ${info?.supervisor || ''} | ${entry.goal || 0} | ${entry.tratado} | ${entry.finalizado} | ${eff}% |\n`;
       }
     });
-
     navigator.clipboard.writeText(md);
     setNotification({ message: 'Markdown copiado!', visible: true, type: 'info' });
   };
@@ -343,10 +360,16 @@ function App() {
   const visibleExperts = isAdmin ? Object.keys(data).sort() : (currentUser ? [currentUser.name] : []);
   const expertReceivedMessage = (!isAdmin && currentUser) ? data[currentUser.name]?.managerMessage : null;
 
+  // Lógica de áudio da urna eletrônica ao receber mensagem
   useEffect(() => {
     if (!isAdmin && currentUser && expertReceivedMessage) {
+      if (expertReceivedMessage !== lastMessageRef.current) {
+        playUrnaBeep();
+        lastMessageRef.current = expertReceivedMessage;
+      }
       const timer = setTimeout(() => {
         saveToSupabase(currentUser.name, { managerMessage: '' });
+        lastMessageRef.current = '';
       }, MESSAGE_DURATION_MS);
       return () => clearTimeout(timer);
     }
@@ -364,17 +387,14 @@ function App() {
         </div>
       );
     }
-
     if (currentUser) {
       const stats = data[currentUser.name];
       const name = currentUser.name.split(' ')[0];
       const goal = stats?.goal || 0;
       const finished = stats?.finalizado || 0;
       const metGoal = goal > 0 && finished >= goal;
-
       let message = "Pronto para começar mais um dia de excelentes atendimentos? 💪";
       let icon = <Sun className="w-5 h-5 text-yellow-500" />;
-
       if (metGoal) {
         message = `Sensacional, ${name}! Você já atingiu sua meta de hoje. Ótimo trabalho! 🎯`;
         icon = <Trophy className="w-5 h-5 text-orange-600" />;
@@ -382,7 +402,6 @@ function App() {
         message = `Olá, ${name}! Você está no caminho certo, com ${finished} casos finalizados hoje. 🚀`;
         icon = <Rocket className="w-5 h-5 text-orange-600" />;
       }
-
       return (
         <div className="flex items-center gap-4 bg-orange-50/50 p-5 rounded-3xl border border-orange-100 animate-in fade-in slide-in-from-left-4 duration-700">
            <div className="bg-white p-2.5 rounded-2xl shadow-sm border border-orange-100">{icon}</div>

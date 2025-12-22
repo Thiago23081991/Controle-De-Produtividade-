@@ -14,41 +14,50 @@ export const analyzeProductivity = async (data: MatrixData | ManualEntryData): P
   const isManualEntry = typeof ((data as any)[keys[0]] || {}).tratado !== 'undefined';
   const dataString = JSON.stringify(data, null, 2);
   
-  const systemInstruction = "Você é um Controlador de Produtividade de Atendimento. Sua função é ler uma lista de registros de suporte, identificar tendências de produtividade, avaliar a eficiência da equipe e destacar pontos de atenção e destaque.";
+  const systemInstruction = "Você é um Controlador de Produtividade de Atendimento Sênior da Suvinil. Sua função é analisar dados de suporte, calcular métricas de atingimento de metas, identificar gargalos e fornecer feedback executivo preciso para a gestão.";
 
   let userPrompt = "";
 
   if (isManualEntry) {
     userPrompt = `
-      Analise os dados de produtividade abaixo (Manual Entry).
-      Campos: "Tratado" (andamento), "Finalizado" (resolvido), "Observacao" (justificativa), "isUrgent" (prioridade), "goal" (meta).
+      Analise os dados de produtividade manual da equipe Suvinil Service.
       
-      DADOS:
+      DADOS (JSON):
       ${dataString}
 
-      Gere um resumo executivo em Português do Brasil:
-      1. **Destaques de Performance**: Top Performer (maior 'Finalizado') e quem bateu a Meta.
-      2. **Eficiência**: Análise da taxa de conversão (Finalizado/Total).
-      3. **Gestão de Urgência**: Liste quem está marcado como urgente ('isUrgent': true) e isente-os de cobrança por volume.
-      4. **Observações**: Resuma as justificativas do campo 'Observacao'.
-      5. **Pontos de Atenção**: Baixa performance sem justificativa.
+      Campos disponíveis por Expert:
+      - "tratado": Casos iniciados/em andamento.
+      - "finalizado": Casos concluídos com sucesso.
+      - "goal": Meta de finalização definida para o dia.
+      - "isUrgent": Se o expert está em uma operação crítica.
+      - "observacao": Justificativa de performance.
 
-      Seja direto, profissional e use Markdown.
+      ESTRUTURA DA ANÁLISE (Markdown):
+      1. **Comparativo de Metas (Real vs. Esperado)**: 
+         - Para cada expert com meta > 0, calcule o percentual de atingimento: (finalizado / goal * 100).
+         - Liste quem SUPEROU a meta (>100%), quem está NO CAMINHO (70-99%) e quem está ABAIXO (<70%).
+      2. **Eficiência de Conversão**:
+         - Analise a relação entre Casos Tratados e Finalizados. Um alto volume de tratados sem finalização indica gargalo técnico ou complexidade excessiva?
+      3. **Destaques Positivos**: 
+         - Identifique o expert com melhor performance absoluta e o com melhor performance relativa (atingimento de meta).
+      4. **Gestão de Exceções**: 
+         - Analise os experts marcados como 'isUrgent' e valide se as 'observações' justificam eventuais baixas produtividades.
+      5. **Plano de Ação Sugerido**: 
+         - 2 ou 3 pontos acionáveis para melhorar a produtividade do time amanhã.
+
+      Mantenha um tom profissional, analítico e focado em resultados.
     `;
   } else {
     userPrompt = `
-      Analise a Matriz de Produtividade (Time Slots) abaixo.
-      Dados: Quantidade de casos FINALIZADOS por faixa de horário.
+      Analise a Matriz de Produtividade (Time Slots) abaixo para a equipe Suvinil.
       
       DADOS:
       ${dataString}
 
-      Faixas: ${TimeSlot.EARLY}, ${TimeSlot.MORNING}, ${TimeSlot.LUNCH}, ${TimeSlot.AFTERNOON}, ${TimeSlot.LATE}.
-
-      Gere um resumo em Português do Brasil (max 3 parágrafos):
-      1. **Top Performers**: Maior volume total.
-      2. **Pico de Produtividade**: Qual horário a equipe produz mais.
-      3. **Consistência**: Quem mantém ritmo constante vs picos isolados.
+      Gere um resumo em Português do Brasil:
+      1. **Análise de Fluxo**: Qual faixa de horário concentra o maior fechamento de casos?
+      2. **Consistência do Time**: Identifique quem mantém entregas constantes ao longo do dia vs quem tem picos de produtividade.
+      3. **Recomendação**: Baseado nos horários de maior volume, sugira ajustes de escala ou pausas.
     `;
   }
 
@@ -71,7 +80,6 @@ export const analyzeProductivity = async (data: MatrixData | ManualEntryData): P
   }
 
   // --- 3. FALLBACK: CLIENT-SIDE EXECUTION ---
-  // API key is obtained exclusively from process.env.API_KEY as per instructions.
   const apiKey = process.env.API_KEY;
 
   if (!apiKey) {
@@ -79,10 +87,8 @@ export const analyzeProductivity = async (data: MatrixData | ManualEntryData): P
   }
 
   try {
-    // Correct initialization with named parameter
     const ai = new GoogleGenAI({ apiKey: apiKey });
     
-    // Use gemini-3-flash-preview for summarization task
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
       contents: userPrompt,
@@ -91,7 +97,6 @@ export const analyzeProductivity = async (data: MatrixData | ManualEntryData): P
       }
     });
 
-    // Access text property directly (it's a getter, not a method)
     return response.text || "⚠️ A IA processou a solicitação mas não retornou texto.";
 
   } catch (error: any) {
