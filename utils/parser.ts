@@ -6,36 +6,35 @@ const DONE_KEYWORDS = ['finalizado', 'resolvido', 'vendido', 'concluido', 'concl
 const PENDING_KEYWORDS = ['tratativa', 'pendente', 'andamento', 'analise', 'análise', 'aguardando'];
 
 export const EXPERT_LIST: ExpertInfo[] = [
-  { matricula: "340021", login: "213638", name: "DOUGLAS FALCAO CAVALCANTE" },
-  { matricula: "339943", login: "213621", name: "FABIO DA SILVA FERREIRA" },
-  { matricula: "339944", login: "213637", name: "RODRIGO FERREIRA DE VASCONCELOS" },
-  { matricula: "372438", login: "213681", name: "THAIS APARECIDA SOUZA DOS SANTOS" },
-  { matricula: "372581", login: "213682", name: "ANNA BEATRIZ FERREIRA MENDES" },
-  { matricula: "372436", login: "213683", name: "ESTER ALVES FERREIRA" },
-  { matricula: "308652", login: "213716", name: "LUIZ GABRIEL DE FREITAS TEMOTEO" },
-  { matricula: "300031", login: "213745", name: "VALERIA SILVA LEITE" },
-  { matricula: "368131", login: "213678", name: "CAIO FELIPE DA SILVA" },
-  { matricula: "358255", login: "213662", name: "ROBERTA NICOLETTI PORTELA" },
-  { matricula: "321773", login: "213612", name: "JOAO PEDRO MARTINS CARVALHO" },
-  { matricula: "360691", login: "213664", name: "TATIANE APARECIDA DE ARAUJO JACINTO" },
-  { matricula: "315013", login: "213622", name: "EDUARDA TACIANA DA SILVA AVELINO FERREIRA" },
-  { matricula: "243176", login: "213776", name: "HELEN NARA SALES DE SOUZA" },
-  { matricula: "363744", login: "213669", name: "EDUARDO NASCIMENTO E SILVA" },
-  { matricula: "335425", login: "213609", name: "SABRINA DA SILVA" },
-  { matricula: "304244", login: "213710", name: "EDENILZA MIRANDA SANTANA" },
-  { matricula: "353560", login: "213659", name: "PATRICIA RABELO DA SILVA SABARA" },
-  { matricula: "284336", login: "213629", name: "DANIEL DOS SANTOS" },
-  { matricula: "306700", login: "213693", name: "DIENE KELY ARCELINO DE LIMA" },
-  { matricula: "298615", login: "213748", name: "JOÃO MARCOS DA SILVA CASTRO" },
-  { matricula: "284397", login: "213633", name: "KARINA JESUS VIEIRA" },
-  { matricula: "349577", login: "213654", name: "KETLYN DAIANE DA SILVA FREIRE" },
-  { matricula: "282194", login: "213771", name: "DANIELE NASCIMENTO DOS COSTA" },
-  { matricula: "330636", login: "213646", name: "CRISLANE LIMA DE SOUZA" },
-  { matricula: "333601", login: "213651", name: "LUIZ FERNANDO DE SOUZA DA SILVA" },
-  { matricula: "284396", login: "213632", name: "CARINE PEREIRA DOS SANTOS REIS" },
-  { matricula: "317094", login: "213618", name: "WENNY BIANCA DOS SANTOS FARIA" },
-  { matricula: "315015", login: "213619", name: "INGRYD OLIVEIRA MENDES DE BRITO" },
-  { matricula: "377504", login: "213689", name: "EMANUELLE COBO SALLES" }
+  { matricula: "340021", login: "213638", name: "DOUGLAS FALCAO CAVALCANTE", supervisor: "GABRIEL MORALES RODRIGUES" },
+  { matricula: "339943", login: "213621", name: "FABIO DA SILVA FERREIRA", supervisor: "GABRIEL MORALES RODRIGUES" },
+  { matricula: "339944", login: "213637", name: "RODRIGO FERREIRA DE VASCONCELOS", supervisor: "GABRIEL MORALES RODRIGUES" },
+  { matricula: "372438", login: "213681", name: "THAIS APARECIDA SOUZA DOS SANTOS", supervisor: "GABRIEL MORALES RODRIGUES" },
+  { matricula: "372581", login: "213682", name: "ANNA BEATRIZ FERREIRA MENDES", supervisor: "GABRIEL MORALES RODRIGUES" },
+  { matricula: "372436", login: "213683", name: "ESTER ALVES FERREIRA", supervisor: "GABRIEL MORALES RODRIGUES" },
+  { matricula: "373241", login: "213684", name: "LUCAS ALBERTO ESPINDULA SANTOS", supervisor: "GABRIEL MORALES RODRIGUES" },
+  { matricula: "308652", login: "213716", name: "LUIZ GABRIEL DE FREITAS TEMOTEO", supervisor: "GABRIEL MORALES RODRIGUES" },
+  { matricula: "300031", login: "213745", name: "VALERIA SILVA LEITE", supervisor: "GABRIEL MORALES RODRIGUES" },
+  { matricula: "368131", login: "213678", name: "CAIO FELIPE DA SILVA", supervisor: "THIAGO DA SILVA NASCIMENTO" },
+  { matricula: "358255", login: "213662", name: "ROBERTA NICOLETTI PORTELA", supervisor: "THIAGO DA SILVA NASCIMENTO" },
+  { matricula: "321773", login: "213612", name: "JOAO PEDRO MARTINS CARVALHO", supervisor: "THIAGO DA SILVA NASCIMENTO" },
+  { matricula: "360691", login: "213664", name: "TATIANE APARECIDA DE ARAUJO JACINTO", supervisor: "THIAGO DA SILVA NASCIMENTO" },
+  { matricula: "315013", login: "213622", name: "EDUARDA TACIANA DA SILVA AVELINO FERREIRA", supervisor: "THIAGO DA SILVA NASCIMENTO" },
+  { matricula: "243176", login: "213776", name: "HELEN NARA SALES DE SOUZA", supervisor: "THIAGO DA SILVA NASCIMENTO" },
+  { matricula: "363744", login: "213669", name: "EDUARDO NASCIMENTO E SILVA", supervisor: "THIAGO DA SILVA NASCIMENTO" },
+  { matricula: "335425", login: "213609", name: "SABRINA DA SILVA", supervisor: "THIAGO DA SILVA NASCIMENTO" },
+  { matricula: "304244", login: "213710", name: "EDENILZA MIRANDA SANTANA", supervisor: "THIAGO DA SILVA NASCIMENTO" },
+  { matricula: "306700", login: "213693", name: "DIENE KELY ARCELINO DE LIMA", supervisor: "THIAGO DA SILVA NASCIMENTO" },
+  { matricula: "298615", login: "213748", name: "JOÃO MARCOS DA SILVA CASTRO", supervisor: "THIAGO DA SILVA NASCIMENTO" },
+  { matricula: "284397", login: "213633", name: "KARINA JESUS VIEIRA", supervisor: "THIAGO DA SILVA NASCIMENTO" },
+  { matricula: "349577", login: "213654", name: "KETLYN DAIANE DA SILVA FREIRE", supervisor: "THIAGO DA SILVA NASCIMENTO" },
+  { matricula: "330636", login: "213646", name: "CRISLANE LIMA DE SOUZA", supervisor: "THIAGO DA SILVA NASCIMENTO" },
+  { matricula: "333601", login: "213651", name: "LUIZ FERNANDO DE SOUZA DA SILVA", supervisor: "THIAGO DA SILVA NASCIMENTO" },
+  { matricula: "284396", login: "213632", name: "CARINE PEREIRA DOS SANTOS REIS", supervisor: "THIAGO DA SILVA NASCIMENTO" },
+  { matricula: "317094", login: "213618", name: "WENNY BIANCA DOS SANTOS FARIA", supervisor: "THIAGO DA SILVA NASCIMENTO" },
+  { matricula: "315015", login: "213619", name: "INGRYD OLIVEIRA MENDES DE BRITO", supervisor: "THIAGO DA SILVA NASCIMENTO" },
+  { matricula: "377504", login: "213689", name: "EMANUELLE COBO SALLES", supervisor: "GABRIEL MORALES RODRIGUES" },
+  { matricula: "351216", login: "213656", name: "LUCINEIA BENEDITO DE SOUZA RIBEIRO", supervisor: "GABRIEL MORALES RODRIGUES" }
 ];
 
 export const EXPERT_ROSTER = EXPERT_LIST.map(e => e.name);
@@ -177,6 +176,7 @@ export const calculateMatrix = (records: ParsedRecord[]): MatrixData => {
 };
 
 export const generateMarkdownTable = (matrix: MatrixData): string => {
+  // Fixed typo: Property 'AFTERPOON' does not exist on type 'typeof TimeSlot'. Fixed to 'AFTERNOON'.
   const headers = ['Matrícula', 'Expert', TimeSlot.EARLY, TimeSlot.MORNING, TimeSlot.LUNCH, TimeSlot.AFTERNOON, TimeSlot.LATE, 'TOTAL'];
   
   let md = `| ${headers.join(' | ')} |\n`;

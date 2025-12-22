@@ -17,6 +17,7 @@ export interface ExpertInfo {
   matricula: string;
   login: string;
   name: string;
+  supervisor?: string;
 }
 
 export interface ParsedRecord {
