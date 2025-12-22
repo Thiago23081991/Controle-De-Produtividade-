@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { ClipboardList, Sparkles, Copy, RefreshCw, AlertTriangle, Calendar, Siren, FileSpreadsheet, Trophy, Award, LogIn, LogOut, User, CheckCircle, X, Send, BellRing, MessageSquareText, Mail, Database, AlertCircle, Terminal, Code, Clock, Palette, Download, FileText, BrainCircuit, Hash, Volume2 } from 'lucide-react';
+import { ClipboardList, Sparkles, Copy, RefreshCw, AlertTriangle, Calendar, Siren, FileSpreadsheet, Trophy, Award, LogIn, LogOut, User, CheckCircle, X, Send, BellRing, MessageSquareText, Mail, Database, AlertCircle, Terminal, Code, Clock, Palette, Download, FileText, BrainCircuit, Hash, Volume2, Rocket, Target, Sun } from 'lucide-react';
 import { EXPERT_ROSTER, EXPERT_MAP, EXPERT_LIST, generateMarkdownTable } from './utils/parser';
 import { analyzeProductivity } from './services/geminiService';
 import { ManualEntryData, ExpertInfo, TimeSlot } from './types';
@@ -35,6 +35,14 @@ const getTodayString = () => {
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const day = String(date.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
+};
+
+const getInitialData = (): ManualEntryData => {
+  const sortedRoster = [...EXPERT_ROSTER].sort((a, b) => a.localeCompare(b));
+  return sortedRoster.reduce((acc, name) => {
+    acc[name] = { tratado: 0, finalizado: 0, observacao: '', isUrgent: false, goal: 0, managerMessage: '' };
+    return acc;
+  }, {} as ManualEntryData);
 };
 
 const playBeepSound = () => {
@@ -91,18 +99,15 @@ function App() {
 
   const [tempMessages, setTempMessages] = useState<Record<string, string>>({});
 
-  const [data, setData] = useState<ManualEntryData>(() => {
-    const sortedRoster = [...EXPERT_ROSTER].sort((a, b) => a.localeCompare(b));
-    return sortedRoster.reduce((acc, name) => {
-      acc[name] = { tratado: 0, finalizado: 0, observacao: '', isUrgent: false, goal: 0, managerMessage: '' };
-      return acc;
-    }, {} as ManualEntryData);
-  });
+  const [data, setData] = useState<ManualEntryData>(getInitialData);
 
   const loadSupabaseData = useCallback(async (date: string) => {
     if (!isSupabaseConfigured) return;
 
     setIsSyncing(true);
+    // Importante: Resetar para o estado inicial antes de carregar dados da nova data
+    const freshSlate = getInitialData();
+    
     try {
       const { data: records, error } = await supabase
         .from('productivity_records')
@@ -117,24 +122,24 @@ function App() {
         } else {
           setNotification({ message: `Erro Cloud: ${errorMsg}`, visible: true, type: 'error' });
         }
+        setData(freshSlate);
       } else if (records) {
-        setData(prev => {
-          const newData = { ...prev };
-          records.forEach(rec => {
-            if (newData[rec.expert_name]) {
-              newData[rec.expert_name] = {
-                tratado: rec.tratado,
-                finalizado: rec.finalizado,
-                goal: rec.goal,
-                observacao: rec.observacao,
-                isUrgent: rec.is_urgent,
-                managerMessage: rec.manager_message
-              };
-            }
-          });
-          return newData;
+        records.forEach(rec => {
+          if (freshSlate[rec.expert_name]) {
+            freshSlate[rec.expert_name] = {
+              tratado: rec.tratado,
+              finalizado: rec.finalizado,
+              goal: rec.goal,
+              observacao: rec.observacao,
+              isUrgent: rec.is_urgent,
+              managerMessage: rec.manager_message
+            };
+          }
         });
+        setData(freshSlate);
       }
+    } catch (e) {
+      setData(freshSlate);
     } finally {
       setIsSyncing(false);
     }
@@ -347,6 +352,50 @@ function App() {
     }
   }, [expertReceivedMessage, currentUser, isAdmin]);
 
+  const renderWelcomeMessage = () => {
+    if (isAdmin) {
+      return (
+        <div className="flex items-center gap-4 bg-slate-900/5 p-5 rounded-3xl border border-slate-200 animate-in fade-in slide-in-from-left-4 duration-700">
+           <div className="bg-slate-900 p-2.5 rounded-2xl shadow-md"><User className="w-5 h-5 text-orange-500" /></div>
+           <div>
+              <p className="text-sm font-black text-slate-800">Olá, Administrador!</p>
+              <p className="text-[11px] text-slate-500 font-bold uppercase tracking-wide">O painel de controle está atualizado com os últimos registros da nuvem.</p>
+           </div>
+        </div>
+      );
+    }
+
+    if (currentUser) {
+      const stats = data[currentUser.name];
+      const name = currentUser.name.split(' ')[0];
+      const goal = stats?.goal || 0;
+      const finished = stats?.finalizado || 0;
+      const metGoal = goal > 0 && finished >= goal;
+
+      let message = "Pronto para começar mais um dia de excelentes atendimentos? 💪";
+      let icon = <Sun className="w-5 h-5 text-yellow-500" />;
+
+      if (metGoal) {
+        message = `Sensacional, ${name}! Você já atingiu sua meta de hoje. Ótimo trabalho! 🎯`;
+        icon = <Trophy className="w-5 h-5 text-orange-600" />;
+      } else if (finished > 0) {
+        message = `Olá, ${name}! Você está no caminho certo, com ${finished} casos finalizados hoje. 🚀`;
+        icon = <Rocket className="w-5 h-5 text-orange-600" />;
+      }
+
+      return (
+        <div className="flex items-center gap-4 bg-orange-50/50 p-5 rounded-3xl border border-orange-100 animate-in fade-in slide-in-from-left-4 duration-700">
+           <div className="bg-white p-2.5 rounded-2xl shadow-sm border border-orange-100">{icon}</div>
+           <div>
+              <p className="text-sm font-black text-slate-800">Olá, {name}!</p>
+              <p className="text-[11px] text-slate-500 font-bold leading-relaxed">{message}</p>
+           </div>
+        </div>
+      );
+    }
+    return null;
+  };
+
   if (!isLoggedIn) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-orange-950 flex items-center justify-center px-4">
@@ -417,6 +466,8 @@ function App() {
           </div>
         </div>
 
+        {renderWelcomeMessage()}
+
         {expertReceivedMessage && (
           <div className="bg-orange-600 text-white p-6 rounded-3xl shadow-2xl relative overflow-hidden flex items-center gap-5 border-b-8 border-orange-800 animate-in fade-in slide-in-from-top-4 duration-500">
              <div className="absolute bottom-0 left-0 h-2 bg-white/30 transition-all ease-linear" style={{ width: '100%', animation: `shrinkWidth ${MESSAGE_DURATION_MS}ms linear forwards` }}></div>
@@ -436,10 +487,10 @@ function App() {
           </div>
         )}
 
-        <div className="flex items-center justify-between gap-4">
-          <div className="bg-white px-5 py-3 rounded-2xl shadow-sm border border-slate-200 flex items-center gap-3">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div className="bg-white px-5 py-3 rounded-2xl shadow-sm border border-slate-200 flex items-center gap-3 w-full md:w-auto">
             <Calendar className="w-5 h-5 text-orange-600" />
-            <input type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} className="text-sm font-black text-slate-700 outline-none bg-transparent" />
+            <input type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} className="text-sm font-black text-slate-700 outline-none bg-transparent w-full" />
           </div>
         </div>
 
