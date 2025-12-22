@@ -7,7 +7,7 @@ import { ManualEntryData, ExpertInfo, TimeSlot } from './types';
 import { PerformanceChart } from './components/PerformanceChart';
 import { supabase, isSupabaseConfigured } from './services/supabaseClient';
 
-const ADMIN_MATRICULA = '301052';
+const ADMIN_MATRICULAS = ['301052', '322110'];
 const MESSAGE_DURATION_MS = 3 * 60 * 1000; // 3 minutos
 
 const SQL_SETUP_SCRIPT = `-- EXECUTE ESTE SCRIPT NO SQL EDITOR DO SUPABASE:
@@ -196,7 +196,7 @@ function App() {
       return;
     }
 
-    if (sanitizedInput === ADMIN_MATRICULA) {
+    if (ADMIN_MATRICULAS.includes(sanitizedInput)) {
       setIsAdmin(true);
       setIsLoggedIn(true);
       return;
