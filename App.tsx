@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { ClipboardList, Sparkles, Copy, RefreshCw, AlertTriangle, Calendar, Siren, FileSpreadsheet, Trophy, Award, LogIn, LogOut, User, CheckCircle, X, Send, BellRing, MessageSquareText, Mail, Database, AlertCircle, Terminal, Code, Clock, Palette, Download, FileText, BrainCircuit, Hash } from 'lucide-react';
+import { ClipboardList, Sparkles, Copy, RefreshCw, AlertTriangle, Calendar, Siren, FileSpreadsheet, Trophy, Award, LogIn, LogOut, User, CheckCircle, X, Send, BellRing, MessageSquareText, Mail, Database, AlertCircle, Terminal, Code, Clock, Palette, Download, FileText, BrainCircuit, Hash, Volume2 } from 'lucide-react';
 import { EXPERT_ROSTER, EXPERT_MAP, EXPERT_LIST, generateMarkdownTable } from './utils/parser';
 import { analyzeProductivity } from './services/geminiService';
 import { ManualEntryData, ExpertInfo, TimeSlot } from './types';
@@ -35,6 +35,24 @@ const getTodayString = () => {
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const day = String(date.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
+};
+
+const playBeepSound = () => {
+  try {
+    const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioContext) return;
+    const ctx = new AudioContext();
+    const osc = ctx.createOscillator();
+    const gainNode = ctx.createGain();
+    osc.connect(gainNode);
+    gainNode.connect(ctx.destination);
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(880, ctx.currentTime);
+    gainNode.gain.setValueAtTime(0.02, ctx.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.1);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.1);
+  } catch (e) {}
 };
 
 const playSuccessSound = () => {
@@ -109,7 +127,7 @@ function App() {
                 finalizado: rec.finalizado,
                 goal: rec.goal,
                 observacao: rec.observacao,
-                is_urgent: rec.is_urgent,
+                isUrgent: rec.is_urgent,
                 managerMessage: rec.manager_message
               };
             }
@@ -184,7 +202,6 @@ function App() {
       return;
     }
     
-    // Procura por matrícula ou por login ID
     const expert = EXPERT_LIST.find(e => e.matricula === sanitizedInput || e.login === sanitizedInput);
     if (expert) {
       setCurrentUser(expert);
@@ -222,6 +239,7 @@ function App() {
     const message = tempMessages[expert] || '';
     if (!message.trim()) return;
 
+    playBeepSound();
     setData(prev => ({ ...prev, [expert]: { ...prev[expert], managerMessage: message } }));
     saveToSupabase(expert, { managerMessage: message });
     setNotification({ message: `Mensagem enviada para ${expert}!`, visible: true, type: 'success' });
@@ -400,17 +418,20 @@ function App() {
         </div>
 
         {expertReceivedMessage && (
-          <div className="bg-orange-600 text-white p-6 rounded-3xl shadow-2xl relative overflow-hidden flex items-center gap-5 border-b-8 border-orange-800">
+          <div className="bg-orange-600 text-white p-6 rounded-3xl shadow-2xl relative overflow-hidden flex items-center gap-5 border-b-8 border-orange-800 animate-in fade-in slide-in-from-top-4 duration-500">
              <div className="absolute bottom-0 left-0 h-2 bg-white/30 transition-all ease-linear" style={{ width: '100%', animation: `shrinkWidth ${MESSAGE_DURATION_MS}ms linear forwards` }}></div>
-             <div className="bg-orange-500 p-4 rounded-2xl shrink-0 shadow-lg"><Mail className="w-8 h-8" /></div>
+             <div className="bg-orange-500 p-4 rounded-2xl shrink-0 shadow-lg relative overflow-hidden group">
+                <div className="absolute inset-0 bg-white/20 animate-pulse"></div>
+                <Mail className="w-8 h-8 relative z-10" />
+             </div>
              <div className="flex-1">
                 <div className="flex items-center justify-between mb-1">
-                  <p className="text-[10px] uppercase font-black tracking-[0.2em] opacity-80">Comunicação Instantânea</p>
+                  <p className="text-[10px] uppercase font-black tracking-[0.2em] opacity-80 flex items-center gap-2"><BellRing className="w-3 h-3 animate-bounce" /> Mensagem de Gestão</p>
                   <div className="flex items-center gap-1.5 text-[10px] font-black bg-orange-700/50 px-3 py-1 rounded-full border border-orange-400/50">
-                    <Clock className="w-4 h-4" /> expira em 3m
+                    <Clock className="w-4 h-4" /> desaparece em 3m
                   </div>
                 </div>
-                <p className="text-xl font-black italic tracking-tight">"{expertReceivedMessage}"</p>
+                <p className="text-xl font-black italic tracking-tight drop-shadow-sm">"{expertReceivedMessage}"</p>
              </div>
           </div>
         )}
@@ -443,7 +464,7 @@ function App() {
                   const entry = data[name];
                   const info = EXPERT_MAP[name];
                   const metGoal = entry.goal > 0 && entry.finalizado >= entry.goal;
-                  const total = entry.tratado + entry.finalizado;
+                  const total = (entry.tratado || 0) + (entry.finalizado || 0);
                   const eff = getEfficiency(name);
                   return (
                     <tr key={name} className={`transition-colors group ${entry.isUrgent ? 'bg-red-50/50' : (metGoal && isAdmin) ? 'bg-orange-50/40' : 'hover:bg-slate-50/50'}`}>
@@ -487,12 +508,13 @@ function App() {
                               onChange={(e) => setTempMessages(prev => ({ ...prev, [name]: e.target.value }))} 
                               onKeyDown={(e) => handleKeyDown(e, index, 'managerMessage', visibleExperts.length, name)} 
                               className="flex-1 text-xs font-bold px-3 py-1.5 rounded-lg bg-white/50 border border-transparent focus:border-orange-300 outline-none" 
-                              placeholder="Mensagem..." 
+                              placeholder="Falar com expert..." 
                             />
                             <button 
                               onClick={() => handleSendMessage(name)}
                               disabled={!(tempMessages[name]?.trim())}
-                              className="bg-orange-600 text-white p-2 rounded-lg hover:bg-orange-700 disabled:bg-slate-200 disabled:text-slate-400 transition-colors shadow-sm"
+                              className="bg-orange-600 text-white p-2 rounded-lg hover:bg-orange-700 disabled:bg-slate-200 disabled:text-slate-400 transition-all shadow-sm active:scale-90"
+                              title="Enviar Beep"
                             >
                               <Send className="w-3 h-3" />
                             </button>
@@ -540,13 +562,16 @@ function App() {
 
       <style>{`
         @keyframes shrinkWidth { from { width: 100%; } to { width: 0%; } }
+        .animate-in { animation: fadeIn 0.5s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
         ::selection { background-color: #F47321; color: white; }
       `}</style>
 
       {notification?.visible && (
         <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[60] animate-bounce">
           <div className={`px-8 py-4 rounded-[2rem] shadow-2xl flex items-center gap-4 text-white font-black border-b-4 ${notification.type === 'error' ? 'bg-red-600 border-red-800' : notification.type === 'info' ? 'bg-slate-900 border-slate-700' : 'bg-orange-600 border-orange-800'}`}>
-            <span>{notification.message}</span>
+             {notification.type === 'success' && <Volume2 className="w-5 h-5 animate-pulse" />}
+             <span>{notification.message}</span>
             <button onClick={() => setNotification(null)} className="ml-4 bg-white/20 p-1 rounded-full"><X className="w-4 h-4" /></button>
           </div>
         </div>
