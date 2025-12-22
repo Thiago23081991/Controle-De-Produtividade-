@@ -10,6 +10,21 @@ import { supabase, isSupabaseConfigured } from './services/supabaseClient';
 const ADMIN_MATRICULAS = ['301052', '322110', '221362', '333596', '246794'];
 const MESSAGE_DURATION_MS = 3 * 60 * 1000; // 3 minutos
 
+// Contexto de áudio global para evitar múltiplas instâncias e facilitar o "resume"
+let globalAudioCtx: AudioContext | null = null;
+
+const initAudio = () => {
+  if (!globalAudioCtx) {
+    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+    if (AudioContextClass) {
+      globalAudioCtx = new AudioContextClass();
+    }
+  }
+  if (globalAudioCtx && globalAudioCtx.state === 'suspended') {
+    globalAudioCtx.resume();
+  }
+};
+
 const SQL_SETUP_SCRIPT = `-- EXECUTE ESTE SCRIPT NO SQL EDITOR DO SUPABASE:
 
 CREATE TABLE IF NOT EXISTS productivity_records (
@@ -45,37 +60,44 @@ const getInitialData = (): ManualEntryData => {
   }, {} as ManualEntryData);
 };
 
-// Som da Urna Eletrônica (Beep de confirmação/entrada)
+// Som fiel da Urna Eletrônica (Sintetizado)
 const playUrnaBeep = () => {
   try {
-    const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
-    if (!AudioContext) return;
-    const ctx = new AudioContext();
-    
-    const playTone = (freq: number, start: number, duration: number) => {
+    initAudio();
+    if (!globalAudioCtx) return;
+
+    const ctx = globalAudioCtx;
+    const playTone = (freq: number, start: number, duration: number, type: OscillatorType = 'sine') => {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.connect(gain);
       gain.connect(ctx.destination);
-      osc.type = 'sine';
+      osc.type = type;
       osc.frequency.setValueAtTime(freq, ctx.currentTime + start);
-      gain.gain.setValueAtTime(0.1, ctx.currentTime + start);
-      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + start + duration);
+      gain.gain.setValueAtTime(0, ctx.currentTime + start);
+      gain.gain.linearRampToValueAtTime(0.1, ctx.currentTime + start + 0.01);
+      gain.gain.setValueAtTime(0.1, ctx.currentTime + start + duration - 0.01);
+      gain.gain.linearRampToValueAtTime(0, ctx.currentTime + start + duration);
       osc.start(ctx.currentTime + start);
       osc.stop(ctx.currentTime + start + duration);
     };
 
-    // Duplo tom metálico curto
-    playTone(1100, 0, 0.12);
-    playTone(1350, 0.05, 0.12);
-  } catch (e) {}
+    // O clássico "FI-LI-LI-LI-P" de entrada de mensagem (urna style)
+    const startTime = 0;
+    playTone(1100, startTime, 0.1);
+    playTone(1350, startTime + 0.08, 0.1);
+    playTone(1100, startTime + 0.16, 0.1);
+    playTone(1350, startTime + 0.24, 0.3);
+  } catch (e) {
+    console.error("Erro ao reproduzir áudio:", e);
+  }
 };
 
 const playBeepSound = () => {
   try {
-    const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
-    if (!AudioContext) return;
-    const ctx = new AudioContext();
+    initAudio();
+    if (!globalAudioCtx) return;
+    const ctx = globalAudioCtx;
     const osc = ctx.createOscillator();
     const gainNode = ctx.createGain();
     osc.connect(gainNode);
@@ -91,9 +113,9 @@ const playBeepSound = () => {
 
 const playSuccessSound = () => {
   try {
-    const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
-    if (!AudioContext) return;
-    const ctx = new AudioContext();
+    initAudio();
+    if (!globalAudioCtx) return;
+    const ctx = globalAudioCtx;
     const osc = ctx.createOscillator();
     const gainNode = ctx.createGain();
     osc.connect(gainNode);
@@ -219,6 +241,10 @@ function App() {
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     setLoginError('');
+    
+    // Crucial: Inicializar áudio no primeiro clique do usuário
+    initAudio();
+
     const sanitizedInput = loginInput.trim();
     if (!sanitizedInput) {
       setLoginError('Digite sua matrícula ou login.');
@@ -360,13 +386,15 @@ function App() {
   const visibleExperts = isAdmin ? Object.keys(data).sort() : (currentUser ? [currentUser.name] : []);
   const expertReceivedMessage = (!isAdmin && currentUser) ? data[currentUser.name]?.managerMessage : null;
 
-  // Lógica de áudio da urna eletrônica ao receber mensagem
+  // Monitoramento de nova mensagem para disparar som da urna
   useEffect(() => {
     if (!isAdmin && currentUser && expertReceivedMessage) {
-      if (expertReceivedMessage !== lastMessageRef.current) {
+      const msgClean = expertReceivedMessage.trim();
+      if (msgClean && msgClean !== lastMessageRef.current) {
         playUrnaBeep();
-        lastMessageRef.current = expertReceivedMessage;
+        lastMessageRef.current = msgClean;
       }
+      
       const timer = setTimeout(() => {
         saveToSupabase(currentUser.name, { managerMessage: '' });
         lastMessageRef.current = '';
