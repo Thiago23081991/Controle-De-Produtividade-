@@ -6,12 +6,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Produtividade Service Desk</title>
     <script>
-      // Configuração imediata das chaves fornecidas
-      window.process = {
-        env: {
-          SUPABASE_URL: 'https://vegxbxzitlvlbaljkbhz.supabase.co',
-          SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZlZ3hieHppdGx2bGJhbGprYmh6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ0ODY5MzMsImV4cCI6MjA4MDA2MjkzM30.YeQtMW-bb_NnX8vZkdGs-IYbE_xfABf3HQYiQNaz6Ao'
-        }
+      // Preserva o objeto process existente (onde está a API_KEY) e adiciona as chaves do Supabase
+      window.process = window.process || { env: {} };
+      window.process.env = {
+        ...window.process.env,
+        SUPABASE_URL: 'https://vegxbxzitlvlbaljkbhz.supabase.co',
+        SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZlZ3hieHppdGx2bGJhbGprYmh6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ0ODY5MzMsImV4cCI6MjA4MDA2MjkzM30.YeQtMW-bb_NnX8vZkdGs-IYbE_xfABf3HQYiQNaz6Ao'
       };
     </script>
     <script src="https://cdn.tailwindcss.com"></script>
