@@ -46,5 +46,6 @@ export interface ManualEntryData {
     goal?: number;
     managerMessage?: string;
     expertMessage?: string;
+    targetSupervisor?: string;
   };
 }

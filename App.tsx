@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { ClipboardList, Sparkles, RefreshCw, Calendar, LogOut, Send, BellRing, Mail, Clock, Palette, BrainCircuit, Users, Megaphone, AlertCircle, X, BarChart3, TrendingUp, CheckCircle, Activity, LayoutDashboard, Zap, Trophy, PartyPopper, MessageSquare } from 'lucide-react';
+import { ClipboardList, Sparkles, RefreshCw, Calendar, LogOut, Send, BellRing, Mail, Clock, Palette, BrainCircuit, Users, Megaphone, AlertCircle, X, BarChart3, TrendingUp, CheckCircle, Activity, LayoutDashboard, Zap, Trophy, PartyPopper, MessageSquare, ChevronDown } from 'lucide-react';
 import { EXPERT_ROSTER, EXPERT_MAP, EXPERT_LIST } from './utils/parser';
 import { analyzeProductivity } from './services/geminiService';
 import { ManualEntryData, ExpertInfo } from './types';
@@ -128,7 +128,7 @@ const getCurrentWeekRange = () => {
 const getInitialData = (): ManualEntryData => {
   const sortedRoster = [...EXPERT_ROSTER].sort((a, b) => a.localeCompare(b));
   return sortedRoster.reduce((acc, name) => {
-    acc[name] = { tratado: 0, finalizado: 0, observacao: '', isUrgent: false, goal: 0, managerMessage: '', expertMessage: '' };
+    acc[name] = { tratado: 0, finalizado: 0, observacao: '', isUrgent: false, goal: 0, managerMessage: '', expertMessage: '', targetSupervisor: '' };
     return acc;
   }, {} as ManualEntryData);
 };
@@ -146,7 +146,10 @@ function App() {
   const [selectedSupervisor, setSelectedSupervisor] = useState<string>('TODOS');
   const [notification, setNotification] = useState<{ message: string; visible: boolean; type?: 'success' | 'info' | 'error' | 'alert' | 'celebration' } | null>(null);
   const [tempMessages, setTempMessages] = useState<Record<string, string>>({});
-  const [expertMessageInput, setExpertMessageInput] = useState(''); // Estado para o input do expert
+  
+  const [expertMessageInput, setExpertMessageInput] = useState('');
+  const [expertTargetSupervisor, setExpertTargetSupervisor] = useState('');
+
   const [data, setData] = useState<ManualEntryData>(getInitialData);
   const [weeklyStats, setWeeklyStats] = useState({ tratado: 0, finalizado: 0 });
   
@@ -159,6 +162,13 @@ function App() {
     EXPERT_LIST.forEach(e => e.supervisor && list.add(e.supervisor));
     return ['TODOS', ...Array.from(list).sort()];
   }, []);
+
+  // Set default supervisor when user logs in
+  useEffect(() => {
+    if (currentUser && currentUser.supervisor) {
+      setExpertTargetSupervisor(currentUser.supervisor);
+    }
+  }, [currentUser]);
 
   const loadWeeklyStats = useCallback(async (expertName: string) => {
     if (!isSupabaseConfigured) return;
@@ -199,7 +209,8 @@ function App() {
               observacao: rec.observacao || '',
               isUrgent: rec.is_urgent,
               managerMessage: rec.manager_message,
-              expertMessage: rec.expert_message // Carregar mensagem do expert
+              expertMessage: rec.expert_message,
+              targetSupervisor: rec.target_supervisor || ''
             };
           }
         });
@@ -229,7 +240,8 @@ function App() {
                 observacao: rec.observacao || '',
                 isUrgent: rec.is_urgent,
                 managerMessage: rec.manager_message,
-                expertMessage: rec.expert_message
+                expertMessage: rec.expert_message,
+                targetSupervisor: rec.target_supervisor
               }
             }));
             if (currentUser && rec.expert_name === currentUser.name) {
@@ -244,17 +256,21 @@ function App() {
   useEffect(() => {
     Object.keys(data).forEach(name => {
        const msg = data[name]?.expertMessage || '';
+       const target = data[name]?.targetSupervisor;
        const prevMsg = prevExpertMessages.current[name];
        
        // Notifica apenas se:
        // 1. É Admin
        // 2. Não está no carregamento inicial (isSyncing)
-       // 3. Já temos um estado anterior registrado (evita notificar no refresh/load)
-       // 4. A mensagem mudou e não está vazia
-       if (isAdmin && !isSyncing && prevMsg !== undefined && msg !== prevMsg && msg.trim() !== '') {
+       // 3. A mensagem mudou e não está vazia
+       // 4. O Admin está vendo TODOS OU o Admin selecionou o supervisor que é o DESTINATÁRIO da mensagem
+       
+       const isRelevantForCurrentView = selectedSupervisor === 'TODOS' || (target && selectedSupervisor === target);
+
+       if (isAdmin && !isSyncing && prevMsg !== undefined && msg !== prevMsg && msg.trim() !== '' && isRelevantForCurrentView) {
           playUrnaBeep();
           setNotification({ 
-             message: `💬 Nova mensagem de ${name.split(' ')[0]}`, 
+             message: `💬 ${name.split(' ')[0]} para ${target ? target.split(' ')[0] : 'Supervisão'}`, 
              visible: true, 
              type: 'info' 
           });
@@ -262,7 +278,7 @@ function App() {
        
        prevExpertMessages.current[name] = msg;
     });
-  }, [data, isAdmin, isSyncing]);
+  }, [data, isAdmin, isSyncing, selectedSupervisor]);
 
   const saveToSupabase = async (expert: string, updateData: Partial<ManualEntryData[string]>) => {
     if (!isSupabaseConfigured) return;
@@ -277,7 +293,8 @@ function App() {
       observacao: fullData.observacao,
       is_urgent: fullData.isUrgent,
       manager_message: fullData.managerMessage,
-      expert_message: fullData.expertMessage, // Salvar mensagem do expert
+      expert_message: fullData.expertMessage,
+      target_supervisor: fullData.targetSupervisor,
       updated_at: new Date().toISOString()
     }, { onConflict: 'date,expert_name' });
     
@@ -311,6 +328,7 @@ function App() {
     goalReachedRef.current = false;
     setAiAnalysis(null);
     setExpertMessageInput('');
+    setExpertTargetSupervisor('');
     prevExpertMessages.current = {};
   };
 
@@ -332,10 +350,24 @@ function App() {
   // Função para Expert enviar mensagem ao Supervisor
   const handleSendExpertMessage = () => {
     if (!currentUser || !expertMessageInput.trim()) return;
-    saveToSupabase(currentUser.name, { expertMessage: expertMessageInput });
+    
+    // Se não tiver supervisor selecionado, usa o "TODOS" ou o primeiro da lista, mas idealmente usa o state
+    const target = expertTargetSupervisor || (currentUser.supervisor ? currentUser.supervisor : 'TODOS');
+
+    // Optimistic Update: Atualiza a interface imediatamente
+    setData(prev => ({
+      ...prev,
+      [currentUser.name]: {
+        ...prev[currentUser.name],
+        expertMessage: expertMessageInput,
+        targetSupervisor: target
+      }
+    }));
+
+    saveToSupabase(currentUser.name, { expertMessage: expertMessageInput, targetSupervisor: target });
     playSuccessBeep();
-    setNotification({ message: 'Mensagem enviada à supervisão!', visible: true, type: 'success' });
-    setExpertMessageInput(''); // Limpa o input mas mantém a mensagem na base
+    setNotification({ message: `Mensagem enviada para ${target === 'TODOS' ? 'Supervisão Geral' : target.split(' ')[0]}!`, visible: true, type: 'success' });
+    setExpertMessageInput('');
   };
 
   const handleRunAnalysis = async () => {
@@ -351,9 +383,22 @@ function App() {
 
   const visibleExperts = useMemo(() => {
     if (!isAdmin) return currentUser ? [currentUser.name] : [];
+    
     return Object.keys(data).filter(name => {
+      // Se Admin estiver vendo TODOS, mostra todo mundo
       if (selectedSupervisor === 'TODOS') return true;
-      return EXPERT_MAP[name]?.supervisor === selectedSupervisor;
+      
+      const officialSupervisor = EXPERT_MAP[name]?.supervisor;
+      const targetSupervisor = data[name]?.targetSupervisor;
+      const hasMessage = !!data[name]?.expertMessage;
+
+      // Mostra se é do time do supervisor
+      const isTeamMember = officialSupervisor === selectedSupervisor;
+      
+      // Mostra se mandou mensagem para este supervisor (mesmo sendo de outro time)
+      const isTargetingThisSupervisor = hasMessage && targetSupervisor === selectedSupervisor;
+
+      return isTeamMember || isTargetingThisSupervisor;
     }).sort();
   }, [isAdmin, currentUser, data, selectedSupervisor]);
 
@@ -596,7 +641,21 @@ function App() {
                   <MessageSquare className="text-slate-500" size={24} />
                </div>
                <div className="flex-1 w-full">
-                  <h4 className="text-sm font-black text-slate-800 uppercase tracking-widest mb-2">Canal com a Supervisão</h4>
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="text-sm font-black text-slate-800 uppercase tracking-widest">Canal com a Supervisão</h4>
+                    <div className="relative group">
+                       <select
+                         value={expertTargetSupervisor}
+                         onChange={(e) => setExpertTargetSupervisor(e.target.value)}
+                         className="appearance-none bg-slate-50 border border-slate-200 text-slate-600 py-1 pl-3 pr-8 rounded-xl text-[10px] font-black uppercase tracking-widest outline-none focus:border-orange-400 cursor-pointer"
+                       >
+                         {supervisors.filter(s => s !== 'TODOS').map(s => (
+                           <option key={s} value={s}>{s.split(' ')[0]}</option>
+                         ))}
+                       </select>
+                       <ChevronDown size={12} className="absolute right-2 top-1.5 text-slate-400 pointer-events-none" />
+                    </div>
+                  </div>
                   <div className="flex gap-2">
                     <input 
                       type="text" 
@@ -604,7 +663,7 @@ function App() {
                       onChange={(e) => setExpertMessageInput(e.target.value)}
                       onKeyDown={(e) => e.key === 'Enter' && handleSendExpertMessage()}
                       className="flex-1 bg-slate-50 p-4 rounded-2xl border-2 border-slate-100 focus:border-orange-200 outline-none text-xs font-bold text-slate-700 placeholder:text-slate-400"
-                      placeholder="Envie uma mensagem rápida ou dúvida para seu supervisor..."
+                      placeholder={`Enviar para ${expertTargetSupervisor ? expertTargetSupervisor.split(' ')[0] : 'seu supervisor'}...`}
                     />
                     <button 
                       onClick={handleSendExpertMessage}
@@ -616,7 +675,7 @@ function App() {
                   {data[currentUser.name]?.expertMessage && (
                     <div className="mt-2 text-[10px] text-slate-400 font-bold flex items-center gap-2">
                        <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                       Última mensagem enviada: "{data[currentUser.name]?.expertMessage}"
+                       Última mensagem enviada para {data[currentUser.name]?.targetSupervisor?.split(' ')[0] || 'Supervisão'}: "{data[currentUser.name]?.expertMessage}"
                     </div>
                   )}
                </div>
@@ -688,9 +747,10 @@ function App() {
                                  <div className="flex flex-col gap-2">
                                      {/* Área de Visualização da Mensagem do Expert */}
                                      {entry.expertMessage && (
-                                        <div className="bg-orange-100 p-3 rounded-xl border border-orange-200 relative group animate-in slide-in-from-left-2">
-                                            <div className="text-[10px] font-black text-orange-800 flex items-center gap-1 mb-1">
-                                                <MessageSquare size={10} /> {name.split(' ')[0]} diz:
+                                        <div className={`p-3 rounded-xl border relative group animate-in slide-in-from-left-2 ${entry.targetSupervisor && entry.targetSupervisor !== selectedSupervisor && selectedSupervisor !== 'TODOS' ? 'bg-slate-100 border-slate-200 opacity-50' : 'bg-orange-100 border-orange-200'}`}>
+                                            <div className="text-[10px] font-black text-orange-800 flex items-center justify-between gap-1 mb-1">
+                                                <div className="flex items-center gap-1"><MessageSquare size={10} /> {name.split(' ')[0]} diz:</div>
+                                                {entry.targetSupervisor && <div className="text-[8px] bg-white/50 px-1.5 rounded-full uppercase tracking-widest">Para: {entry.targetSupervisor.split(' ')[0]}</div>}
                                             </div>
                                             <div className="text-[11px] font-bold text-slate-700 leading-tight">
                                                 {entry.expertMessage}
