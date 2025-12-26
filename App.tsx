@@ -152,6 +152,7 @@ function App() {
   
   const lastMessageRef = useRef<string>('');
   const goalReachedRef = useRef<boolean>(false);
+  const prevExpertMessages = useRef<Record<string, string>>({});
 
   const supervisors = useMemo(() => {
     const list = new Set<string>();
@@ -239,6 +240,30 @@ function App() {
     return () => { supabase.removeChannel(channel); };
   }, [selectedDate, loadSupabaseData, currentUser, loadWeeklyStats]);
 
+  // Monitoramento de novas mensagens de experts para notificar Admin
+  useEffect(() => {
+    Object.keys(data).forEach(name => {
+       const msg = data[name]?.expertMessage || '';
+       const prevMsg = prevExpertMessages.current[name];
+       
+       // Notifica apenas se:
+       // 1. É Admin
+       // 2. Não está no carregamento inicial (isSyncing)
+       // 3. Já temos um estado anterior registrado (evita notificar no refresh/load)
+       // 4. A mensagem mudou e não está vazia
+       if (isAdmin && !isSyncing && prevMsg !== undefined && msg !== prevMsg && msg.trim() !== '') {
+          playUrnaBeep();
+          setNotification({ 
+             message: `💬 Nova mensagem de ${name.split(' ')[0]}`, 
+             visible: true, 
+             type: 'info' 
+          });
+       }
+       
+       prevExpertMessages.current[name] = msg;
+    });
+  }, [data, isAdmin, isSyncing]);
+
   const saveToSupabase = async (expert: string, updateData: Partial<ManualEntryData[string]>) => {
     if (!isSupabaseConfigured) return;
     const entry = data[expert];
@@ -286,6 +311,7 @@ function App() {
     goalReachedRef.current = false;
     setAiAnalysis(null);
     setExpertMessageInput('');
+    prevExpertMessages.current = {};
   };
 
   const handleInputChange = (expert: string, field: 'tratado' | 'finalizado' | 'observacao' | 'goal', value: string) => {
