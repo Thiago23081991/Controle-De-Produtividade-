@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { ClipboardList, Sparkles, RefreshCw, Calendar, LogOut, Send, BellRing, Mail, Clock, Palette, BrainCircuit, Users, Megaphone, AlertCircle, X, BarChart3, TrendingUp, CheckCircle, Activity, LayoutDashboard, Zap } from 'lucide-react';
+import { ClipboardList, Sparkles, RefreshCw, Calendar, LogOut, Send, BellRing, Mail, Clock, Palette, BrainCircuit, Users, Megaphone, AlertCircle, X, BarChart3, TrendingUp, CheckCircle, Activity, LayoutDashboard, Zap, Trophy, PartyPopper } from 'lucide-react';
 import { EXPERT_ROSTER, EXPERT_MAP, EXPERT_LIST } from './utils/parser';
 import { analyzeProductivity } from './services/geminiService';
 import { ManualEntryData, ExpertInfo } from './types';
@@ -26,6 +26,9 @@ const initAudio = () => {
   return globalAudioCtx;
 };
 
+/**
+ * Som da Urna Eletrônica (3 tons ascendentes) para o Expert
+ */
 const playUrnaBeep = () => {
   try {
     const ctx = initAudio();
@@ -48,6 +51,35 @@ const playUrnaBeep = () => {
     playTone(1000, 0, t);
     playTone(1250, t, t);
     playTone(1500, t * 2, t * 2.5, 0.07);
+  } catch (e) { console.error(e); }
+};
+
+/**
+ * Som de celebração de Meta Batida (Fanfarra Digital)
+ */
+const playGoalReachedBeep = () => {
+  try {
+    const ctx = initAudio();
+    if (!ctx) return;
+    const playTone = (freq: number, start: number, duration: number, vol: number = 0.06) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = 'triangle'; // Som mais encorpado para celebração
+      osc.frequency.setValueAtTime(freq, ctx.currentTime + start);
+      gain.gain.setValueAtTime(0, ctx.currentTime + start);
+      gain.gain.linearRampToValueAtTime(vol, ctx.currentTime + start + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + start + duration);
+      osc.start(ctx.currentTime + start);
+      osc.stop(ctx.currentTime + start + duration);
+    };
+    // Arpejo de celebração (Dó maior)
+    const t = 0.15;
+    playTone(523.25, 0, 0.4);   // C5
+    playTone(659.25, t, 0.4);   // E5
+    playTone(783.99, t * 2, 0.4); // G5
+    playTone(1046.50, t * 3, 0.8); // C6
   } catch (e) { console.error(e); }
 };
 
@@ -112,12 +144,13 @@ function App() {
   const [aiAnalysis, setAiAnalysis] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState<string>(getTodayString());
   const [selectedSupervisor, setSelectedSupervisor] = useState<string>('TODOS');
-  const [notification, setNotification] = useState<{ message: string; visible: boolean; type?: 'success' | 'info' | 'error' | 'alert' } | null>(null);
+  const [notification, setNotification] = useState<{ message: string; visible: boolean; type?: 'success' | 'info' | 'error' | 'alert' | 'celebration' } | null>(null);
   const [tempMessages, setTempMessages] = useState<Record<string, string>>({});
   const [data, setData] = useState<ManualEntryData>(getInitialData);
   const [weeklyStats, setWeeklyStats] = useState({ tratado: 0, finalizado: 0 });
   
   const lastMessageRef = useRef<string>('');
+  const goalReachedRef = useRef<boolean>(false);
 
   const supervisors = useMemo(() => {
     const list = new Set<string>();
@@ -241,7 +274,7 @@ function App() {
   };
 
   const handleLogout = () => {
-    setIsLoggedIn(false); setCurrentUser(null); setIsAdmin(false); setLoginInput(''); lastMessageRef.current = '';
+    setIsLoggedIn(false); setCurrentUser(null); setIsAdmin(false); setLoginInput(''); lastMessageRef.current = ''; goalReachedRef.current = false;
   };
 
   const handleInputChange = (expert: string, field: 'tratado' | 'finalizado' | 'observacao' | 'goal', value: string) => {
@@ -280,22 +313,44 @@ function App() {
 
   const expertReceivedMessage = (!isAdmin && currentUser) ? data[currentUser.name]?.managerMessage : null;
 
+  // Lógica de monitoramento de Mensagens e Metas Batidas
   useEffect(() => {
-    if (!isAdmin && currentUser && expertReceivedMessage) {
-      const msg = expertReceivedMessage.trim();
-      if (msg && msg !== lastMessageRef.current) {
-        playUrnaBeep();
-        setNotification({ message: '🔔 NOVA MENSAGEM DA GESTÃO', visible: true, type: 'alert' });
-        lastMessageRef.current = msg;
+    if (!isAdmin && currentUser) {
+      const expertData = data[currentUser.name];
+      
+      // Monitor de Mensagem do Gestor
+      if (expertReceivedMessage) {
+        const msg = expertReceivedMessage.trim();
+        if (msg && msg !== lastMessageRef.current) {
+          playUrnaBeep();
+          setNotification({ message: '🔔 NOVA MENSAGEM DA GESTÃO', visible: true, type: 'alert' });
+          lastMessageRef.current = msg;
+        }
+        const timer = setTimeout(() => {
+          saveToSupabase(currentUser.name, { managerMessage: '' });
+          lastMessageRef.current = '';
+          setNotification(null);
+        }, MESSAGE_DURATION_MS);
+        return () => clearTimeout(timer);
       }
-      const timer = setTimeout(() => {
-        saveToSupabase(currentUser.name, { managerMessage: '' });
-        lastMessageRef.current = '';
-        setNotification(null);
-      }, MESSAGE_DURATION_MS);
-      return () => clearTimeout(timer);
+
+      // Monitor de Meta Batida
+      if (expertData.goal > 0 && expertData.finalizado >= expertData.goal) {
+        if (!goalReachedRef.current) {
+           playGoalReachedBeep();
+           setNotification({ 
+             message: '🏆 PARABÉNS! META DIÁRIA BATIDA!', 
+             visible: true, 
+             type: 'celebration' 
+           });
+           goalReachedRef.current = true;
+        }
+      } else {
+        // Se a meta cair (ex: correção de dados), permite celebrar de novo se atingir
+        goalReachedRef.current = false;
+      }
     }
-  }, [expertReceivedMessage, currentUser, isAdmin]);
+  }, [expertReceivedMessage, currentUser, isAdmin, data]);
 
   if (!isLoggedIn) {
     return (
@@ -437,14 +492,26 @@ function App() {
               </div>
 
               {/* Card Meta Diária (Visão Rápida) */}
-              <div className="bg-slate-900 p-8 rounded-[3rem] shadow-2xl border border-slate-800 relative overflow-hidden group transition-all flex flex-col justify-between">
+              <div className={`p-8 rounded-[3rem] shadow-2xl border relative overflow-hidden group transition-all flex flex-col justify-between ${
+                  data[currentUser.name]?.goal > 0 && data[currentUser.name]?.finalizado >= data[currentUser.name]?.goal 
+                  ? 'bg-gradient-to-br from-orange-600 to-orange-800 border-orange-400 shadow-orange-600/30 scale-[1.02]' 
+                  : 'bg-slate-900 border-slate-800'
+              }`}>
                  <div className="flex items-center gap-4 mb-6">
-                    <div className="bg-white/10 p-4 rounded-2xl group-hover:bg-orange-600 transition-all">
-                        <BarChart3 size={28} className="text-white" />
+                    <div className={`p-4 rounded-2xl group-hover:scale-110 transition-all ${
+                         data[currentUser.name]?.goal > 0 && data[currentUser.name]?.finalizado >= data[currentUser.name]?.goal 
+                         ? 'bg-white/20 text-yellow-300' 
+                         : 'bg-white/10 text-white group-hover:bg-orange-600'
+                    }`}>
+                        <BarChart3 size={28} />
                     </div>
                     <div>
                         <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Meta de Hoje</p>
-                        <p className="text-[9px] font-bold text-orange-400">Objetivo Individual</p>
+                        <p className={`text-[9px] font-bold ${
+                             data[currentUser.name]?.goal > 0 && data[currentUser.name]?.finalizado >= data[currentUser.name]?.goal 
+                             ? 'text-yellow-300' 
+                             : 'text-orange-400'
+                        }`}>Objetivo Individual</p>
                     </div>
                  </div>
                  <div>
@@ -456,7 +523,11 @@ function App() {
                     </div>
                     <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden">
                        <div 
-                         className="h-full bg-orange-600 transition-all duration-1000" 
+                         className={`h-full transition-all duration-1000 ${
+                             data[currentUser.name]?.goal > 0 && data[currentUser.name]?.finalizado >= data[currentUser.name]?.goal 
+                             ? 'bg-yellow-400' 
+                             : 'bg-orange-600'
+                         }`}
                          style={{ width: `${Math.min(((data[currentUser.name]?.finalizado || 0) / (data[currentUser.name]?.goal || 1)) * 100, 100)}%` }}
                        />
                     </div>
@@ -602,14 +673,17 @@ function App() {
            <div className={`px-8 py-6 rounded-[2.5rem] shadow-[0_20px_60px_-15px_rgba(0,0,0,0.3)] text-white font-black flex items-center gap-6 border-2 border-white/20 backdrop-blur-md ${
               notification.type === 'error' ? 'bg-red-600' : 
               notification.type === 'alert' ? 'bg-orange-600' : 
+              notification.type === 'celebration' ? 'bg-gradient-to-r from-yellow-400 to-orange-600 scale-110 shadow-orange-500/50' :
               notification.type === 'info' ? 'bg-slate-900' : 'bg-slate-900'
            }`}>
               <div className="bg-white/10 p-3 rounded-2xl animate-pulse">
-                <BellRing size={24} className="text-white" />
+                {notification.type === 'celebration' ? <Trophy size={24} /> : <BellRing size={24} className="text-white" />}
               </div>
               <div className="flex-1">
-                <p className="text-[10px] opacity-60 uppercase tracking-widest mb-1 font-black">Sistema Cloud</p>
-                <span className="text-sm block tracking-tight leading-tight uppercase italic">{notification.message}</span>
+                <p className="text-[10px] opacity-60 uppercase tracking-widest mb-1 font-black">
+                  {notification.type === 'celebration' ? 'Conquista Suvinil' : 'Sistema Cloud'}
+                </p>
+                <span className="text-sm block tracking-tight leading-tight uppercase italic font-black">{notification.message}</span>
               </div>
               <button onClick={() => setNotification(null)} className="p-2 hover:bg-white/10 rounded-full transition-colors"><X size={20} /></button>
            </div>
