@@ -45,5 +45,6 @@ export interface ManualEntryData {
     isUrgent?: boolean;
     goal?: number;
     managerMessage?: string;
+    expertMessage?: string;
   };
 }

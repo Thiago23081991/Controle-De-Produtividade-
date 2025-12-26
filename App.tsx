@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { ClipboardList, Sparkles, RefreshCw, Calendar, LogOut, Send, BellRing, Mail, Clock, Palette, BrainCircuit, Users, Megaphone, AlertCircle, X, BarChart3, TrendingUp, CheckCircle, Activity, LayoutDashboard, Zap, Trophy, PartyPopper } from 'lucide-react';
+import { ClipboardList, Sparkles, RefreshCw, Calendar, LogOut, Send, BellRing, Mail, Clock, Palette, BrainCircuit, Users, Megaphone, AlertCircle, X, BarChart3, TrendingUp, CheckCircle, Activity, LayoutDashboard, Zap, Trophy, PartyPopper, MessageSquare } from 'lucide-react';
 import { EXPERT_ROSTER, EXPERT_MAP, EXPERT_LIST } from './utils/parser';
 import { analyzeProductivity } from './services/geminiService';
 import { ManualEntryData, ExpertInfo } from './types';
@@ -128,7 +128,7 @@ const getCurrentWeekRange = () => {
 const getInitialData = (): ManualEntryData => {
   const sortedRoster = [...EXPERT_ROSTER].sort((a, b) => a.localeCompare(b));
   return sortedRoster.reduce((acc, name) => {
-    acc[name] = { tratado: 0, finalizado: 0, observacao: '', isUrgent: false, goal: 0, managerMessage: '' };
+    acc[name] = { tratado: 0, finalizado: 0, observacao: '', isUrgent: false, goal: 0, managerMessage: '', expertMessage: '' };
     return acc;
   }, {} as ManualEntryData);
 };
@@ -146,6 +146,7 @@ function App() {
   const [selectedSupervisor, setSelectedSupervisor] = useState<string>('TODOS');
   const [notification, setNotification] = useState<{ message: string; visible: boolean; type?: 'success' | 'info' | 'error' | 'alert' | 'celebration' } | null>(null);
   const [tempMessages, setTempMessages] = useState<Record<string, string>>({});
+  const [expertMessageInput, setExpertMessageInput] = useState(''); // Estado para o input do expert
   const [data, setData] = useState<ManualEntryData>(getInitialData);
   const [weeklyStats, setWeeklyStats] = useState({ tratado: 0, finalizado: 0 });
   
@@ -196,7 +197,8 @@ function App() {
               goal: rec.goal,
               observacao: rec.observacao || '',
               isUrgent: rec.is_urgent,
-              managerMessage: rec.manager_message
+              managerMessage: rec.manager_message,
+              expertMessage: rec.expert_message // Carregar mensagem do expert
             };
           }
         });
@@ -225,7 +227,8 @@ function App() {
                 goal: rec.goal,
                 observacao: rec.observacao || '',
                 isUrgent: rec.is_urgent,
-                managerMessage: rec.manager_message
+                managerMessage: rec.manager_message,
+                expertMessage: rec.expert_message
               }
             }));
             if (currentUser && rec.expert_name === currentUser.name) {
@@ -249,6 +252,7 @@ function App() {
       observacao: fullData.observacao,
       is_urgent: fullData.isUrgent,
       manager_message: fullData.managerMessage,
+      expert_message: fullData.expertMessage, // Salvar mensagem do expert
       updated_at: new Date().toISOString()
     }, { onConflict: 'date,expert_name' });
     
@@ -274,7 +278,14 @@ function App() {
   };
 
   const handleLogout = () => {
-    setIsLoggedIn(false); setCurrentUser(null); setIsAdmin(false); setLoginInput(''); lastMessageRef.current = ''; goalReachedRef.current = false;
+    setIsLoggedIn(false); 
+    setCurrentUser(null); 
+    setIsAdmin(false); 
+    setLoginInput(''); 
+    lastMessageRef.current = ''; 
+    goalReachedRef.current = false;
+    setAiAnalysis(null);
+    setExpertMessageInput('');
   };
 
   const handleInputChange = (expert: string, field: 'tratado' | 'finalizado' | 'observacao' | 'goal', value: string) => {
@@ -290,6 +301,15 @@ function App() {
     playSuccessBeep();
     setNotification({ message: `Aviso enviado para ${expert.split(' ')[0]}`, visible: true, type: 'success' });
     setTempMessages(prev => ({ ...prev, [expert]: '' }));
+  };
+
+  // Função para Expert enviar mensagem ao Supervisor
+  const handleSendExpertMessage = () => {
+    if (!currentUser || !expertMessageInput.trim()) return;
+    saveToSupabase(currentUser.name, { expertMessage: expertMessageInput });
+    playSuccessBeep();
+    setNotification({ message: 'Mensagem enviada à supervisão!', visible: true, type: 'success' });
+    setExpertMessageInput(''); // Limpa o input mas mantém a mensagem na base
   };
 
   const handleRunAnalysis = async () => {
@@ -434,110 +454,146 @@ function App() {
 
         {!isAdmin && currentUser && (
           <section className="space-y-6">
-            <div className="flex items-center gap-3 mb-2">
-              <LayoutDashboard size={18} className="text-orange-600" />
-              <h3 className="text-xs font-black uppercase tracking-[0.3em] text-slate-500">Minha Performance Semanal</h3>
+            <div className="flex flex-col md:flex-row gap-6">
+              <div className="flex-1 space-y-6">
+                <div className="flex items-center gap-3 mb-2">
+                  <LayoutDashboard size={18} className="text-orange-600" />
+                  <h3 className="text-xs font-black uppercase tracking-[0.3em] text-slate-500">Minha Performance Semanal</h3>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {/* Card Tratados Semanal */}
+                  <div className="bg-white p-8 rounded-[3rem] shadow-2xl border border-slate-100 relative overflow-hidden group hover:border-orange-200 transition-all flex flex-col justify-between">
+                    <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
+                        <TrendingUp size={80} className="text-orange-600" />
+                    </div>
+                    <div className="flex items-center gap-4 mb-6">
+                        <div className="bg-orange-100 p-4 rounded-2xl group-hover:scale-110 transition-transform">
+                            <Activity size={28} className="text-orange-600" />
+                        </div>
+                        <div>
+                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Tratados na Semana</p>
+                            <p className="text-[9px] font-bold text-orange-600">Segunda a Domingo</p>
+                        </div>
+                    </div>
+                    <div className="flex items-baseline gap-2">
+                        <h4 className="text-5xl font-black text-slate-900 italic tracking-tighter">
+                          {weeklyStats.tratado}
+                        </h4>
+                        <span className="text-slate-400 font-black text-sm uppercase tracking-widest">Casos</span>
+                    </div>
+                    <div className="mt-4 pt-4 border-t border-slate-50 flex items-center gap-2 text-[10px] font-bold text-slate-400">
+                        <Zap size={12} className="text-orange-400" /> 
+                        Média de {(weeklyStats.tratado / 5).toFixed(1)} / dia útil
+                    </div>
+                  </div>
+
+                  {/* Card Finalizados Semanal */}
+                  <div className="bg-white p-8 rounded-[3rem] shadow-2xl border border-slate-100 relative overflow-hidden group hover:border-green-200 transition-all flex flex-col justify-between">
+                    <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
+                        <CheckCircle size={80} className="text-green-600" />
+                    </div>
+                    <div className="flex items-center gap-4 mb-6">
+                        <div className="bg-green-100 p-4 rounded-2xl group-hover:scale-110 transition-transform">
+                            <CheckCircle size={28} className="text-green-600" />
+                        </div>
+                        <div>
+                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Finalizados na Semana</p>
+                            <p className="text-[9px] font-bold text-green-600">Entrega Total</p>
+                        </div>
+                    </div>
+                    <div className="flex items-baseline gap-2">
+                        <h4 className="text-5xl font-black text-slate-900 italic tracking-tighter">
+                          {weeklyStats.finalizado}
+                        </h4>
+                        <span className="text-slate-400 font-black text-sm uppercase tracking-widest">Resolvidos</span>
+                    </div>
+                    <div className="mt-4 pt-4 border-t border-slate-50 flex items-center gap-2 text-[10px] font-bold text-slate-400">
+                        <TrendingUp size={12} className="text-green-400" /> 
+                        Taxa de Conversão: {weeklyStats.tratado > 0 ? Math.round((weeklyStats.finalizado / (weeklyStats.tratado + weeklyStats.finalizado)) * 100) : 0}%
+                    </div>
+                  </div>
+
+                  {/* Card Meta Diária (Visão Rápida) */}
+                  <div className={`p-8 rounded-[3rem] shadow-2xl border relative overflow-hidden group transition-all flex flex-col justify-between ${
+                      data[currentUser.name]?.goal > 0 && data[currentUser.name]?.finalizado >= data[currentUser.name]?.goal 
+                      ? 'bg-gradient-to-br from-orange-600 to-orange-800 border-orange-400 shadow-orange-600/30 scale-[1.02]' 
+                      : 'bg-slate-900 border-slate-800'
+                  }`}>
+                    <div className="flex items-center gap-4 mb-6">
+                        <div className={`p-4 rounded-2xl group-hover:scale-110 transition-all ${
+                            data[currentUser.name]?.goal > 0 && data[currentUser.name]?.finalizado >= data[currentUser.name]?.goal 
+                            ? 'bg-white/20 text-yellow-300' 
+                            : 'bg-white/10 text-white group-hover:bg-orange-600'
+                        }`}>
+                            <BarChart3 size={28} />
+                        </div>
+                        <div>
+                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Meta de Hoje</p>
+                            <p className={`text-[9px] font-bold ${
+                                data[currentUser.name]?.goal > 0 && data[currentUser.name]?.finalizado >= data[currentUser.name]?.goal 
+                                ? 'text-yellow-300' 
+                                : 'text-orange-400'
+                            }`}>Objetivo Individual</p>
+                        </div>
+                    </div>
+                    <div>
+                        <div className="flex items-baseline gap-2 mb-2">
+                          <h4 className="text-5xl font-black text-white italic tracking-tighter">
+                            {data[currentUser.name]?.goal || 0}
+                          </h4>
+                          <span className="text-slate-500 font-black text-sm uppercase tracking-widest">Alvo</span>
+                        </div>
+                        <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden">
+                          <div 
+                            className={`h-full transition-all duration-1000 ${
+                                data[currentUser.name]?.goal > 0 && data[currentUser.name]?.finalizado >= data[currentUser.name]?.goal 
+                                ? 'bg-yellow-400' 
+                                : 'bg-orange-600'
+                            }`}
+                            style={{ width: `${Math.min(((data[currentUser.name]?.finalizado || 0) / (data[currentUser.name]?.goal || 1)) * 100, 100)}%` }}
+                          />
+                        </div>
+                    </div>
+                    <p className="mt-4 text-[10px] font-black text-white/40 uppercase tracking-widest">
+                        {(data[currentUser.name]?.goal || 0) - (data[currentUser.name]?.finalizado || 0) <= 0 
+                          ? "🎯 META BATIDA! PARABÉNS!" 
+                          : `Faltam ${(data[currentUser.name]?.goal || 0) - (data[currentUser.name]?.finalizado || 0)} para o objetivo`}
+                    </p>
+                  </div>
+                </div>
+              </div>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {/* Card Tratados Semanal */}
-              <div className="bg-white p-8 rounded-[3rem] shadow-2xl border border-slate-100 relative overflow-hidden group hover:border-orange-200 transition-all flex flex-col justify-between">
-                 <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
-                    <TrendingUp size={80} className="text-orange-600" />
-                 </div>
-                 <div className="flex items-center gap-4 mb-6">
-                    <div className="bg-orange-100 p-4 rounded-2xl group-hover:scale-110 transition-transform">
-                        <Activity size={28} className="text-orange-600" />
+            
+            {/* Seção de Comunicação Direta para o Expert */}
+            <div className="bg-white p-6 rounded-[2.5rem] shadow-xl border border-slate-100 flex flex-col md:flex-row items-center gap-6">
+               <div className="bg-slate-100 p-4 rounded-full">
+                  <MessageSquare className="text-slate-500" size={24} />
+               </div>
+               <div className="flex-1 w-full">
+                  <h4 className="text-sm font-black text-slate-800 uppercase tracking-widest mb-2">Canal com a Supervisão</h4>
+                  <div className="flex gap-2">
+                    <input 
+                      type="text" 
+                      value={expertMessageInput}
+                      onChange={(e) => setExpertMessageInput(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && handleSendExpertMessage()}
+                      className="flex-1 bg-slate-50 p-4 rounded-2xl border-2 border-slate-100 focus:border-orange-200 outline-none text-xs font-bold text-slate-700 placeholder:text-slate-400"
+                      placeholder="Envie uma mensagem rápida ou dúvida para seu supervisor..."
+                    />
+                    <button 
+                      onClick={handleSendExpertMessage}
+                      className="bg-orange-600 text-white px-6 rounded-2xl font-black text-xs hover:bg-orange-700 transition-colors shadow-lg shadow-orange-200"
+                    >
+                      ENVIAR
+                    </button>
+                  </div>
+                  {data[currentUser.name]?.expertMessage && (
+                    <div className="mt-2 text-[10px] text-slate-400 font-bold flex items-center gap-2">
+                       <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                       Última mensagem enviada: "{data[currentUser.name]?.expertMessage}"
                     </div>
-                    <div>
-                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Tratados na Semana</p>
-                        <p className="text-[9px] font-bold text-orange-600">Segunda a Domingo</p>
-                    </div>
-                 </div>
-                 <div className="flex items-baseline gap-2">
-                    <h4 className="text-5xl font-black text-slate-900 italic tracking-tighter">
-                      {weeklyStats.tratado}
-                    </h4>
-                    <span className="text-slate-400 font-black text-sm uppercase tracking-widest">Casos</span>
-                 </div>
-                 <div className="mt-4 pt-4 border-t border-slate-50 flex items-center gap-2 text-[10px] font-bold text-slate-400">
-                    <Zap size={12} className="text-orange-400" /> 
-                    Média de {(weeklyStats.tratado / 5).toFixed(1)} / dia útil
-                 </div>
-              </div>
-
-              {/* Card Finalizados Semanal */}
-              <div className="bg-white p-8 rounded-[3rem] shadow-2xl border border-slate-100 relative overflow-hidden group hover:border-green-200 transition-all flex flex-col justify-between">
-                 <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
-                    <CheckCircle size={80} className="text-green-600" />
-                 </div>
-                 <div className="flex items-center gap-4 mb-6">
-                    <div className="bg-green-100 p-4 rounded-2xl group-hover:scale-110 transition-transform">
-                        <CheckCircle size={28} className="text-green-600" />
-                    </div>
-                    <div>
-                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Finalizados na Semana</p>
-                        <p className="text-[9px] font-bold text-green-600">Entrega Total</p>
-                    </div>
-                 </div>
-                 <div className="flex items-baseline gap-2">
-                    <h4 className="text-5xl font-black text-slate-900 italic tracking-tighter">
-                      {weeklyStats.finalizado}
-                    </h4>
-                    <span className="text-slate-400 font-black text-sm uppercase tracking-widest">Resolvidos</span>
-                 </div>
-                 <div className="mt-4 pt-4 border-t border-slate-50 flex items-center gap-2 text-[10px] font-bold text-slate-400">
-                    <TrendingUp size={12} className="text-green-400" /> 
-                    Taxa de Conversão: {weeklyStats.tratado > 0 ? Math.round((weeklyStats.finalizado / (weeklyStats.tratado + weeklyStats.finalizado)) * 100) : 0}%
-                 </div>
-              </div>
-
-              {/* Card Meta Diária (Visão Rápida) */}
-              <div className={`p-8 rounded-[3rem] shadow-2xl border relative overflow-hidden group transition-all flex flex-col justify-between ${
-                  data[currentUser.name]?.goal > 0 && data[currentUser.name]?.finalizado >= data[currentUser.name]?.goal 
-                  ? 'bg-gradient-to-br from-orange-600 to-orange-800 border-orange-400 shadow-orange-600/30 scale-[1.02]' 
-                  : 'bg-slate-900 border-slate-800'
-              }`}>
-                 <div className="flex items-center gap-4 mb-6">
-                    <div className={`p-4 rounded-2xl group-hover:scale-110 transition-all ${
-                         data[currentUser.name]?.goal > 0 && data[currentUser.name]?.finalizado >= data[currentUser.name]?.goal 
-                         ? 'bg-white/20 text-yellow-300' 
-                         : 'bg-white/10 text-white group-hover:bg-orange-600'
-                    }`}>
-                        <BarChart3 size={28} />
-                    </div>
-                    <div>
-                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Meta de Hoje</p>
-                        <p className={`text-[9px] font-bold ${
-                             data[currentUser.name]?.goal > 0 && data[currentUser.name]?.finalizado >= data[currentUser.name]?.goal 
-                             ? 'text-yellow-300' 
-                             : 'text-orange-400'
-                        }`}>Objetivo Individual</p>
-                    </div>
-                 </div>
-                 <div>
-                    <div className="flex items-baseline gap-2 mb-2">
-                       <h4 className="text-5xl font-black text-white italic tracking-tighter">
-                         {data[currentUser.name]?.goal || 0}
-                       </h4>
-                       <span className="text-slate-500 font-black text-sm uppercase tracking-widest">Alvo</span>
-                    </div>
-                    <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden">
-                       <div 
-                         className={`h-full transition-all duration-1000 ${
-                             data[currentUser.name]?.goal > 0 && data[currentUser.name]?.finalizado >= data[currentUser.name]?.goal 
-                             ? 'bg-yellow-400' 
-                             : 'bg-orange-600'
-                         }`}
-                         style={{ width: `${Math.min(((data[currentUser.name]?.finalizado || 0) / (data[currentUser.name]?.goal || 1)) * 100, 100)}%` }}
-                       />
-                    </div>
-                 </div>
-                 <p className="mt-4 text-[10px] font-black text-white/40 uppercase tracking-widest">
-                    {(data[currentUser.name]?.goal || 0) - (data[currentUser.name]?.finalizado || 0) <= 0 
-                      ? "🎯 META BATIDA! PARABÉNS!" 
-                      : `Faltam ${(data[currentUser.name]?.goal || 0) - (data[currentUser.name]?.finalizado || 0)} para o objetivo`}
-                 </p>
-              </div>
+                  )}
+               </div>
             </div>
           </section>
         )}
@@ -603,20 +659,35 @@ function App() {
                             )}
                             {isAdmin && (
                               <td className="p-8">
-                                 <div className="flex gap-2 bg-slate-50 p-1.5 rounded-2xl border border-slate-100 group-within:border-orange-200 transition-colors">
-                                    <input 
-                                      value={tempMessages[name] || ''} 
-                                      onChange={(e) => setTempMessages(prev => ({ ...prev, [name]: e.target.value }))}
-                                      onKeyDown={(e) => e.key === 'Enter' && handleSendMessage(name)}
-                                      className="bg-transparent p-2 rounded-xl text-[10px] font-bold outline-none flex-1 placeholder:text-slate-300" 
-                                      placeholder="Enviar instrução..." 
-                                    />
-                                    <button 
-                                      onClick={() => handleSendMessage(name)} 
-                                      className="bg-slate-900 text-white p-3 rounded-xl hover:bg-orange-600 transition-all shadow-lg active:scale-90"
-                                    >
-                                      <Send size={14} />
-                                    </button>
+                                 <div className="flex flex-col gap-2">
+                                     {/* Área de Visualização da Mensagem do Expert */}
+                                     {entry.expertMessage && (
+                                        <div className="bg-orange-100 p-3 rounded-xl border border-orange-200 relative group animate-in slide-in-from-left-2">
+                                            <div className="text-[10px] font-black text-orange-800 flex items-center gap-1 mb-1">
+                                                <MessageSquare size={10} /> {name.split(' ')[0]} diz:
+                                            </div>
+                                            <div className="text-[11px] font-bold text-slate-700 leading-tight">
+                                                {entry.expertMessage}
+                                            </div>
+                                        </div>
+                                     )}
+                                     
+                                     {/* Área de Resposta do Admin */}
+                                     <div className="flex gap-2 bg-slate-50 p-1.5 rounded-2xl border border-slate-100 group-within:border-orange-200 transition-colors">
+                                        <input 
+                                          value={tempMessages[name] || ''} 
+                                          onChange={(e) => setTempMessages(prev => ({ ...prev, [name]: e.target.value }))}
+                                          onKeyDown={(e) => e.key === 'Enter' && handleSendMessage(name)}
+                                          className="bg-transparent p-2 rounded-xl text-[10px] font-bold outline-none flex-1 placeholder:text-slate-300" 
+                                          placeholder="Responder expert..." 
+                                        />
+                                        <button 
+                                          onClick={() => handleSendMessage(name)} 
+                                          className="bg-slate-900 text-white p-3 rounded-xl hover:bg-orange-600 transition-all shadow-lg active:scale-90"
+                                        >
+                                          <Send size={14} />
+                                        </button>
+                                     </div>
                                  </div>
                               </td>
                             )}
@@ -648,7 +719,7 @@ function App() {
            </button>
         )}
 
-        {aiAnalysis && (
+        {isAdmin && aiAnalysis && (
           <div className="bg-white p-12 rounded-[3.5rem] shadow-2xl border-l-[16px] border-orange-600 animate-in zoom-in duration-500">
              <div className="flex justify-between items-center mb-10">
                <div className="flex items-center gap-4">

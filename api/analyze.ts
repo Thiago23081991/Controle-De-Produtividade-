@@ -36,9 +36,10 @@ export default async function handler(req: any, res: any) {
     // Initialize with named parameter and updated model selection
     const ai = new GoogleGenAI({ apiKey });
     
-    // Using gemini-3-pro-preview for better reasoning capabilities on complex text tasks
+    // Switch to gemini-3-flash-preview to avoid 429 Resource Exhausted errors on the Free Tier
+    // Flash models are faster and have higher rate limits than Pro models
     const response = await ai.models.generateContent({
-      model: 'gemini-3-pro-preview',
+      model: 'gemini-3-flash-preview',
       contents: prompt,
       config: {
         systemInstruction: systemInstruction,

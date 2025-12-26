@@ -9,37 +9,46 @@ export const analyzeProductivity = async (data: MatrixData | ManualEntryData): P
 
   const dataString = JSON.stringify(data, null, 2);
   
-  // Instrução de sistema mais robusta e orientada a consultoria de performance
+  // Instrução de sistema mais robusta, orientada a consultoria de performance e mentoria técnica
   const systemInstruction = `
-    Você é um Consultor de Excelência Operacional e Gestor de Talentos Sênior da Suvinil. 
-    Sua missão é atuar como um braço direito da supervisão, transformando números em inteligência estratégica.
+    Você é um Consultor de Excelência Operacional e Mentor Sênior de Customer Success da Suvinil. 
+    Sua missão vai além de ler números: você deve diagnosticar a *causa raiz* da performance e prescrever *treinamentos específicos*.
     
-    Ao analisar os dados:
-    1. Identifique padrões de alta performance (experts que batem metas consistentemente com alta taxa de finalização).
-    2. Detecte gargalos operacionais (muitas tratativas iniciadas mas poucas concluídas).
-    3. Proponha melhorias de processo específicas (ex: redistribuição de carga, foco em janelas de horário).
-    4. Sugira planos de desenvolvimento humano (quem precisa de reciclagem técnica e quem pode atuar como mentor para o time).
-    5. Mantenha um tom profissional, motivador, porém pragmático e direto ao ponto.
-    6. Use Markdown rico para estruturar a resposta.
+    Diretrizes de Análise:
+    1. **Diagnóstico de Habilidade**: Diferencie quem tem dificuldade de **Ritmo** (muito tempo por caso) de quem tem dificuldade de **Resolução** (muita tratativa, pouca finalização).
+    2. **Mentoria Prática**: Ao sugerir melhorias, nunca diga apenas "melhorar agilidade". Diga COMO. Ex: "Uso de Text Expanders", "Técnica Pomodoro", "Revisão de Scripts de Sondagem".
+    3. **Tom de Voz**: Profissional, analítico, mas focado no crescimento humano (Growth Mindset).
+    4. **Estrutura**: Use Markdown rico (tabelas, listas, negrito) para facilitar a leitura rápida pelo supervisor.
   `;
 
   const prompt = `
         Analise minuciosamente estes dados de produtividade da equipe de atendimento Suvinil:
         
-        DADOS:
+        DADOS BRUTOS:
         ${dataString}
 
-        POR FAVOR, ESTRUTURE SEU RELATÓRIO NOS SEGUINTES TÓPICOS:
+        Por favor, gere um RELATÓRIO DE INTELIGÊNCIA OPERACIONAL estruturado nos seguintes tópicos:
         
-        1. **Resumo Executivo**: Diagnóstico rápido da saúde da operação hoje.
-        2. **Análise de Eficiência Operacional**: Destaque quem são os "finalizadores" e quem está com excesso de "pendências/tratativas".
-        3. **Sugestões de Melhoria de Processos**: Cite 3 ações práticas para otimizar o fluxo de trabalho com base nestes números.
-        4. **Plano de Desenvolvimento de Equipe**:
-           - **Mentores**: Quem pode ensinar os outros?
-           - **Desenvolvimento**: Quem precisa de suporte imediato e em qual aspecto?
-        5. **Insights de Gestão**: Observações baseadas nas notas/justificativas enviadas pelos experts (se houver).
+        1. **📊 Resumo Executivo**
+           - Diagnóstico rápido da saúde da operação hoje (Meta atingida? Gargalos críticos?).
         
-        Utilize emojis para facilitar a leitura e destaque métricas importantes em negrito.
+        2. **🔍 Análise de Eficiência (Matriz de Competência)**
+           - Identifique os **Top Performers** (Alta Entrega / Alta Resolução).
+           - Identifique os casos de **Atenção** (Alto Esforço / Baixa Entrega).
+        
+        3. **🛠️ Plano de Desenvolvimento de Habilidades (PDI Prático)**
+           *Esta é a parte mais importante. Para os experts com performance abaixo da média, sugira ações concretas.*
+           - Liste o **Nome do Expert**.
+           - Identifique a **Habilidade a Desenvolver**: (Ex: Gestão de Tempo, Conhecimento de Produto, Negociação, Uso de Ferramentas).
+           - Sugira um **Exercício Prático**: (Ex: "Criar 5 atalhos de teclado para saudações", "Acompanhar 3 atendimentos do expert [Top Performer]", "Revisar fluxo de troca de tintas").
+        
+        4. **💡 Melhoria de Processos**
+           - Baseado nos números, existe algum gargalo sistêmico? (Ex: Todos estão com muitas tratativas acumuladas? Isso indica problema no sistema ou processo complexo?).
+        
+        5. **📝 Insights de Gestão**
+           - Observações sobre as justificativas/observações lançadas pelos experts (se houver).
+        
+        Seja direto, específico e evite obviedades. Foque em ações que o supervisor pode aplicar amanhã.
   `;
 
   try {
