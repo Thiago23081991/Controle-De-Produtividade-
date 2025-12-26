@@ -1,5 +1,4 @@
 
-import { GoogleGenAI } from "@google/genai";
 import { MatrixData, ManualEntryData } from "../types";
 
 export const analyzeProductivity = async (data: MatrixData | ManualEntryData): Promise<string> => {
@@ -24,13 +23,7 @@ export const analyzeProductivity = async (data: MatrixData | ManualEntryData): P
     6. Use Markdown rico para estruturar a resposta.
   `;
 
-  try {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-    
-    // Upgrade para o modelo Pro para análise mais complexa
-    const response = await ai.models.generateContent({
-      model: 'gemini-3-pro-preview',
-      contents: `
+  const prompt = `
         Analise minuciosamente estes dados de produtividade da equipe de atendimento Suvinil:
         
         DADOS:
@@ -47,17 +40,29 @@ export const analyzeProductivity = async (data: MatrixData | ManualEntryData): P
         5. **Insights de Gestão**: Observações baseadas nas notas/justificativas enviadas pelos experts (se houver).
         
         Utilize emojis para facilitar a leitura e destaque métricas importantes em negrito.
-      `,
-      config: {
-        systemInstruction,
-        temperature: 0.7,
-        thinkingConfig: { thinkingBudget: 4000 } // Adicionado orçamento de pensamento para melhor análise
+  `;
+
+  try {
+    const response = await fetch('/api/analyze', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
       },
+      body: JSON.stringify({
+        prompt,
+        systemInstruction
+      }),
     });
 
-    return response.text || "⚠️ O modelo não retornou uma análise válida.";
+    if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.error || 'Erro na comunicação com o servidor de análise.');
+    }
+
+    const json = await response.json();
+    return json.text || "⚠️ O modelo não retornou uma análise válida.";
   } catch (error: any) {
-    console.error("Gemini Error:", error);
-    return `❌ Erro na análise: ${error.message || "Falha na comunicação com a IA"}`;
+    console.error("Gemini API Error:", error);
+    return `❌ Erro na análise: ${error.message || "Falha na comunicação com o servidor de IA"}`;
   }
 };
