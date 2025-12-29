@@ -153,6 +153,11 @@ function App() {
   const [data, setData] = useState<ManualEntryData>(getInitialData);
   const [weeklyStats, setWeeklyStats] = useState({ tratado: 0, finalizado: 0 });
   
+  // Ref para acessar o estado mais recente dentro de funções assíncronas (saveToSupabase)
+  // isso previne que atualizações rápidas sobrescrevam dados com estado antigo (closure stale)
+  const dataRef = useRef(data);
+  useEffect(() => { dataRef.current = data; }, [data]);
+
   const lastMessageRef = useRef<string>('');
   const goalReachedRef = useRef<boolean>(false);
   const prevExpertMessages = useRef<Record<string, string>>({});
@@ -163,12 +168,17 @@ function App() {
     return ['TODOS', ...Array.from(list).sort()];
   }, []);
 
-  // Set default supervisor when user logs in
+  // Sync expert target supervisor from loaded data
   useEffect(() => {
-    if (currentUser && currentUser.supervisor) {
-      setExpertTargetSupervisor(currentUser.supervisor);
+    if (currentUser && data[currentUser.name]) {
+      const savedTarget = data[currentUser.name].targetSupervisor;
+      if (savedTarget) {
+        setExpertTargetSupervisor(savedTarget);
+      } else if (currentUser.supervisor) {
+        setExpertTargetSupervisor(currentUser.supervisor);
+      }
     }
-  }, [currentUser]);
+  }, [currentUser, data]);
 
   const loadWeeklyStats = useCallback(async (expertName: string) => {
     if (!isSupabaseConfigured) return;
@@ -199,7 +209,14 @@ function App() {
     const freshSlate = getInitialData();
     try {
       const { data: records, error } = await supabase.from('productivity_records').select('*').eq('date', date);
-      if (!error && records) {
+      
+      if (error) {
+         console.error("Erro ao carregar dados:", error);
+         setNotification({ message: `Erro de conexão: ${error.message}`, visible: true, type: 'error' });
+         return;
+      }
+
+      if (records) {
         records.forEach(rec => {
           if (freshSlate[rec.expert_name]) {
             freshSlate[rec.expert_name] = {
@@ -208,14 +225,18 @@ function App() {
               goal: rec.goal,
               observacao: rec.observacao || '',
               isUrgent: rec.is_urgent,
-              managerMessage: rec.manager_message,
-              expertMessage: rec.expert_message,
+              // Fallback para string vazia caso a coluna não exista ou venha nula
+              managerMessage: rec.manager_message || '',
+              expertMessage: rec.expert_message || '',
               targetSupervisor: rec.target_supervisor || ''
             };
           }
         });
         setData(freshSlate);
       }
+    } catch (e: any) {
+       console.error("Exceção loadSupabaseData:", e);
+       setNotification({ message: `Erro ao sincronizar: ${e.message}`, visible: true, type: 'error' });
     } finally {
       setIsSyncing(false);
     }
@@ -223,10 +244,14 @@ function App() {
 
   useEffect(() => {
     if (!isSupabaseConfigured) return;
+    
+    // Carregamento inicial
     loadSupabaseData(selectedDate);
     if (currentUser) {
       loadWeeklyStats(currentUser.name);
     }
+
+    // Configuração do Realtime
     const channel = supabase.channel(`prod-changes-${selectedDate}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'productivity_records', filter: `date=eq.${selectedDate}` }, (payload) => {
           const rec = payload.new as any;
@@ -234,14 +259,15 @@ function App() {
             setData(prev => ({
               ...prev,
               [rec.expert_name]: {
-                tratado: rec.tratado,
-                finalizado: rec.finalizado,
-                goal: rec.goal,
+                // Use ?? para permitir o valor 0. || converte 0 para falha.
+                tratado: rec.tratado ?? 0,
+                finalizado: rec.finalizado ?? 0,
+                goal: rec.goal ?? 0,
                 observacao: rec.observacao || '',
                 isUrgent: rec.is_urgent,
-                managerMessage: rec.manager_message,
-                expertMessage: rec.expert_message,
-                targetSupervisor: rec.target_supervisor
+                managerMessage: rec.manager_message || '',
+                expertMessage: rec.expert_message || '',
+                targetSupervisor: rec.target_supervisor || ''
               }
             }));
             if (currentUser && rec.expert_name === currentUser.name) {
@@ -249,7 +275,26 @@ function App() {
             }
           }
       }).subscribe();
-    return () => { supabase.removeChannel(channel); };
+
+    // POLÍTICA DE SEGURANÇA DE DADOS (SAFETY NET)
+    // 1. Polling a cada 10 segundos para garantir que nada foi perdido se o socket cair
+    const pollInterval = setInterval(() => {
+       if (!document.hidden) { // Só atualiza se a aba estiver visível para economizar recursos
+          loadSupabaseData(selectedDate);
+       }
+    }, 10000);
+
+    // 2. Atualização imediata ao focar na janela (usuário voltou para a aba)
+    const onFocus = () => {
+       loadSupabaseData(selectedDate);
+    };
+    window.addEventListener('focus', onFocus);
+
+    return () => { 
+      supabase.removeChannel(channel); 
+      clearInterval(pollInterval);
+      window.removeEventListener('focus', onFocus);
+    };
   }, [selectedDate, loadSupabaseData, currentUser, loadWeeklyStats]);
 
   // Monitoramento de novas mensagens de experts para notificar Admin
@@ -259,21 +304,19 @@ function App() {
        const target = data[name]?.targetSupervisor;
        const prevMsg = prevExpertMessages.current[name];
        
-       // Notifica apenas se:
-       // 1. É Admin
-       // 2. Não está no carregamento inicial (isSyncing)
-       // 3. A mensagem mudou e não está vazia
-       // 4. O Admin está vendo TODOS OU o Admin selecionou o supervisor que é o DESTINATÁRIO da mensagem
-       
-       const isRelevantForCurrentView = selectedSupervisor === 'TODOS' || (target && selectedSupervisor === target);
-
-       if (isAdmin && !isSyncing && prevMsg !== undefined && msg !== prevMsg && msg.trim() !== '' && isRelevantForCurrentView) {
-          playUrnaBeep();
-          setNotification({ 
-             message: `💬 ${name.split(' ')[0]} para ${target ? target.split(' ')[0] : 'Supervisão'}`, 
-             visible: true, 
-             type: 'info' 
-          });
+       // Lógica de Notificação para Admin
+       if (isAdmin && !isSyncing && prevMsg !== undefined && msg !== prevMsg && msg.trim() !== '') {
+          // Verifica se a mensagem é para o supervisor logado (ou se ele está vendo TODOS)
+          const isForMe = selectedSupervisor === 'TODOS' || (target && target.trim() === selectedSupervisor);
+          
+          if (isForMe) {
+            playUrnaBeep();
+            setNotification({ 
+               message: `💬 ${name.split(' ')[0]} para ${target ? target.split(' ')[0] : 'Supervisão'}`, 
+               visible: true, 
+               type: 'info' 
+            });
+          }
        }
        
        prevExpertMessages.current[name] = msg;
@@ -282,21 +325,70 @@ function App() {
 
   const saveToSupabase = async (expert: string, updateData: Partial<ManualEntryData[string]>) => {
     if (!isSupabaseConfigured) return;
-    const entry = data[expert];
+    
+    // USAR dataRef.current para garantir que temos os dados mais recentes de TODOS os campos
+    // Isso evita que uma atualização rápida em "finalizado" envie um valor antigo de "tratado" (stale state)
+    const entry = dataRef.current[expert];
     const fullData = { ...entry, ...updateData };
-    await supabase.from('productivity_records').upsert({
+    
+    // Payload completo (Versão nova com Chat)
+    // Garantimos que não enviamos undefined para campos obrigatórios
+    const payload = {
       date: selectedDate,
       expert_name: expert,
-      tratado: fullData.tratado,
-      finalizado: fullData.finalizado,
-      goal: fullData.goal,
-      observacao: fullData.observacao,
-      is_urgent: fullData.isUrgent,
-      manager_message: fullData.managerMessage,
-      expert_message: fullData.expertMessage,
-      target_supervisor: fullData.targetSupervisor,
+      tratado: fullData.tratado ?? 0,
+      finalizado: fullData.finalizado ?? 0,
+      goal: fullData.goal ?? 0,
+      observacao: fullData.observacao ?? '',
+      is_urgent: fullData.isUrgent ?? false,
+      manager_message: fullData.managerMessage ?? '',
+      expert_message: fullData.expertMessage ?? '',
+      target_supervisor: fullData.targetSupervisor ?? '', 
       updated_at: new Date().toISOString()
-    }, { onConflict: 'date,expert_name' });
+    };
+
+    try {
+      // Tenta salvar com todas as colunas
+      const { error } = await supabase.from('productivity_records').upsert(payload, { onConflict: 'date,expert_name' });
+      
+      if (error) {
+        // Se o erro for de coluna inexistente (Postgres code 42703 ou mensagem de texto), tenta o fallback
+        if (error.code === '42703' || error.message.includes('column') || error.message.includes('does not exist')) {
+            console.warn("Banco de dados desatualizado (colunas faltando). Salvando em modo de compatibilidade...");
+            
+            // Payload Legado (Apenas colunas que com certeza existem)
+            const legacyPayload = {
+              date: selectedDate,
+              expert_name: expert,
+              tratado: fullData.tratado,
+              finalizado: fullData.finalizado,
+              goal: fullData.goal,
+              observacao: fullData.observacao,
+              is_urgent: fullData.isUrgent,
+              updated_at: new Date().toISOString()
+            };
+            
+            const { error: legacyError } = await supabase.from('productivity_records').upsert(legacyPayload, { onConflict: 'date,expert_name' });
+            
+            if (legacyError) throw legacyError;
+            
+            // Se funcionou o legacy, avisa sutilmente (apenas 1x por sessão para não irritar)
+            if (!sessionStorage.getItem('db_warned')) {
+                setNotification({ message: '⚠️ Banco de dados desatualizado. Execute o script SQL.', visible: true, type: 'alert' });
+                sessionStorage.setItem('db_warned', 'true');
+            }
+            return;
+        }
+        
+        throw error; // Se for outro erro, lança para o catch
+      }
+    } catch (e: any) {
+      console.error("Exceção ao salvar:", e);
+      let msg = e.message || JSON.stringify(e);
+      // Filtra mensagens muito técnicas para o usuário final
+      if (msg.includes('JWT')) msg = "Sessão expirada, recarregue a página.";
+      setNotification({ message: `Erro ao salvar: ${msg}`, visible: true, type: 'error' });
+    }
     
     if (currentUser && expert === currentUser.name) {
         loadWeeklyStats(expert);
@@ -351,22 +443,26 @@ function App() {
   const handleSendExpertMessage = () => {
     if (!currentUser || !expertMessageInput.trim()) return;
     
-    // Se não tiver supervisor selecionado, usa o "TODOS" ou o primeiro da lista, mas idealmente usa o state
+    // Define o alvo: ou o selecionado no dropdown, ou o supervisor padrão do cadastro, ou TODOS
     const target = expertTargetSupervisor || (currentUser.supervisor ? currentUser.supervisor : 'TODOS');
 
     // Optimistic Update: Atualiza a interface imediatamente
-    setData(prev => ({
-      ...prev,
-      [currentUser.name]: {
-        ...prev[currentUser.name],
+    const newData = {
+        ...data[currentUser.name],
         expertMessage: expertMessageInput,
         targetSupervisor: target
-      }
+    };
+
+    setData(prev => ({
+      ...prev,
+      [currentUser.name]: newData
     }));
 
+    // Salva explicitamente passando o targetSupervisor
     saveToSupabase(currentUser.name, { expertMessage: expertMessageInput, targetSupervisor: target });
+    
     playSuccessBeep();
-    setNotification({ message: `Mensagem enviada para ${target === 'TODOS' ? 'Supervisão Geral' : target.split(' ')[0]}!`, visible: true, type: 'success' });
+    setNotification({ message: `Enviada para ${target === 'TODOS' ? 'Supervisão Geral' : target.split(' ')[0]}!`, visible: true, type: 'success' });
     setExpertMessageInput('');
   };
 
@@ -396,7 +492,8 @@ function App() {
       const isTeamMember = officialSupervisor === selectedSupervisor;
       
       // Mostra se mandou mensagem para este supervisor (mesmo sendo de outro time)
-      const isTargetingThisSupervisor = hasMessage && targetSupervisor === selectedSupervisor;
+      // Usamos trim() para garantir que espaços extras não quebrem a comparação
+      const isTargetingThisSupervisor = hasMessage && targetSupervisor && targetSupervisor.trim() === selectedSupervisor;
 
       return isTeamMember || isTargetingThisSupervisor;
     }).sort();
@@ -497,6 +594,12 @@ function App() {
                   className="bg-transparent border-none outline-none text-[10px] font-black text-slate-600 cursor-pointer"
                 />
             </div>
+            
+            {isAdmin && (
+               <button onClick={() => loadSupabaseData(selectedDate)} className="bg-slate-50 p-3 rounded-2xl border border-slate-100 hover:bg-slate-100 text-slate-400 hover:text-orange-600 transition-colors" title="Forçar Atualização">
+                  <RefreshCw size={16} className={isSyncing ? "animate-spin" : ""} />
+               </button>
+            )}
 
             <button onClick={handleLogout} className="flex items-center gap-2 text-slate-400 font-black text-[10px] hover:text-red-600 transition-colors bg-slate-50 p-3 rounded-2xl border border-slate-100 uppercase tracking-widest"><LogOut size={16} /> Sair</button>
           </div>
@@ -693,7 +796,7 @@ function App() {
                 <thead className="bg-slate-50/50 text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">
                    <tr>
                       <th className="p-8 w-[25%]">Expert / Time</th>
-                      <th className="p-8 text-center w-[10%]">Meta</th>
+                      {isAdmin && <th className="p-8 text-center w-[10%]">Meta</th>}
                       <th className="p-8 text-center w-[10%]">Tratativa</th>
                       <th className="p-8 text-center w-[10%]">Finalizado</th>
                       <th className="p-8 text-center w-[8%]">Eficiência</th>
@@ -719,27 +822,40 @@ function App() {
                                 </div>
                               </div>
                             </td>
+                            {isAdmin && (
                             <td className="p-8">
-                               <input type="number" value={entry.goal || ''} disabled={!isAdmin} onChange={(e) => handleInputChange(name, 'goal', e.target.value)} className="w-full text-center font-black text-orange-600 bg-orange-50/50 rounded-xl p-3 border-2 border-transparent focus:border-orange-200 outline-none disabled:opacity-50" placeholder="0" />
+                               <input type="number" value={entry.goal} disabled={!isAdmin} onChange={(e) => handleInputChange(name, 'goal', e.target.value)} className="w-full text-center font-black text-orange-600 bg-orange-50/50 rounded-xl p-3 border-2 border-transparent focus:border-orange-200 outline-none disabled:opacity-50" placeholder="0" />
+                            </td>
+                            )}
+                            <td className="p-8">
+                               <input type="number" value={entry.tratado} onChange={(e) => handleInputChange(name, 'tratado', e.target.value)} className="w-full text-center font-bold text-slate-600 bg-slate-50 rounded-xl p-3 border-2 border-transparent focus:border-slate-200 outline-none" placeholder="0" />
                             </td>
                             <td className="p-8">
-                               <input type="number" value={entry.tratado || ''} onChange={(e) => handleInputChange(name, 'tratado', e.target.value)} className="w-full text-center font-bold text-slate-600 bg-slate-50 rounded-xl p-3 border-2 border-transparent focus:border-slate-200 outline-none" placeholder="0" />
-                            </td>
-                            <td className="p-8">
-                               <input type="number" value={entry.finalizado || ''} onChange={(e) => handleInputChange(name, 'finalizado', e.target.value)} className="w-full text-center font-black text-green-600 bg-green-50 rounded-xl p-3 border-2 border-transparent focus:border-green-200 outline-none shadow-sm" placeholder="0" />
+                               <input type="number" value={entry.finalizado} onChange={(e) => handleInputChange(name, 'finalizado', e.target.value)} className="w-full text-center font-black text-green-600 bg-green-50 rounded-xl p-3 border-2 border-transparent focus:border-green-200 outline-none shadow-sm" placeholder="0" />
                             </td>
                             <td className="p-8 text-center">
                                <span className={`text-xs font-black p-2 rounded-lg ${eff >= 100 ? 'bg-orange-600 text-white shadow-lg' : 'text-slate-400'}`}>{eff}%</span>
                             </td>
                             {isAdmin && (
                               <td className="p-8">
-                                 <input 
-                                   type="text"
-                                   value={entry.observacao || ''} 
-                                   onChange={(e) => handleInputChange(name, 'observacao', e.target.value)}
-                                   className="w-full bg-slate-50 p-3 rounded-xl text-[10px] font-bold outline-none border-2 border-transparent focus:border-slate-200 placeholder:text-slate-300" 
-                                   placeholder="Nota privada..." 
-                                 />
+                                 <div className="relative group/obs">
+                                     {entry.isUrgent && (
+                                        <div className="absolute -top-3 -right-2 bg-red-600 text-white p-1.5 rounded-full shadow-lg z-10 animate-bounce" title="URGENTE: Observação Prioritária">
+                                            <AlertCircle size={10} strokeWidth={3} />
+                                        </div>
+                                     )}
+                                     <input 
+                                       type="text"
+                                       value={entry.observacao || ''} 
+                                       onChange={(e) => handleInputChange(name, 'observacao', e.target.value)}
+                                       className={`w-full p-3 rounded-xl text-[10px] font-bold outline-none border-2 transition-all placeholder:text-slate-300 ${
+                                           entry.isUrgent 
+                                           ? 'bg-red-50 border-red-200 text-red-800 focus:border-red-300 placeholder:text-red-300' 
+                                           : 'bg-slate-50 border-transparent focus:border-slate-200'
+                                       }`}
+                                       placeholder={entry.isUrgent ? "⚠️ PRIORIDADE ALTA..." : "Nota privada..."} 
+                                     />
+                                 </div>
                               </td>
                             )}
                             {isAdmin && (
@@ -747,7 +863,7 @@ function App() {
                                  <div className="flex flex-col gap-2">
                                      {/* Área de Visualização da Mensagem do Expert */}
                                      {entry.expertMessage && (
-                                        <div className={`p-3 rounded-xl border relative group animate-in slide-in-from-left-2 ${entry.targetSupervisor && entry.targetSupervisor !== selectedSupervisor && selectedSupervisor !== 'TODOS' ? 'bg-slate-100 border-slate-200 opacity-50' : 'bg-orange-100 border-orange-200'}`}>
+                                        <div className={`p-3 rounded-xl border relative group animate-in slide-in-from-left-2 ${entry.targetSupervisor && entry.targetSupervisor.trim() !== selectedSupervisor && selectedSupervisor !== 'TODOS' ? 'bg-slate-100 border-slate-200 opacity-50' : 'bg-orange-100 border-orange-200'}`}>
                                             <div className="text-[10px] font-black text-orange-800 flex items-center justify-between gap-1 mb-1">
                                                 <div className="flex items-center gap-1"><MessageSquare size={10} /> {name.split(' ')[0]} diz:</div>
                                                 {entry.targetSupervisor && <div className="text-[8px] bg-white/50 px-1.5 rounded-full uppercase tracking-widest">Para: {entry.targetSupervisor.split(' ')[0]}</div>}
@@ -781,7 +897,7 @@ function App() {
                       )
                    }) : (
                      <tr>
-                       <td colSpan={isAdmin ? 7 : 5} className="p-20 text-center">
+                       <td colSpan={isAdmin ? 7 : 4} className="p-20 text-center">
                           <AlertCircle size={40} className="mx-auto text-slate-100 mb-4" />
                           <p className="text-slate-400 font-black uppercase text-[10px] tracking-widest italic">Nenhum registro localizado</p>
                        </td>
