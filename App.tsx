@@ -9,6 +9,7 @@ import { supabase, isSupabaseConfigured } from './services/supabaseClient';
 
 const ADMIN_MATRICULAS = ['301052', '322110', '221362', '333596', '246794'];
 const MESSAGE_DURATION_MS = 3 * 60 * 1000; // 3 minutos
+const SAVE_DEBOUNCE_MS = 1000; // Tempo de espera para salvar após digitar (1 segundo)
 
 // Gerenciamento de Áudio Global
 let globalAudioCtx: AudioContext | null = null;
@@ -154,9 +155,11 @@ function App() {
   const [weeklyStats, setWeeklyStats] = useState({ tratado: 0, finalizado: 0 });
   
   // Ref para acessar o estado mais recente dentro de funções assíncronas (saveToSupabase)
-  // isso previne que atualizações rápidas sobrescrevam dados com estado antigo (closure stale)
   const dataRef = useRef(data);
   useEffect(() => { dataRef.current = data; }, [data]);
+
+  // Ref para armazenar os timers de debounce de salvamento por expert
+  const saveTimeoutRef = useRef<Record<string, NodeJS.Timeout>>({});
 
   const lastMessageRef = useRef<string>('');
   const goalReachedRef = useRef<boolean>(false);
@@ -225,7 +228,6 @@ function App() {
               goal: rec.goal,
               observacao: rec.observacao || '',
               isUrgent: rec.is_urgent,
-              // Fallback para string vazia caso a coluna não exista ou venha nula
               managerMessage: rec.manager_message || '',
               expertMessage: rec.expert_message || '',
               targetSupervisor: rec.target_supervisor || ''
@@ -245,13 +247,11 @@ function App() {
   useEffect(() => {
     if (!isSupabaseConfigured) return;
     
-    // Carregamento inicial
     loadSupabaseData(selectedDate);
     if (currentUser) {
       loadWeeklyStats(currentUser.name);
     }
 
-    // Configuração do Realtime
     const channel = supabase.channel(`prod-changes-${selectedDate}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'productivity_records', filter: `date=eq.${selectedDate}` }, (payload) => {
           const rec = payload.new as any;
@@ -259,7 +259,6 @@ function App() {
             setData(prev => ({
               ...prev,
               [rec.expert_name]: {
-                // Use ?? para permitir o valor 0. || converte 0 para falha.
                 tratado: rec.tratado ?? 0,
                 finalizado: rec.finalizado ?? 0,
                 goal: rec.goal ?? 0,
@@ -276,15 +275,12 @@ function App() {
           }
       }).subscribe();
 
-    // POLÍTICA DE SEGURANÇA DE DADOS (SAFETY NET)
-    // 1. Polling a cada 10 segundos para garantir que nada foi perdido se o socket cair
     const pollInterval = setInterval(() => {
-       if (!document.hidden) { // Só atualiza se a aba estiver visível para economizar recursos
+       if (!document.hidden) {
           loadSupabaseData(selectedDate);
        }
     }, 10000);
 
-    // 2. Atualização imediata ao focar na janela (usuário voltou para a aba)
     const onFocus = () => {
        loadSupabaseData(selectedDate);
     };
@@ -297,18 +293,14 @@ function App() {
     };
   }, [selectedDate, loadSupabaseData, currentUser, loadWeeklyStats]);
 
-  // Monitoramento de novas mensagens de experts para notificar Admin
   useEffect(() => {
     Object.keys(data).forEach(name => {
        const msg = data[name]?.expertMessage || '';
        const target = data[name]?.targetSupervisor;
        const prevMsg = prevExpertMessages.current[name];
        
-       // Lógica de Notificação para Admin
        if (isAdmin && !isSyncing && prevMsg !== undefined && msg !== prevMsg && msg.trim() !== '') {
-          // Verifica se a mensagem é para o supervisor logado (ou se ele está vendo TODOS)
           const isForMe = selectedSupervisor === 'TODOS' || (target && target.trim() === selectedSupervisor);
-          
           if (isForMe) {
             playUrnaBeep();
             setNotification({ 
@@ -326,13 +318,10 @@ function App() {
   const saveToSupabase = async (expert: string, updateData: Partial<ManualEntryData[string]>) => {
     if (!isSupabaseConfigured) return;
     
-    // USAR dataRef.current para garantir que temos os dados mais recentes de TODOS os campos
-    // Isso evita que uma atualização rápida em "finalizado" envie um valor antigo de "tratado" (stale state)
+    // USAR dataRef.current para garantir que temos os dados mais recentes no momento do envio
     const entry = dataRef.current[expert];
     const fullData = { ...entry, ...updateData };
     
-    // Payload completo (Versão nova com Chat)
-    // Garantimos que não enviamos undefined para campos obrigatórios
     const payload = {
       date: selectedDate,
       expert_name: expert,
@@ -348,15 +337,12 @@ function App() {
     };
 
     try {
-      // Tenta salvar com todas as colunas
       const { error } = await supabase.from('productivity_records').upsert(payload, { onConflict: 'date,expert_name' });
       
       if (error) {
-        // Se o erro for de coluna inexistente (Postgres code 42703 ou mensagem de texto), tenta o fallback
         if (error.code === '42703' || error.message.includes('column') || error.message.includes('does not exist')) {
-            console.warn("Banco de dados desatualizado (colunas faltando). Salvando em modo de compatibilidade...");
+            console.warn("Modo de compatibilidade (colunas faltando)...");
             
-            // Payload Legado (Apenas colunas que com certeza existem)
             const legacyPayload = {
               date: selectedDate,
               expert_name: expert,
@@ -369,23 +355,19 @@ function App() {
             };
             
             const { error: legacyError } = await supabase.from('productivity_records').upsert(legacyPayload, { onConflict: 'date,expert_name' });
-            
             if (legacyError) throw legacyError;
             
-            // Se funcionou o legacy, avisa sutilmente (apenas 1x por sessão para não irritar)
             if (!sessionStorage.getItem('db_warned')) {
                 setNotification({ message: '⚠️ Banco de dados desatualizado. Execute o script SQL.', visible: true, type: 'alert' });
                 sessionStorage.setItem('db_warned', 'true');
             }
             return;
         }
-        
-        throw error; // Se for outro erro, lança para o catch
+        throw error;
       }
     } catch (e: any) {
       console.error("Exceção ao salvar:", e);
       let msg = e.message || JSON.stringify(e);
-      // Filtra mensagens muito técnicas para o usuário final
       if (msg.includes('JWT')) msg = "Sessão expirada, recarregue a página.";
       setNotification({ message: `Erro ao salvar: ${msg}`, visible: true, type: 'error' });
     }
@@ -425,9 +407,20 @@ function App() {
   };
 
   const handleInputChange = (expert: string, field: 'tratado' | 'finalizado' | 'observacao' | 'goal', value: string) => {
+    // Conversão segura
     const finalValue = field === 'observacao' ? value : Math.max(0, parseInt(value) || 0);
+    
+    // Atualização Otimista da Interface (Imediata)
     setData(prev => ({ ...prev, [expert]: { ...prev[expert], [field]: finalValue } }));
-    saveToSupabase(expert, { [field]: finalValue });
+    
+    // Debounce do Salvamento no Banco (Aguarda o usuário parar de digitar)
+    if (saveTimeoutRef.current[expert]) {
+        clearTimeout(saveTimeoutRef.current[expert]);
+    }
+
+    saveTimeoutRef.current[expert] = setTimeout(() => {
+        saveToSupabase(expert, { [field]: finalValue });
+    }, SAVE_DEBOUNCE_MS);
   };
 
   const handleSendMessage = (expert: string) => {
@@ -439,28 +432,17 @@ function App() {
     setTempMessages(prev => ({ ...prev, [expert]: '' }));
   };
 
-  // Função para Expert enviar mensagem ao Supervisor
   const handleSendExpertMessage = () => {
     if (!currentUser || !expertMessageInput.trim()) return;
-    
-    // Define o alvo: ou o selecionado no dropdown, ou o supervisor padrão do cadastro, ou TODOS
     const target = expertTargetSupervisor || (currentUser.supervisor ? currentUser.supervisor : 'TODOS');
-
-    // Optimistic Update: Atualiza a interface imediatamente
     const newData = {
         ...data[currentUser.name],
         expertMessage: expertMessageInput,
         targetSupervisor: target
     };
-
-    setData(prev => ({
-      ...prev,
-      [currentUser.name]: newData
-    }));
-
-    // Salva explicitamente passando o targetSupervisor
+    setData(prev => ({ ...prev, [currentUser.name]: newData }));
+    // Mensagens de chat não precisam de debounce, pois são eventos pontuais de clique
     saveToSupabase(currentUser.name, { expertMessage: expertMessageInput, targetSupervisor: target });
-    
     playSuccessBeep();
     setNotification({ message: `Enviada para ${target === 'TODOS' ? 'Supervisão Geral' : target.split(' ')[0]}!`, visible: true, type: 'success' });
     setExpertMessageInput('');
@@ -479,34 +461,22 @@ function App() {
 
   const visibleExperts = useMemo(() => {
     if (!isAdmin) return currentUser ? [currentUser.name] : [];
-    
     return Object.keys(data).filter(name => {
-      // Se Admin estiver vendo TODOS, mostra todo mundo
       if (selectedSupervisor === 'TODOS') return true;
-      
       const officialSupervisor = EXPERT_MAP[name]?.supervisor;
       const targetSupervisor = data[name]?.targetSupervisor;
       const hasMessage = !!data[name]?.expertMessage;
-
-      // Mostra se é do time do supervisor
       const isTeamMember = officialSupervisor === selectedSupervisor;
-      
-      // Mostra se mandou mensagem para este supervisor (mesmo sendo de outro time)
-      // Usamos trim() para garantir que espaços extras não quebrem a comparação
       const isTargetingThisSupervisor = hasMessage && targetSupervisor && targetSupervisor.trim() === selectedSupervisor;
-
       return isTeamMember || isTargetingThisSupervisor;
     }).sort();
   }, [isAdmin, currentUser, data, selectedSupervisor]);
 
   const expertReceivedMessage = (!isAdmin && currentUser) ? data[currentUser.name]?.managerMessage : null;
 
-  // Lógica de monitoramento de Mensagens e Metas Batidas
   useEffect(() => {
     if (!isAdmin && currentUser) {
       const expertData = data[currentUser.name];
-      
-      // Monitor de Mensagem do Gestor
       if (expertReceivedMessage) {
         const msg = expertReceivedMessage.trim();
         if (msg && msg !== lastMessageRef.current) {
@@ -522,7 +492,6 @@ function App() {
         return () => clearTimeout(timer);
       }
 
-      // Monitor de Meta Batida
       if (expertData.goal > 0 && expertData.finalizado >= expertData.goal) {
         if (!goalReachedRef.current) {
            playGoalReachedBeep();
@@ -534,7 +503,6 @@ function App() {
            goalReachedRef.current = true;
         }
       } else {
-        // Se a meta cair (ex: correção de dados), permite celebrar de novo se atingir
         goalReachedRef.current = false;
       }
     }
@@ -824,14 +792,14 @@ function App() {
                             </td>
                             {isAdmin && (
                             <td className="p-8">
-                               <input type="number" value={entry.goal} disabled={!isAdmin} onChange={(e) => handleInputChange(name, 'goal', e.target.value)} className="w-full text-center font-black text-orange-600 bg-orange-50/50 rounded-xl p-3 border-2 border-transparent focus:border-orange-200 outline-none disabled:opacity-50" placeholder="0" />
+                               <input type="number" value={entry.goal === 0 ? '' : entry.goal} disabled={!isAdmin} onChange={(e) => handleInputChange(name, 'goal', e.target.value)} className="w-full text-center font-black text-orange-600 bg-orange-50/50 rounded-xl p-3 border-2 border-transparent focus:border-orange-200 outline-none disabled:opacity-50" placeholder="0" />
                             </td>
                             )}
                             <td className="p-8">
-                               <input type="number" value={entry.tratado} onChange={(e) => handleInputChange(name, 'tratado', e.target.value)} className="w-full text-center font-bold text-slate-600 bg-slate-50 rounded-xl p-3 border-2 border-transparent focus:border-slate-200 outline-none" placeholder="0" />
+                               <input type="number" value={entry.tratado === 0 ? '' : entry.tratado} onChange={(e) => handleInputChange(name, 'tratado', e.target.value)} className="w-full text-center font-bold text-slate-600 bg-slate-50 rounded-xl p-3 border-2 border-transparent focus:border-slate-200 outline-none" placeholder="0" />
                             </td>
                             <td className="p-8">
-                               <input type="number" value={entry.finalizado} onChange={(e) => handleInputChange(name, 'finalizado', e.target.value)} className="w-full text-center font-black text-green-600 bg-green-50 rounded-xl p-3 border-2 border-transparent focus:border-green-200 outline-none shadow-sm" placeholder="0" />
+                               <input type="number" value={entry.finalizado === 0 ? '' : entry.finalizado} onChange={(e) => handleInputChange(name, 'finalizado', e.target.value)} className="w-full text-center font-black text-green-600 bg-green-50 rounded-xl p-3 border-2 border-transparent focus:border-green-200 outline-none shadow-sm" placeholder="0" />
                             </td>
                             <td className="p-8 text-center">
                                <span className={`text-xs font-black p-2 rounded-lg ${eff >= 100 ? 'bg-orange-600 text-white shadow-lg' : 'text-slate-400'}`}>{eff}%</span>
