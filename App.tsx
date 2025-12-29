@@ -159,7 +159,8 @@ function App() {
   useEffect(() => { dataRef.current = data; }, [data]);
 
   // Ref para armazenar os timers de debounce de salvamento por expert
-  const saveTimeoutRef = useRef<Record<string, NodeJS.Timeout>>({});
+  // Fixed: replacing NodeJS.Timeout with ReturnType<typeof setTimeout> to avoid namespace error
+  const saveTimeoutRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
   const lastMessageRef = useRef<string>('');
   const goalReachedRef = useRef<boolean>(false);
@@ -947,4 +948,3 @@ function App() {
 }
 
 export default App;
-    
