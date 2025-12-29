@@ -215,7 +215,7 @@ function App() {
       
       if (error) {
          console.error("Erro ao carregar dados:", error);
-         setNotification({ message: `Erro de conexão: ${error.message}`, visible: true, type: 'error' });
+         setNotification({ message: `Erro de conexão: ${error.message || JSON.stringify(error)}`, visible: true, type: 'error' });
          return;
       }
 
@@ -238,7 +238,8 @@ function App() {
       }
     } catch (e: any) {
        console.error("Exceção loadSupabaseData:", e);
-       setNotification({ message: `Erro ao sincronizar: ${e.message}`, visible: true, type: 'error' });
+       const errorMessage = e.message || (typeof e === 'object' ? JSON.stringify(e) : String(e));
+       setNotification({ message: `Erro ao sincronizar: ${errorMessage}`, visible: true, type: 'error' });
     } finally {
       setIsSyncing(false);
     }
@@ -946,3 +947,4 @@ function App() {
 }
 
 export default App;
+    
