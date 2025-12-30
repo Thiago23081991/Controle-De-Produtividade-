@@ -360,7 +360,11 @@ function App() {
             if (legacyError) throw legacyError;
             
             if (!sessionStorage.getItem('db_warned')) {
-                setNotification({ message: '⚠️ Banco de dados desatualizado. Execute o script SQL.', visible: true, type: 'alert' });
+                setNotification({ 
+                  message: '⚠️ BANCO DESATUALIZADO: Faltam colunas. Copie o arquivo "supabase_setup.sql" e rode no SQL Editor do Supabase!', 
+                  visible: true, 
+                  type: 'alert' 
+                });
                 sessionStorage.setItem('db_warned', 'true');
             }
             return;
