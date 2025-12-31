@@ -180,7 +180,10 @@ function App() {
   const [loginError, setLoginError] = useState('');
   
   const [isSyncing, setIsSyncing] = useState(false); // Sincronização em background
-  const [isLoading, setIsLoading] = useState(false); // Carregamento inicial (Skeleton)
+  
+  // Loading States separados para melhor UX
+  const [isTableLoading, setIsTableLoading] = useState(false); // Carregamento da tabela geral
+  const [isStatsLoading, setIsStatsLoading] = useState(false); // Carregamento dos dados do usuário (cards)
   
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [aiAnalysis, setAiAnalysis] = useState<string | null>(null);
@@ -249,16 +252,22 @@ function App() {
     }
   }, []);
 
-  const loadSupabaseData = useCallback(async (date: string, isBackground = false) => {
+  const loadSupabaseData = useCallback(async (date: string, isBackground = false, specificExpert?: string) => {
     if (!isSupabaseConfigured) return;
     
     if (isBackground) {
         setIsSyncing(true);
     } 
 
-    const freshSlate = getInitialData();
     try {
-      const { data: records, error } = await supabase.from('productivity_records').select('*').eq('date', date);
+      // Otimização: Se pedir um expert específico, filtra na query
+      let query = supabase.from('productivity_records').select('*').eq('date', date);
+      
+      if (specificExpert) {
+        query = query.eq('expert_name', specificExpert);
+      }
+
+      const { data: records, error } = await query;
       
       if (error) {
          console.error("Erro ao carregar dados:", error);
@@ -269,9 +278,20 @@ function App() {
       }
 
       if (records) {
-        records.forEach(rec => {
-          if (freshSlate[rec.expert_name]) {
-            freshSlate[rec.expert_name] = {
+        // Se for carga total e não for background, podemos querer resetar
+        // Mas se for parcial (specificExpert), fazemos merge
+        setData(prev => {
+          // Se estamos buscando TUDO e não é background sync, podemos resetar para garantir consistência
+          // mas isso causa flash. Melhor estratégia: Merge inteligente.
+          // Se mudamos a DATA, o useEffect limpa antes.
+          
+          const nextData = { ...prev };
+          
+          // Se carregamento total, talvez precisemos limpar dados antigos? 
+          // O resetState no useEffect cuida disso ao mudar a data.
+          
+          records.forEach(rec => {
+             nextData[rec.expert_name] = {
               tratado: rec.tratado,
               finalizado: rec.finalizado,
               goal: rec.goal,
@@ -280,13 +300,10 @@ function App() {
               managerMessage: rec.manager_message || '',
               expertMessage: rec.expert_message || '',
               targetSupervisor: rec.target_supervisor || ''
-            };
-          }
+             };
+          });
+          return nextData;
         });
-        
-        // Se estivermos editando, não queremos sobrescrever com dados antigos se houver delay
-        // Mas como é um fetch total, assumimos que é a verdade
-        setData(freshSlate);
       }
     } catch (e: any) {
        console.error("Exceção loadSupabaseData:", e);
@@ -295,20 +312,38 @@ function App() {
     }
   }, []);
 
-  // Efeito principal para carga de dados
+  // Efeito principal para carga de dados (Staged Loading)
   useEffect(() => {
     if (!isSupabaseConfigured) return;
+    
+    // Ao mudar a data, limpa o estado para evitar dados misturados
+    setData(getInitialData());
 
     const fetchData = async () => {
-        setIsLoading(true);
-        const promises: Promise<any>[] = [loadSupabaseData(selectedDate, false)];
+        // Estratégia de Carregamento Prioritário
         
-        if (currentUser) {
-            promises.push(loadWeeklyStats(currentUser.name));
+        // 1. Prioridade Alta: Dados do Usuário Logado (se houver)
+        if (currentUser && !isAdmin) {
+             setIsStatsLoading(true);
+             // Busca dados do dia e da semana em paralelo APENAS para o usuário
+             await Promise.all([
+                 loadSupabaseData(selectedDate, false, currentUser.name),
+                 loadWeeklyStats(currentUser.name)
+             ]);
+             setIsStatsLoading(false);
+             
+             // 2. Prioridade Baixa: Restante da tabela (background-ish)
+             setIsTableLoading(true);
+             await loadSupabaseData(selectedDate, false); // Busca tudo
+             setIsTableLoading(false);
+        } else {
+             // Admin ou sem usuário: Carrega tudo de uma vez
+             setIsTableLoading(true);
+             setIsStatsLoading(true);
+             await loadSupabaseData(selectedDate, false);
+             setIsTableLoading(false);
+             setIsStatsLoading(false);
         }
-        
-        await Promise.all(promises);
-        setIsLoading(false);
     };
 
     fetchData();
@@ -353,7 +388,7 @@ function App() {
       clearInterval(pollInterval);
       window.removeEventListener('focus', onFocus);
     };
-  }, [selectedDate, loadSupabaseData, currentUser, loadWeeklyStats]);
+  }, [selectedDate, loadSupabaseData, currentUser, loadWeeklyStats, isAdmin]);
 
   useEffect(() => {
     Object.keys(data).forEach(name => {
@@ -470,6 +505,7 @@ function App() {
     setExpertMessageInput('');
     setExpertTargetSupervisor('');
     prevExpertMessages.current = {};
+    setData(getInitialData());
   };
 
   const handleInputChange = (expert: string, field: 'tratado' | 'finalizado' | 'observacao' | 'goal', value: string) => {
@@ -696,7 +732,7 @@ function App() {
                   <h3 className="text-xs font-black uppercase tracking-[0.3em] text-slate-500">Minha Performance Semanal</h3>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  {isLoading ? (
+                  {isStatsLoading ? (
                     <>
                         <SkeletonCard />
                         <SkeletonCard />
@@ -860,7 +896,7 @@ function App() {
         <div className="bg-white rounded-[3rem] shadow-2xl overflow-hidden border border-slate-100">
            <div className="p-8 border-b border-slate-50 bg-slate-50/30 flex items-center justify-between">
               <h2 className="text-sm font-black uppercase tracking-widest text-slate-500 flex items-center gap-2"><Users size={16} /> Painel de Lançamento</h2>
-              {isSyncing && !isLoading && <div className="text-[9px] font-black text-orange-600 animate-pulse uppercase tracking-[0.2em]">Sincronizando Dados...</div>}
+              {isSyncing && !isTableLoading && <div className="text-[9px] font-black text-orange-600 animate-pulse uppercase tracking-[0.2em]">Sincronizando Dados...</div>}
            </div>
            <div className="overflow-x-auto">
              <table className="w-full text-left table-fixed min-w-[1000px]">
@@ -876,7 +912,7 @@ function App() {
                    </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50">
-                   {isLoading ? (
+                   {isTableLoading ? (
                      // Esqueleto da Tabela
                      <>
                         <SkeletonRow />
