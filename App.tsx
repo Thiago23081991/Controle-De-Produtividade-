@@ -1,11 +1,11 @@
 
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { ClipboardList, Sparkles, RefreshCw, Calendar, LogOut, Send, BellRing, Mail, Clock, Palette, BrainCircuit, Users, Megaphone, AlertCircle, X, BarChart3, TrendingUp, CheckCircle, Activity, LayoutDashboard, Zap, Trophy, PartyPopper, MessageSquare, ChevronDown } from 'lucide-react';
+import { ClipboardList, Sparkles, RefreshCw, Calendar, LogOut, Send, BellRing, Mail, Clock, Palette, BrainCircuit, Users, Megaphone, AlertCircle, X, BarChart3, TrendingUp, CheckCircle, Activity, LayoutDashboard, Zap, Trophy, PartyPopper, MessageSquare, ChevronDown, Database } from 'lucide-react';
 import { EXPERT_ROSTER, EXPERT_MAP, EXPERT_LIST } from './utils/parser';
 import { analyzeProductivity } from './services/geminiService';
 import { ManualEntryData, ExpertInfo } from './types';
 import { PerformanceChart } from './components/PerformanceChart';
-import { supabase, isSupabaseConfigured } from './services/supabaseClient';
+import { supabase, isSupabaseConfigured, supabaseUrl } from './services/supabaseClient';
 
 const ADMIN_MATRICULAS = ['301052', '322110', '221362', '333596', '246794'];
 const MESSAGE_DURATION_MS = 3 * 60 * 1000; // 3 minutos
@@ -134,13 +134,54 @@ const getInitialData = (): ManualEntryData => {
   }, {} as ManualEntryData);
 };
 
+// --- SKELETON COMPONENTS ---
+const SkeletonCard = () => (
+  <div className="bg-white p-8 rounded-[3rem] shadow-2xl border border-slate-100 relative overflow-hidden flex flex-col justify-between h-[240px]">
+    <div className="flex items-center gap-4 mb-6">
+      <div className="bg-slate-200 w-16 h-16 rounded-2xl animate-pulse"></div>
+      <div className="space-y-2">
+        <div className="h-2 w-24 bg-slate-200 rounded animate-pulse"></div>
+        <div className="h-2 w-20 bg-slate-200 rounded animate-pulse"></div>
+      </div>
+    </div>
+    <div className="space-y-2">
+      <div className="h-10 w-20 bg-slate-200 rounded animate-pulse"></div>
+      <div className="h-3 w-16 bg-slate-200 rounded animate-pulse"></div>
+    </div>
+    <div className="mt-4 pt-4 border-t border-slate-50 flex items-center gap-2">
+      <div className="h-3 w-32 bg-slate-200 rounded animate-pulse"></div>
+    </div>
+  </div>
+);
+
+const SkeletonRow = () => (
+  <tr className="animate-pulse">
+    <td className="p-8">
+      <div className="flex items-center gap-4">
+        <div className="w-10 h-10 rounded-2xl bg-slate-200"></div>
+        <div className="space-y-2">
+          <div className="h-3 w-32 bg-slate-200 rounded"></div>
+          <div className="h-2 w-20 bg-slate-200 rounded"></div>
+        </div>
+      </div>
+    </td>
+    <td className="p-8"><div className="h-10 w-full bg-slate-100 rounded-xl"></div></td>
+    <td className="p-8"><div className="h-10 w-full bg-slate-100 rounded-xl"></div></td>
+    <td className="p-8"><div className="h-8 w-12 bg-slate-100 rounded-lg mx-auto"></div></td>
+  </tr>
+);
+// ---------------------------
+
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [currentUser, setCurrentUser] = useState<ExpertInfo | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [loginInput, setLoginInput] = useState('');
   const [loginError, setLoginError] = useState('');
-  const [isSyncing, setIsSyncing] = useState(false);
+  
+  const [isSyncing, setIsSyncing] = useState(false); // Sincronização em background
+  const [isLoading, setIsLoading] = useState(false); // Carregamento inicial (Skeleton)
+  
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [aiAnalysis, setAiAnalysis] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState<string>(getTodayString());
@@ -159,7 +200,6 @@ function App() {
   useEffect(() => { dataRef.current = data; }, [data]);
 
   // Ref para armazenar os timers de debounce de salvamento por expert
-  // Fixed: replacing NodeJS.Timeout with ReturnType<typeof setTimeout> to avoid namespace error
   const saveTimeoutRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
   const lastMessageRef = useRef<string>('');
@@ -171,6 +211,8 @@ function App() {
     EXPERT_LIST.forEach(e => e.supervisor && list.add(e.supervisor));
     return ['TODOS', ...Array.from(list).sort()];
   }, []);
+  
+  const isDemoMode = false;
 
   // Sync expert target supervisor from loaded data
   useEffect(() => {
@@ -207,16 +249,22 @@ function App() {
     }
   }, []);
 
-  const loadSupabaseData = useCallback(async (date: string) => {
+  const loadSupabaseData = useCallback(async (date: string, isBackground = false) => {
     if (!isSupabaseConfigured) return;
-    setIsSyncing(true);
+    
+    if (isBackground) {
+        setIsSyncing(true);
+    } 
+
     const freshSlate = getInitialData();
     try {
       const { data: records, error } = await supabase.from('productivity_records').select('*').eq('date', date);
       
       if (error) {
          console.error("Erro ao carregar dados:", error);
-         setNotification({ message: `Erro de conexão: ${error.message || JSON.stringify(error)}`, visible: true, type: 'error' });
+         if (!isBackground) {
+             setNotification({ message: `Erro de conexão: ${error.message || JSON.stringify(error)}`, visible: true, type: 'error' });
+         }
          return;
       }
 
@@ -235,25 +283,37 @@ function App() {
             };
           }
         });
+        
+        // Se estivermos editando, não queremos sobrescrever com dados antigos se houver delay
+        // Mas como é um fetch total, assumimos que é a verdade
         setData(freshSlate);
       }
     } catch (e: any) {
        console.error("Exceção loadSupabaseData:", e);
-       const errorMessage = e.message || (typeof e === 'object' ? JSON.stringify(e) : String(e));
-       setNotification({ message: `Erro ao sincronizar: ${errorMessage}`, visible: true, type: 'error' });
     } finally {
-      setIsSyncing(false);
+      if (isBackground) setIsSyncing(false);
     }
   }, []);
 
+  // Efeito principal para carga de dados
   useEffect(() => {
     if (!isSupabaseConfigured) return;
-    
-    loadSupabaseData(selectedDate);
-    if (currentUser) {
-      loadWeeklyStats(currentUser.name);
-    }
 
+    const fetchData = async () => {
+        setIsLoading(true);
+        const promises: Promise<any>[] = [loadSupabaseData(selectedDate, false)];
+        
+        if (currentUser) {
+            promises.push(loadWeeklyStats(currentUser.name));
+        }
+        
+        await Promise.all(promises);
+        setIsLoading(false);
+    };
+
+    fetchData();
+
+    // Configuração do Realtime
     const channel = supabase.channel(`prod-changes-${selectedDate}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'productivity_records', filter: `date=eq.${selectedDate}` }, (payload) => {
           const rec = payload.new as any;
@@ -279,12 +339,12 @@ function App() {
 
     const pollInterval = setInterval(() => {
        if (!document.hidden) {
-          loadSupabaseData(selectedDate);
+          loadSupabaseData(selectedDate, true);
        }
     }, 10000);
 
     const onFocus = () => {
-       loadSupabaseData(selectedDate);
+       loadSupabaseData(selectedDate, true);
     };
     window.addEventListener('focus', onFocus);
 
@@ -432,6 +492,12 @@ function App() {
   const handleSendMessage = (expert: string) => {
     const msg = tempMessages[expert] || '';
     if (!msg.trim()) return;
+    
+    if (!isSupabaseConfigured) {
+       setNotification({ message: 'Falha: Banco de dados desconectado.', visible: true, type: 'error' });
+       return;
+    }
+
     saveToSupabase(expert, { managerMessage: msg });
     playSuccessBeep();
     setNotification({ message: `Aviso enviado para ${expert.split(' ')[0]}`, visible: true, type: 'success' });
@@ -440,6 +506,12 @@ function App() {
 
   const handleSendExpertMessage = () => {
     if (!currentUser || !expertMessageInput.trim()) return;
+    
+    if (!isSupabaseConfigured) {
+       setNotification({ message: 'Falha: Banco de dados desconectado.', visible: true, type: 'error' });
+       return;
+    }
+
     const target = expertTargetSupervisor || (currentUser.supervisor ? currentUser.supervisor : 'TODOS');
     const newData = {
         ...data[currentUser.name],
@@ -517,7 +589,12 @@ function App() {
   if (!isLoggedIn) {
     return (
       <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
-        <div className="bg-white p-10 rounded-[3rem] shadow-2xl w-full max-w-sm text-center border-b-[12px] border-orange-600">
+        <div className="bg-white p-10 rounded-[3rem] shadow-2xl w-full max-w-sm text-center border-b-[12px] border-orange-600 relative overflow-hidden">
+          {isDemoMode && (
+            <div className="absolute top-0 right-0 bg-yellow-400 text-yellow-900 text-[9px] font-black uppercase px-3 py-1 rounded-bl-xl tracking-widest z-10">
+              Modo Demo
+            </div>
+          )}
           <Palette className="w-16 h-16 text-orange-600 mx-auto mb-6 animate-bounce" />
           <h1 className="text-3xl font-black mb-2 italic">Suvinil Service</h1>
           <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-8">Produtividade Cloud</p>
@@ -539,7 +616,17 @@ function App() {
     <div className="min-h-screen bg-slate-50 p-4 md:p-8 font-sans transition-all duration-700" onClick={() => initAudio()}>
       <div className="max-w-7xl mx-auto space-y-6">
         
-        <header className="bg-white p-6 rounded-[2.5rem] shadow-2xl flex flex-col md:flex-row justify-between items-center gap-4 border border-slate-100">
+        <header className="bg-white p-6 rounded-[2.5rem] shadow-2xl flex flex-col md:flex-row justify-between items-center gap-4 border border-slate-100 relative overflow-hidden">
+          {isDemoMode && (
+             <div className="absolute top-0 left-1/2 -translate-x-1/2 bg-yellow-100 text-yellow-800 text-[9px] font-black px-4 py-1 rounded-b-xl border border-yellow-200 uppercase tracking-widest flex items-center gap-2">
+                <Database size={10} /> Modo Demonstração (Somente Leitura/Básico)
+             </div>
+          )}
+          {!isSupabaseConfigured && !isDemoMode && (
+             <div className="absolute top-0 left-1/2 -translate-x-1/2 bg-slate-800 text-slate-200 text-[9px] font-black px-4 py-1 rounded-b-xl border border-slate-700 uppercase tracking-widest flex items-center gap-2">
+                <Database size={10} /> Modo Offline (Sem Banco de Dados)
+             </div>
+          )}
           <div className="flex items-center gap-4">
              <div className="bg-slate-900 p-3 rounded-2xl shadow-lg shadow-slate-900/20"><ClipboardList className="text-orange-500" /></div>
              <div><h1 className="text-2xl font-black italic tracking-tighter">Suvinil <span className="text-orange-600">Cloud</span></h1><p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.3em]">Monitoring Systems v2.5</p></div>
@@ -570,7 +657,7 @@ function App() {
             </div>
             
             {isAdmin && (
-               <button onClick={() => loadSupabaseData(selectedDate)} className="bg-slate-50 p-3 rounded-2xl border border-slate-100 hover:bg-slate-100 text-slate-400 hover:text-orange-600 transition-colors" title="Forçar Atualização">
+               <button onClick={() => loadSupabaseData(selectedDate, false)} className="bg-slate-50 p-3 rounded-2xl border border-slate-100 hover:bg-slate-100 text-slate-400 hover:text-orange-600 transition-colors" title="Forçar Atualização">
                   <RefreshCw size={16} className={isSyncing ? "animate-spin" : ""} />
                </button>
             )}
@@ -609,105 +696,115 @@ function App() {
                   <h3 className="text-xs font-black uppercase tracking-[0.3em] text-slate-500">Minha Performance Semanal</h3>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  {/* Card Tratados Semanal */}
-                  <div className="bg-white p-8 rounded-[3rem] shadow-2xl border border-slate-100 relative overflow-hidden group hover:border-orange-200 transition-all flex flex-col justify-between">
-                    <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
-                        <TrendingUp size={80} className="text-orange-600" />
-                    </div>
-                    <div className="flex items-center gap-4 mb-6">
-                        <div className="bg-orange-100 p-4 rounded-2xl group-hover:scale-110 transition-transform">
-                            <Activity size={28} className="text-orange-600" />
+                  {isLoading ? (
+                    <>
+                        <SkeletonCard />
+                        <SkeletonCard />
+                        <SkeletonCard />
+                    </>
+                  ) : (
+                    <>
+                    {/* Card Tratados Semanal */}
+                    <div className="bg-white p-8 rounded-[3rem] shadow-2xl border border-slate-100 relative overflow-hidden group hover:border-orange-200 transition-all flex flex-col justify-between">
+                        <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
+                            <TrendingUp size={80} className="text-orange-600" />
                         </div>
-                        <div>
-                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Tratados na Semana</p>
-                            <p className="text-[9px] font-bold text-orange-600">Segunda a Domingo</p>
+                        <div className="flex items-center gap-4 mb-6">
+                            <div className="bg-orange-100 p-4 rounded-2xl group-hover:scale-110 transition-transform">
+                                <Activity size={28} className="text-orange-600" />
+                            </div>
+                            <div>
+                                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Tratados na Semana</p>
+                                <p className="text-[9px] font-bold text-orange-600">Segunda a Domingo</p>
+                            </div>
+                        </div>
+                        <div className="flex items-baseline gap-2">
+                            <h4 className="text-5xl font-black text-slate-900 italic tracking-tighter">
+                            {weeklyStats.tratado}
+                            </h4>
+                            <span className="text-slate-400 font-black text-sm uppercase tracking-widest">Casos</span>
+                        </div>
+                        <div className="mt-4 pt-4 border-t border-slate-50 flex items-center gap-2 text-[10px] font-bold text-slate-400">
+                            <Zap size={12} className="text-orange-400" /> 
+                            Média de {(weeklyStats.tratado / 5).toFixed(1)} / dia útil
                         </div>
                     </div>
-                    <div className="flex items-baseline gap-2">
-                        <h4 className="text-5xl font-black text-slate-900 italic tracking-tighter">
-                          {weeklyStats.tratado}
-                        </h4>
-                        <span className="text-slate-400 font-black text-sm uppercase tracking-widest">Casos</span>
-                    </div>
-                    <div className="mt-4 pt-4 border-t border-slate-50 flex items-center gap-2 text-[10px] font-bold text-slate-400">
-                        <Zap size={12} className="text-orange-400" /> 
-                        Média de {(weeklyStats.tratado / 5).toFixed(1)} / dia útil
-                    </div>
-                  </div>
 
-                  {/* Card Finalizados Semanal */}
-                  <div className="bg-white p-8 rounded-[3rem] shadow-2xl border border-slate-100 relative overflow-hidden group hover:border-green-200 transition-all flex flex-col justify-between">
-                    <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
-                        <CheckCircle size={80} className="text-green-600" />
-                    </div>
-                    <div className="flex items-center gap-4 mb-6">
-                        <div className="bg-green-100 p-4 rounded-2xl group-hover:scale-110 transition-transform">
-                            <CheckCircle size={28} className="text-green-600" />
+                    {/* Card Finalizados Semanal */}
+                    <div className="bg-white p-8 rounded-[3rem] shadow-2xl border border-slate-100 relative overflow-hidden group hover:border-green-200 transition-all flex flex-col justify-between">
+                        <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
+                            <CheckCircle size={80} className="text-green-600" />
                         </div>
-                        <div>
-                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Finalizados na Semana</p>
-                            <p className="text-[9px] font-bold text-green-600">Entrega Total</p>
+                        <div className="flex items-center gap-4 mb-6">
+                            <div className="bg-green-100 p-4 rounded-2xl group-hover:scale-110 transition-transform">
+                                <CheckCircle size={28} className="text-green-600" />
+                            </div>
+                            <div>
+                                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Finalizados na Semana</p>
+                                <p className="text-[9px] font-bold text-green-600">Entrega Total</p>
+                            </div>
+                        </div>
+                        <div className="flex items-baseline gap-2">
+                            <h4 className="text-5xl font-black text-slate-900 italic tracking-tighter">
+                            {weeklyStats.finalizado}
+                            </h4>
+                            <span className="text-slate-400 font-black text-sm uppercase tracking-widest">Resolvidos</span>
+                        </div>
+                        <div className="mt-4 pt-4 border-t border-slate-50 flex items-center gap-2 text-[10px] font-bold text-slate-400">
+                            <TrendingUp size={12} className="text-green-400" /> 
+                            Taxa de Conversão: {weeklyStats.tratado > 0 ? Math.round((weeklyStats.finalizado / (weeklyStats.tratado + weeklyStats.finalizado)) * 100) : 0}%
                         </div>
                     </div>
-                    <div className="flex items-baseline gap-2">
-                        <h4 className="text-5xl font-black text-slate-900 italic tracking-tighter">
-                          {weeklyStats.finalizado}
-                        </h4>
-                        <span className="text-slate-400 font-black text-sm uppercase tracking-widest">Resolvidos</span>
-                    </div>
-                    <div className="mt-4 pt-4 border-t border-slate-50 flex items-center gap-2 text-[10px] font-bold text-slate-400">
-                        <TrendingUp size={12} className="text-green-400" /> 
-                        Taxa de Conversão: {weeklyStats.tratado > 0 ? Math.round((weeklyStats.finalizado / (weeklyStats.tratado + weeklyStats.finalizado)) * 100) : 0}%
-                    </div>
-                  </div>
 
-                  {/* Card Meta Diária (Visão Rápida) */}
-                  <div className={`p-8 rounded-[3rem] shadow-2xl border relative overflow-hidden group transition-all flex flex-col justify-between ${
-                      data[currentUser.name]?.goal > 0 && data[currentUser.name]?.finalizado >= data[currentUser.name]?.goal 
-                      ? 'bg-gradient-to-br from-orange-600 to-orange-800 border-orange-400 shadow-orange-600/30 scale-[1.02]' 
-                      : 'bg-slate-900 border-slate-800'
-                  }`}>
-                    <div className="flex items-center gap-4 mb-6">
-                        <div className={`p-4 rounded-2xl group-hover:scale-110 transition-all ${
-                            data[currentUser.name]?.goal > 0 && data[currentUser.name]?.finalizado >= data[currentUser.name]?.goal 
-                            ? 'bg-white/20 text-yellow-300' 
-                            : 'bg-white/10 text-white group-hover:bg-orange-600'
-                        }`}>
-                            <BarChart3 size={28} />
+                    {/* Card Meta Diária (Visão Rápida) */}
+                    <div className={`p-8 rounded-[3rem] shadow-2xl border relative overflow-hidden group transition-all flex flex-col justify-between ${
+                        data[currentUser.name]?.goal > 0 && data[currentUser.name]?.finalizado >= data[currentUser.name]?.goal 
+                        ? 'bg-gradient-to-br from-orange-600 to-orange-800 border-orange-400 shadow-orange-600/30 scale-[1.02]' 
+                        : 'bg-slate-900 border-slate-800'
+                    }`}>
+                        <div className="flex items-center gap-4 mb-6">
+                            <div className={`p-4 rounded-2xl group-hover:scale-110 transition-all ${
+                                data[currentUser.name]?.goal > 0 && data[currentUser.name]?.finalizado >= data[currentUser.name]?.goal 
+                                ? 'bg-white/20 text-yellow-300' 
+                                : 'bg-white/10 text-white group-hover:bg-orange-600'
+                            }`}>
+                                <BarChart3 size={28} />
+                            </div>
+                            <div>
+                                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Meta de Hoje</p>
+                                <p className={`text-[9px] font-bold ${
+                                    data[currentUser.name]?.goal > 0 && data[currentUser.name]?.finalizado >= data[currentUser.name]?.goal 
+                                    ? 'text-yellow-300' 
+                                    : 'text-orange-400'
+                                }`}>Objetivo Individual</p>
+                            </div>
                         </div>
                         <div>
-                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Meta de Hoje</p>
-                            <p className={`text-[9px] font-bold ${
-                                data[currentUser.name]?.goal > 0 && data[currentUser.name]?.finalizado >= data[currentUser.name]?.goal 
-                                ? 'text-yellow-300' 
-                                : 'text-orange-400'
-                            }`}>Objetivo Individual</p>
+                            <div className="flex items-baseline gap-2 mb-2">
+                            <h4 className="text-5xl font-black text-white italic tracking-tighter">
+                                {data[currentUser.name]?.goal || 0}
+                            </h4>
+                            <span className="text-slate-500 font-black text-sm uppercase tracking-widest">Alvo</span>
+                            </div>
+                            <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden">
+                            <div 
+                                className={`h-full transition-all duration-1000 ${
+                                    data[currentUser.name]?.goal > 0 && data[currentUser.name]?.finalizado >= data[currentUser.name]?.goal 
+                                    ? 'bg-yellow-400' 
+                                    : 'bg-orange-600'
+                                }`}
+                                style={{ width: `${Math.min(((data[currentUser.name]?.finalizado || 0) / (data[currentUser.name]?.goal || 1)) * 100, 100)}%` }}
+                            />
+                            </div>
                         </div>
+                        <p className="mt-4 text-[10px] font-black text-white/40 uppercase tracking-widest">
+                            {(data[currentUser.name]?.goal || 0) - (data[currentUser.name]?.finalizado || 0) <= 0 
+                            ? "🎯 META BATIDA! PARABÉNS!" 
+                            : `Faltam ${(data[currentUser.name]?.goal || 0) - (data[currentUser.name]?.finalizado || 0)} para o objetivo`}
+                        </p>
                     </div>
-                    <div>
-                        <div className="flex items-baseline gap-2 mb-2">
-                          <h4 className="text-5xl font-black text-white italic tracking-tighter">
-                            {data[currentUser.name]?.goal || 0}
-                          </h4>
-                          <span className="text-slate-500 font-black text-sm uppercase tracking-widest">Alvo</span>
-                        </div>
-                        <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden">
-                          <div 
-                            className={`h-full transition-all duration-1000 ${
-                                data[currentUser.name]?.goal > 0 && data[currentUser.name]?.finalizado >= data[currentUser.name]?.goal 
-                                ? 'bg-yellow-400' 
-                                : 'bg-orange-600'
-                            }`}
-                            style={{ width: `${Math.min(((data[currentUser.name]?.finalizado || 0) / (data[currentUser.name]?.goal || 1)) * 100, 100)}%` }}
-                          />
-                        </div>
-                    </div>
-                    <p className="mt-4 text-[10px] font-black text-white/40 uppercase tracking-widest">
-                        {(data[currentUser.name]?.goal || 0) - (data[currentUser.name]?.finalizado || 0) <= 0 
-                          ? "🎯 META BATIDA! PARABÉNS!" 
-                          : `Faltam ${(data[currentUser.name]?.goal || 0) - (data[currentUser.name]?.finalizado || 0)} para o objetivo`}
-                    </p>
-                  </div>
+                    </>
+                  )}
                 </div>
               </div>
             </div>
@@ -763,7 +860,7 @@ function App() {
         <div className="bg-white rounded-[3rem] shadow-2xl overflow-hidden border border-slate-100">
            <div className="p-8 border-b border-slate-50 bg-slate-50/30 flex items-center justify-between">
               <h2 className="text-sm font-black uppercase tracking-widest text-slate-500 flex items-center gap-2"><Users size={16} /> Painel de Lançamento</h2>
-              {isSyncing && <div className="text-[9px] font-black text-orange-600 animate-pulse uppercase tracking-[0.2em]">Sincronizando Dados...</div>}
+              {isSyncing && !isLoading && <div className="text-[9px] font-black text-orange-600 animate-pulse uppercase tracking-[0.2em]">Sincronizando Dados...</div>}
            </div>
            <div className="overflow-x-auto">
              <table className="w-full text-left table-fixed min-w-[1000px]">
@@ -779,7 +876,16 @@ function App() {
                    </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50">
-                   {visibleExperts.length > 0 ? visibleExperts.map((name, i) => {
+                   {isLoading ? (
+                     // Esqueleto da Tabela
+                     <>
+                        <SkeletonRow />
+                        <SkeletonRow />
+                        <SkeletonRow />
+                        <SkeletonRow />
+                        <SkeletonRow />
+                     </>
+                   ) : visibleExperts.length > 0 ? visibleExperts.map((name, i) => {
                       const entry = data[name];
                       const total = entry.tratado + entry.finalizado;
                       const eff = total > 0 ? Math.round((entry.finalizado / total) * 100) : 0;

@@ -1,61 +1,60 @@
+
 # Produtividade Service Desk
 
 Ferramenta para gestão e análise de produtividade da equipe de atendimento, permitindo o registro manual de casos e fornecendo insights via Inteligência Artificial.
 
+## 🛠️ Como rodar este projeto
+
+1. **Clone o repositório:**
+   ```bash
+   git clone <seu-repo-url>
+   cd <nome-da-pasta>
+   ```
+
+2. **Instale as dependências:**
+   ```bash
+   npm install
+   ```
+
+3. **Inicie o servidor de desenvolvimento:**
+   ```bash
+   npm run dev
+   ```
+
+## 🚀 Configuração do Banco de Dados (Supabase)
+
+Para que o sistema funcione corretamente, é necessário criar a tabela no Supabase.
+
+1. Crie um projeto em [Supabase.com](https://supabase.com).
+2. Vá no menu **SQL Editor** no dashboard do Supabase.
+3. Clique em **New Query**.
+4. Copie todo o conteúdo do arquivo `supabase_setup.sql` que está na raiz deste projeto.
+5. Cole no editor do Supabase e clique em **Run**.
+
+Isso criará a tabela `productivity_records`, configurará as permissões e habilitará o Realtime.
+
+## 🔑 Variáveis de Ambiente
+
+O projeto já possui credenciais de demonstração configuradas em `services/supabaseClient.ts`. Para usar seu próprio projeto, crie um arquivo `.env` na raiz:
+
+```env
+VITE_SUPABASE_URL=sua_url_do_supabase
+VITE_SUPABASE_ANON_KEY=sua_chave_anonima
+```
+
 ## Funcionalidades
 
 - **Gestão de Produtividade**:
-  - Registro de casos "Tratados" (em andamento) e "Finalizados".
-  - Definição e acompanhamento de **Metas** individuais.
-  - Checkbox para sinalizar **Casos Urgentes** (🚨).
-  - Campo de observação para justificativas (Atestados, falhas, etc.).
-
-- **Indicadores Visuais**:
-  - Cálculo automático de eficiência (%).
-  - Destaque para **Top Performer** (🏆).
-  - Indicador de **Meta Batida** (🎯).
-  - Gráfico de barras comparativo (Tratado vs Finalizado vs Meta).
+  - Registro de casos "Tratados" e "Finalizados".
+  - Metas individuais e alertas de urgência.
+  - Chat em tempo real entre Expert e Supervisão.
 
 - **Inteligência Artificial (Gemini)**:
-  - Geração de resumos executivos detalhados.
-  - Análise de performance e pontos de atenção.
+  - Análise de eficiência e sugestões de PDI (Plano de Desenvolvimento Individual).
 
-- **Utilitários**:
-  - Persistência de dados local (LocalStorage).
-  - Exportação para **CSV** (Excel).
-  - Cópia de relatório em formato **Markdown** para comunicação rápida.
-  - Navegação via teclado para preenchimento rápido.
+## Tecnologias
 
-## Tecnologias Utilizadas
-
-- **Frontend**: React 19, TypeScript, Tailwind CSS.
-- **AI**: Google GenAI SDK (Gemini 2.5 Flash).
-- **Ícones**: Lucide React.
-- **Deploy**: Vercel (Serverless Functions).
-
-## Configuração e Instalação
-
-### 1. Obter API Key
-Gere uma chave gratuita no [Google AI Studio](https://aistudio.google.com/app/apikey).
-
-### 2. Ambiente Local
-Crie um arquivo chamado `.env` na raiz do projeto e adicione sua chave:
-
-```env
-API_KEY=AIzaSuaChaveAqui
-VITE_API_KEY=AIzaSuaChaveAqui
-```
-
-### 3. Produção (Vercel)
-Se estiver hospedando na Vercel:
-1. Vá em **Settings** > **Environment Variables**.
-2. Adicione uma chave chamada `API_KEY` com o valor da sua credencial Google.
-3. Faça um **Redeploy** para aplicar as alterações.
-
-## Estrutura do Projeto
-
-- `App.tsx`: Componente principal e lógica de estado.
-- `api/analyze.ts`: Função Serverless (Backend Vercel) para proteger a API Key.
-- `services/geminiService.ts`: Integração híbrida (Serverless + Fallback Client-Side).
-- `utils/parser.ts`: Lista de Experts e utilitários de parsing.
-- `components/`: Componentes de UI (Gráficos, Tabelas).
+- React 19 + TypeScript
+- Tailwind CSS
+- Supabase (PostgreSQL + Realtime)
+- Google Gemini API
