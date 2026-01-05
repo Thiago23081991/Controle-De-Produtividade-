@@ -7,7 +7,7 @@ import { ManualEntryData, ExpertInfo } from './types';
 import { PerformanceChart } from './components/PerformanceChart';
 import { supabase, isSupabaseConfigured, supabaseUrl } from './services/supabaseClient';
 
-const ADMIN_MATRICULAS = ['301052', '322110', '221362', '333596', '246794'];
+const ADMIN_MATRICULAS = ['301052', '322110', '221362', '333596', '246794', '372581', '321773'];
 const MESSAGE_DURATION_MS = 3 * 60 * 1000; // 3 minutos
 const SAVE_DEBOUNCE_MS = 1000; // Tempo de espera para salvar após digitar (1 segundo)
 
