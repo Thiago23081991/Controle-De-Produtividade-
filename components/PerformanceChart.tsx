@@ -40,9 +40,12 @@ export const PerformanceChart: React.FC<Props> = ({ data }) => {
             const tratado = data[expert].tratado;
             const finalizado = data[expert].finalizado;
             const goal = data[expert].goal || 0;
-            const metGoal = goal > 0 && finalizado >= goal;
+            // Meta Batida = (Tratado + Finalizado) >= Goal
+            const totalProd = tratado + finalizado;
+            const metGoal = goal > 0 && totalProd >= goal;
             
-            const completionPercent = goal > 0 ? Math.round((finalizado / goal) * 100) : 0;
+            // Porcentagem de conclusão agora é sobre o total produzido
+            const completionPercent = goal > 0 ? Math.round((totalProd / goal) * 100) : 0;
 
             const goalPercent = Math.min((goal / safeMax) * 100, 100);
             const tratadoPercent = Math.min((tratado / safeMax) * 100, 100);

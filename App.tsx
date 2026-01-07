@@ -606,7 +606,9 @@ function App() {
         return () => clearTimeout(timer);
       }
 
-      if (expertData.goal > 0 && expertData.finalizado >= expertData.goal) {
+      // Cálculo da meta: Tratado + Finalizado
+      const totalProd = (expertData.tratado || 0) + (expertData.finalizado || 0);
+      if (expertData.goal > 0 && totalProd >= expertData.goal) {
         if (!goalReachedRef.current) {
            playGoalReachedBeep();
            setNotification({ 
@@ -794,13 +796,13 @@ function App() {
 
                     {/* Card Meta Diária (Visão Rápida) */}
                     <div className={`p-8 rounded-[3rem] shadow-2xl border relative overflow-hidden group transition-all flex flex-col justify-between ${
-                        data[currentUser.name]?.goal > 0 && data[currentUser.name]?.finalizado >= data[currentUser.name]?.goal 
+                        data[currentUser.name]?.goal > 0 && (data[currentUser.name]?.tratado + data[currentUser.name]?.finalizado) >= data[currentUser.name]?.goal 
                         ? 'bg-gradient-to-br from-orange-600 to-orange-800 border-orange-400 shadow-orange-600/30 scale-[1.02]' 
                         : 'bg-slate-900 border-slate-800'
                     }`}>
                         <div className="flex items-center gap-4 mb-6">
                             <div className={`p-4 rounded-2xl group-hover:scale-110 transition-all ${
-                                data[currentUser.name]?.goal > 0 && data[currentUser.name]?.finalizado >= data[currentUser.name]?.goal 
+                                data[currentUser.name]?.goal > 0 && (data[currentUser.name]?.tratado + data[currentUser.name]?.finalizado) >= data[currentUser.name]?.goal 
                                 ? 'bg-white/20 text-yellow-300' 
                                 : 'bg-white/10 text-white group-hover:bg-orange-600'
                             }`}>
@@ -809,7 +811,7 @@ function App() {
                             <div>
                                 <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Meta de Hoje</p>
                                 <p className={`text-[9px] font-bold ${
-                                    data[currentUser.name]?.goal > 0 && data[currentUser.name]?.finalizado >= data[currentUser.name]?.goal 
+                                    data[currentUser.name]?.goal > 0 && (data[currentUser.name]?.tratado + data[currentUser.name]?.finalizado) >= data[currentUser.name]?.goal 
                                     ? 'text-yellow-300' 
                                     : 'text-orange-400'
                                 }`}>Objetivo Individual</p>
@@ -825,18 +827,18 @@ function App() {
                             <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden">
                             <div 
                                 className={`h-full transition-all duration-1000 ${
-                                    data[currentUser.name]?.goal > 0 && data[currentUser.name]?.finalizado >= data[currentUser.name]?.goal 
+                                    data[currentUser.name]?.goal > 0 && (data[currentUser.name]?.tratado + data[currentUser.name]?.finalizado) >= data[currentUser.name]?.goal 
                                     ? 'bg-yellow-400' 
                                     : 'bg-orange-600'
                                 }`}
-                                style={{ width: `${Math.min(((data[currentUser.name]?.finalizado || 0) / (data[currentUser.name]?.goal || 1)) * 100, 100)}%` }}
+                                style={{ width: `${Math.min((((data[currentUser.name]?.tratado || 0) + (data[currentUser.name]?.finalizado || 0)) / (data[currentUser.name]?.goal || 1)) * 100, 100)}%` }}
                             />
                             </div>
                         </div>
                         <p className="mt-4 text-[10px] font-black text-white/40 uppercase tracking-widest">
-                            {(data[currentUser.name]?.goal || 0) - (data[currentUser.name]?.finalizado || 0) <= 0 
+                            {(data[currentUser.name]?.goal || 0) - ((data[currentUser.name]?.tratado || 0) + (data[currentUser.name]?.finalizado || 0)) <= 0 
                             ? "🎯 META BATIDA! PARABÉNS!" 
-                            : `Faltam ${(data[currentUser.name]?.goal || 0) - (data[currentUser.name]?.finalizado || 0)} para o objetivo`}
+                            : `Faltam ${(data[currentUser.name]?.goal || 0) - ((data[currentUser.name]?.tratado || 0) + (data[currentUser.name]?.finalizado || 0))} para o objetivo`}
                         </p>
                     </div>
                     </>
@@ -924,7 +926,8 @@ function App() {
                    ) : visibleExperts.length > 0 ? visibleExperts.map((name, i) => {
                       const entry = data[name];
                       const total = entry.tratado + entry.finalizado;
-                      const eff = total > 0 ? Math.round((entry.finalizado / total) * 100) : 0;
+                      // Eficiência: (Tratado + Finalizado) / Meta
+                      const eff = entry.goal > 0 ? Math.round((total / entry.goal) * 100) : 0;
                       return (
                          <tr key={name} className="hover:bg-slate-50/40 transition-all duration-300">
                             <td className="p-8">
