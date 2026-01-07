@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { ClipboardList, Sparkles, RefreshCw, Calendar, LogOut, Send, BellRing, Mail, Clock, Palette, BrainCircuit, Users, Megaphone, AlertCircle, X, BarChart3, TrendingUp, CheckCircle, Activity, LayoutDashboard, Zap, Trophy, PartyPopper, MessageSquare, ChevronDown, Database } from 'lucide-react';
+import { ClipboardList, Sparkles, RefreshCw, Calendar, LogOut, Send, BellRing, Mail, Clock, Palette, BrainCircuit, Users, Megaphone, AlertCircle, X, BarChart3, TrendingUp, CheckCircle, Activity, LayoutDashboard, Zap, Trophy, PartyPopper, MessageSquare, ChevronDown, Database, Quote } from 'lucide-react';
 import { EXPERT_ROSTER, EXPERT_MAP, EXPERT_LIST } from './utils/parser';
 import { analyzeProductivity } from './services/geminiService';
 import { ManualEntryData, ExpertInfo } from './types';
@@ -10,6 +10,22 @@ import { supabase, isSupabaseConfigured, supabaseUrl } from './services/supabase
 const ADMIN_MATRICULAS = ['301052', '322110', '221362', '333596', '246794', '321773'];
 const MESSAGE_DURATION_MS = 3 * 60 * 1000; // 3 minutos
 const SAVE_DEBOUNCE_MS = 1000; // Tempo de espera para salvar após digitar (1 segundo)
+
+const MOTIVATIONAL_QUOTES = [
+  "O sucesso é a soma de pequenos esforços repetidos dia após dia.",
+  "A persistência é o caminho do êxito.",
+  "Não pare até se orgulhar do que construiu.",
+  "Grandes coisas nunca vêm de zonas de conforto.",
+  "Seu único limite é onde você decide parar.",
+  "Foco na meta, força na luta.",
+  "Transforme obstáculos em degraus para o topo.",
+  "A disciplina é a ponte entre metas e realizações.",
+  "Faça hoje o seu melhor absoluto.",
+  "A excelência não é um ato, mas um hábito.",
+  "Qualidade significa fazer certo quando ninguém está olhando.",
+  "Sua atitude determina sua altitude.",
+  "O único lugar onde o sucesso vem antes do trabalho é no dicionário."
+];
 
 // Gerenciamento de Áudio Global
 let globalAudioCtx: AudioContext | null = null;
@@ -213,6 +229,10 @@ function App() {
     const list = new Set<string>();
     EXPERT_LIST.forEach(e => e.supervisor && list.add(e.supervisor));
     return ['TODOS', ...Array.from(list).sort()];
+  }, []);
+
+  const dailyQuote = useMemo(() => {
+    return MOTIVATIONAL_QUOTES[Math.floor(Math.random() * MOTIVATIONAL_QUOTES.length)];
   }, []);
   
   const isDemoMode = false;
@@ -671,6 +691,14 @@ function App() {
           </div>
           
           <div className="flex flex-wrap items-center gap-3">
+            {/* Mensagem Motivacional */}
+            <div className="hidden lg:flex items-center gap-2 bg-orange-50/50 border border-orange-100 px-4 py-2 rounded-2xl mr-4">
+              <Sparkles size={14} className="text-orange-500" />
+              <span className="text-[10px] font-black text-orange-800 uppercase tracking-widest italic">
+                "{dailyQuote}"
+              </span>
+            </div>
+
             {isAdmin && (
               <div className="flex items-center gap-2 bg-slate-50 p-2 rounded-2xl border border-slate-100 px-4">
                 <Users size={14} className="text-slate-400" />
