@@ -1,0 +1,5 @@
+{
+  "name": "Produtividade Service Desk",
+  "description": "Ferramenta para análise de produtividade de atendimento, classificando registros por horários e status.",
+  "requestFramePermissions": []
+}
