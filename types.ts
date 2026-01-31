@@ -14,10 +14,12 @@ export enum RecordStatus {
 }
 
 export interface ExpertInfo {
+  id?: string;
   matricula: string;
   login: string;
   name: string;
   supervisor?: string;
+  active?: boolean;
 }
 
 export interface ParsedRecord {
