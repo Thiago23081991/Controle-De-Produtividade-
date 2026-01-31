@@ -772,12 +772,6 @@ function App() {
               setTempMessages={setTempMessages}
               handleSendMessage={handleSendMessage}
               selectedSupervisor={selectedSupervisor}
-              currentUser={currentUser}
-              handleObservationChange={handleObservationChange}
-              handleUrgencyToggle={handleUrgencyToggle}
-              handleManagerMessageChange={handleManagerMessageChange}
-              calculateDiferenca={calculateDiferenca}
-              getStatusColor={getStatusColor}
             />
 
             {isAdmin && <PerformanceChart data={Object.fromEntries(visibleExperts.map(name => [name, data[name]]))} />}
