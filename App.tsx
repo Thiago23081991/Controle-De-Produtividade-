@@ -560,7 +560,7 @@ function App() {
     setIsLoggedIn(false);
     setCurrentUser(null);
     setIsAdmin(false);
-    setLoginInput('');
+
     lastMessageRef.current = '';
     goalReachedRef.current = false;
     setAiAnalysis(null);
