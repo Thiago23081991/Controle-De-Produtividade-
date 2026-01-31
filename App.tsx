@@ -545,19 +545,14 @@ function App() {
     }
   };
 
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleLoginSuccess = (user: ExpertInfo | 'admin') => {
     initAudio();
-    const input = loginInput.trim();
-    if (ADMIN_MATRICULAS.includes(input)) {
-      setIsAdmin(true); setIsLoggedIn(true);
+    if (user === 'admin') {
+      setIsAdmin(true);
+      setIsLoggedIn(true);
     } else {
-      const expert = experts.find(e => e.matricula === input || e.login === input);
-      if (expert) {
-        setCurrentUser(expert);
-        setIsLoggedIn(true);
-      }
-      else setLoginError('Login não encontrado.');
+      setCurrentUser(user);
+      setIsLoggedIn(true);
     }
   };
 
