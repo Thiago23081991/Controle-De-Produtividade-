@@ -1,6 +1,6 @@
 import React from 'react';
 import { ManualEntryData } from '../types';
-import { LayoutGrid, TrendingUp, CheckCircle2, AlertCircle, User, Award, Flame, Target } from 'lucide-react';
+import { LayoutGrid, CheckCircle2, AlertCircle, User, Award, Flame } from 'lucide-react';
 
 interface Props {
   data: ManualEntryData;
@@ -38,7 +38,7 @@ export const PerformanceChart: React.FC<Props> = ({ data }) => {
             <div className="w-2 h-2 rounded-full bg-slate-300"></div> Em Andamento
           </div>
           <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl shadow-sm border border-yellow-100 text-yellow-600">
-            <div className="w-2 h-2 rounded-full bg-yellow-400 animate-pulse"></div> Quase Lá (>80%)
+            <div className="w-2 h-2 rounded-full bg-yellow-400 animate-pulse"></div> Quase Lá (&gt;80%)
           </div>
           <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl shadow-sm border border-green-100 text-green-600">
             <div className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.5)]"></div> Meta Batida
@@ -51,7 +51,7 @@ export const PerformanceChart: React.FC<Props> = ({ data }) => {
         {activeExperts.map((expert, index) => {
           const { tratado, finalizado, goal } = data[expert];
           const total = tratado + finalizado;
-          const safeGoal = goal > 0 ? goal : 100; // Prevent div by zero
+          // const safeGoal = goal > 0 ? goal : 100; // Unused
           const efficiency = goal > 0 ? Math.round((total / goal) * 100) : (total > 0 ? 100 : 0);
 
           // Card Status Logic
