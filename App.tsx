@@ -12,6 +12,7 @@ import { AdminPanel } from './components/AdminPanel';
 import { PerformanceChart } from './components/PerformanceChart';
 import { RankingPodium } from './components/RankingPodium';
 import { supabase, isSupabaseConfigured, supabaseUrl } from './services/supabaseClient';
+import { exportToExcel } from './utils/excelExport';
 
 
 
@@ -706,6 +707,17 @@ function App() {
     }).sort();
   }, [isAdmin, currentUser, data, selectedSupervisor, expertMap]);
 
+  const handleExport = () => {
+    exportToExcel({
+      data,
+      expertMap,
+      viewMode,
+      period: viewMode === 'daily'
+        ? selectedDate.split('-').reverse().join('/')
+        : `${new Date(0, selectedMonth - 1).toLocaleString('pt-BR', { month: 'long' })}_${selectedYear}`
+    });
+  };
+
   const expertReceivedMessage = (!isAdmin && currentUser) ? data[currentUser.name]?.managerMessage : null;
 
   useEffect(() => {
@@ -779,6 +791,7 @@ function App() {
           setSelectedMonth={setSelectedMonth}
           selectedYear={selectedYear}
           setSelectedYear={setSelectedYear}
+          onExport={handleExport}
         />
 
         {showAdminPanel && isAdmin ? (

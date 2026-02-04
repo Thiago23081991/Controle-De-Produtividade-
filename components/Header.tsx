@@ -1,6 +1,6 @@
 import React from 'react';
 import { useTheme } from '../contexts/ThemeContext';
-import { ClipboardList, Sparkles, RefreshCw, Calendar, LogOut, Users, Database, Moon, Sun } from 'lucide-react';
+import { ClipboardList, Sparkles, RefreshCw, Calendar, LogOut, Users, Database, Moon, Sun, Download } from 'lucide-react';
 
 interface HeaderProps {
     isAdmin: boolean;
@@ -23,6 +23,7 @@ interface HeaderProps {
     setSelectedMonth: (m: number) => void;
     selectedYear: number;
     setSelectedYear: (y: number) => void;
+    onExport: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -45,7 +46,8 @@ export const Header: React.FC<HeaderProps> = ({
     selectedMonth,
     setSelectedMonth,
     selectedYear,
-    setSelectedYear
+    setSelectedYear,
+    onExport
 }) => {
     const { theme, toggleTheme } = useTheme();
 
@@ -161,9 +163,14 @@ export const Header: React.FC<HeaderProps> = ({
                 </div>
 
                 {isAdmin && !showAdminPanel && (
-                    <button onClick={onRefresh} className="bg-slate-50 dark:bg-slate-800 p-3 rounded-2xl border border-slate-100 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-orange-600 transition-colors" title="Forçar Atualização">
-                        <RefreshCw size={16} className={isSyncing ? "animate-spin" : ""} />
-                    </button>
+                    <div className="flex gap-2">
+                        <button onClick={onExport} className="bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 p-3 rounded-2xl border border-green-100 dark:border-green-900/30 hover:bg-green-100 dark:hover:bg-green-900/40 transition-colors" title="Exportar para Excel">
+                            <Download size={16} />
+                        </button>
+                        <button onClick={onRefresh} className="bg-slate-50 dark:bg-slate-800 p-3 rounded-2xl border border-slate-100 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-orange-600 transition-colors" title="Forçar Atualização">
+                            <RefreshCw size={16} className={isSyncing ? "animate-spin" : ""} />
+                        </button>
+                    </div>
                 )}
 
                 <button onClick={onLogout} className="flex items-center gap-2 text-slate-400 font-black text-[10px] hover:text-red-600 transition-colors bg-slate-50 dark:bg-slate-800 p-3 rounded-2xl border border-slate-100 dark:border-slate-700 uppercase tracking-widest"><LogOut size={16} /> Sair</button>
