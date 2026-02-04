@@ -63,5 +63,50 @@ export const expertService = {
 
         if (error) throw error;
         return data;
+    },
+
+    async getMonthlyData(month: number, year: number): Promise<any[]> {
+        const { data, error } = await supabase
+            .from('monthly_productivity')
+            .select('*')
+            .eq('month', month)
+            .eq('year', year);
+
+        if (error) {
+            console.error('Error fetching monthly data:', error);
+            return [];
+        }
+        return data || [];
+    },
+
+    async saveMonthlyData(data: { expert_name: string, month: number, year: number, tratado: number, finalizado: number, goal: number, observacao: string }) {
+        const { error } = await supabase
+            .from('monthly_productivity')
+            .upsert(data, { onConflict: 'expert_name,month,year' });
+
+        if (error) throw error;
+    },
+
+    async aggregateDailyRecords(expertName: string, month: number, year: number) {
+        // Calculate start and end dates for the month
+        const startDate = new Date(year, month - 1, 1).toISOString().split('T')[0];
+        const lastDay = new Date(year, month, 0).getDate();
+        const endDate = new Date(year, month - 1, lastDay).toISOString().split('T')[0];
+
+        const { data, error } = await supabase
+            .from('productivity_records')
+            .select('tratado, finalizado')
+            .eq('expert_name', expertName)
+            .gte('date', startDate)
+            .lte('date', endDate);
+
+        if (error) throw error;
+
+        const totals = (data || []).reduce((acc, rec) => ({
+            tratado: acc.tratado + (rec.tratado || 0),
+            finalizado: acc.finalizado + (rec.finalizado || 0)
+        }), { tratado: 0, finalizado: 0 });
+
+        return totals;
     }
 };

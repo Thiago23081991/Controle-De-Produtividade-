@@ -51,3 +51,14 @@ export interface ManualEntryData {
     targetSupervisor?: string;
   };
 }
+
+export interface MonthlyData {
+  id?: string;
+  expert_name: string;
+  month: number;
+  year: number;
+  tratado: number;
+  finalizado: number;
+  goal: number;
+  observacao?: string;
+}
