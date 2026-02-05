@@ -707,6 +707,18 @@ function App() {
     }).sort();
   }, [isAdmin, currentUser, data, selectedSupervisor, expertMap]);
 
+  const rankingData = useMemo(() => {
+    if (selectedSupervisor === 'TODOS') return data;
+    const filtered: ManualEntryData = {};
+    Object.keys(data).forEach(key => {
+      // Verifica se o expert pertence ao supervisor selecionado (ignora mensagens/targets temporários)
+      if (expertMap[key]?.supervisor === selectedSupervisor) {
+        filtered[key] = data[key];
+      }
+    });
+    return filtered;
+  }, [data, selectedSupervisor, expertMap]);
+
   const handleExport = () => {
     exportToExcel({
       data,
@@ -831,7 +843,7 @@ function App() {
               />
             )}
 
-            {isAdmin && data && <RankingPodium data={data} />}
+            {isAdmin && rankingData && <RankingPodium data={rankingData} />}
 
             <ProductivityTable
               data={data}
