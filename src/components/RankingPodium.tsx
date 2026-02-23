@@ -7,18 +7,20 @@ interface Props {
 }
 
 export const RankingPodium: React.FC<Props> = ({ data }) => {
-    const experts = Object.keys(data).filter(e => {
-        const d = data[e];
-        return (d.tratado || 0) + (d.finalizado || 0) > 0;
-    });
+    const top3 = React.useMemo(() => {
+        const experts = Object.keys(data).filter(e => {
+            const d = data[e];
+            return (d.tratado || 0) + (d.finalizado || 0) > 0;
+        });
 
-    const sortedExperts = experts.sort((a, b) => {
-        const totalA = (data[a].tratado || 0) + (data[a].finalizado || 0);
-        const totalB = (data[b].tratado || 0) + (data[b].finalizado || 0);
-        return totalB - totalA;
-    });
+        const sortedExperts = experts.sort((a, b) => {
+            const totalA = (data[a].tratado || 0) + (data[a].finalizado || 0);
+            const totalB = (data[b].tratado || 0) + (data[b].finalizado || 0);
+            return totalB - totalA;
+        });
 
-    const top3 = sortedExperts.slice(0, 3);
+        return sortedExperts.slice(0, 3);
+    }, [data]);
 
     if (top3.length === 0) return null;
 

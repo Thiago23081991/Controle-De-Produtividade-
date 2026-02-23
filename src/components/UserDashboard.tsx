@@ -1,19 +1,7 @@
 import React from 'react';
 import { LayoutDashboard, TrendingUp, Activity, Zap, CheckCircle, BarChart3, MessageSquare, ChevronDown } from 'lucide-react';
-import { ExpertInfo, ManualEntryData } from '../types';
-
-interface UserDashboardProps {
-    currentUser: ExpertInfo;
-    data: ManualEntryData;
-    weeklyStats: { tratado: number; finalizado: number };
-    isStatsLoading: boolean;
-    supervisors: string[];
-    expertTargetSupervisor: string;
-    setExpertTargetSupervisor: (s: string) => void;
-    expertMessageInput: string;
-    setExpertMessageInput: (s: string) => void;
-    handleSendExpertMessage: () => void;
-}
+import { useAuth } from '../contexts/AuthContext';
+import { useProductivity } from '../contexts/ProductivityContext';
 
 const SkeletonCard = () => (
     <div className="bg-white p-8 rounded-[3rem] shadow-2xl border border-slate-100 relative overflow-hidden flex flex-col justify-between h-[240px]">
@@ -34,19 +22,17 @@ const SkeletonCard = () => (
     </div>
 );
 
-export const UserDashboard: React.FC<UserDashboardProps> = ({
-    currentUser,
-    data,
-    weeklyStats,
-    isStatsLoading,
-    supervisors,
-    expertTargetSupervisor,
-    setExpertTargetSupervisor,
-    expertMessageInput,
-    setExpertMessageInput,
-    handleSendExpertMessage
-}) => {
-    const expertData = data[currentUser.name] || { Tratado: 0, Finalizado: 0, Goal: 0 };
+export const UserDashboard: React.FC = () => {
+    const { currentUser } = useAuth();
+    const {
+        data, weeklyStats, isStatsLoading, supervisors,
+        expertTargetSupervisor, setExpertTargetSupervisor,
+        expertMessageInput, setExpertMessageInput, handleSendExpertMessage
+    } = useProductivity();
+
+    if (!currentUser) return null;
+
+    const expertData = data[currentUser.name] || { tratado: 0, finalizado: 0, goal: 0, targetSupervisor: '', expertMessage: '' };
     const currentTotal = (expertData.tratado || 0) + (expertData.finalizado || 0);
     const currentGoal = expertData.goal || 0;
     const isGoalMet = currentGoal > 0 && currentTotal >= currentGoal;

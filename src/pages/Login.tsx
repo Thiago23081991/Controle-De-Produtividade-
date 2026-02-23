@@ -1,16 +1,18 @@
 import React, { useState } from 'react';
 import { Palette } from 'lucide-react';
 import { ExpertInfo } from '../types';
+import { useAuth } from '../contexts/AuthContext';
 
 interface LoginScreenProps {
-    onLogin: (user: ExpertInfo | 'admin') => void;
-    experts: ExpertInfo[];
+    // onLogin prop removed as we use context now
+    // experts prop removed as we use context now
     isDemoMode?: boolean;
 }
 
 const ADMIN_MATRICULAS = ['301052', '322110', '221362', '333596', '246794', '321773'];
 
-export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, experts, isDemoMode = false }) => {
+export const LoginScreen: React.FC<LoginScreenProps> = ({ isDemoMode = false }) => {
+    const { login, experts } = useAuth();
     const [loginInput, setLoginInput] = useState('');
     const [loginError, setLoginError] = useState('');
 
@@ -20,14 +22,14 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, experts, isDe
 
         // Admin Check
         if (ADMIN_MATRICULAS.includes(input)) {
-            onLogin('admin');
+            login('admin');
             return;
         }
 
         // Expert Check
         const expert = experts.find(e => e.matricula === input || e.login === input);
         if (expert) {
-            onLogin(expert);
+            login(expert);
         } else {
             setLoginError('Login não encontrado.');
         }

@@ -157,10 +157,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ supervisors }) => {
                                 </button>
                                 <button
                                     onClick={() => handleToggleStatus(expert)}
-                                    className={`w-10 flex items-center justify-center rounded-xl transition-colors ${expert.active ? 'bg-red-50 text-red-500 hover:bg-red-100' : 'bg-green-50 text-green-500 hover:bg-green-100'}`}
+                                    className={`flex-1 flex items-center justify-center gap-2 py-2 text-xs font-bold uppercase tracking-wider rounded-xl transition-colors ${expert.active ? 'bg-red-50 text-red-500 hover:bg-red-100' : 'bg-green-50 text-green-500 hover:bg-green-100'}`}
                                     title={expert.active ? "Desativar" : "Ativar"}
                                 >
-                                    <Power size={16} />
+                                    <Power size={14} />
+                                    {expert.active ? 'DESATIVAR' : 'ATIVAR'}
                                 </button>
                             </div>
                         </div>

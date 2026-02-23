@@ -1,8 +1,11 @@
 
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+import { BrowserRouter } from 'react-router-dom';
 import App from './App';
 import { ThemeProvider } from './contexts/ThemeContext';
+import { AuthProvider } from './contexts/AuthContext';
+import { ProductivityProvider } from './contexts/ProductivityContext';
 import './index.css';
 
 // Global Error Handler to show errors on screen
@@ -30,7 +33,13 @@ try {
   root.render(
     <React.StrictMode>
       <ThemeProvider>
-        <App />
+        <AuthProvider>
+          <ProductivityProvider>
+            <BrowserRouter>
+              <App />
+            </BrowserRouter>
+          </ProductivityProvider>
+        </AuthProvider>
       </ThemeProvider>
     </React.StrictMode>
   );

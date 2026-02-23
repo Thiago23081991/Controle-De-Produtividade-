@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Save, User, Hash, Key, UserCheck } from 'lucide-react';
+import { X, Save, User, Hash, Key, UserCheck, Power } from 'lucide-react';
 import { ExpertInfo } from '../types';
 
 interface ExpertFormModalProps {
@@ -110,21 +110,34 @@ export const ExpertFormModal: React.FC<ExpertFormModalProps> = ({
                         </div>
                     </div>
 
-                    {/* Supervisor */}
-                    <div className="space-y-2">
-                        <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Supervisor</label>
-                        <div className="relative">
-                            <select
-                                value={formData.supervisor}
-                                onChange={e => setFormData({ ...formData, supervisor: e.target.value })}
-                                className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 pl-4 pr-4 text-sm font-bold text-slate-700 focus:border-orange-400 outline-none transition-colors appearance-none"
+                    {/* Supervisor and Status */}
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Supervisor</label>
+                            <div className="relative">
+                                <select
+                                    value={formData.supervisor}
+                                    onChange={e => setFormData({ ...formData, supervisor: e.target.value })}
+                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 pl-4 pr-4 text-sm font-bold text-slate-700 focus:border-orange-400 outline-none transition-colors appearance-none"
+                                >
+                                    <option value="">SELECIONE UM SUPERVISOR</option>
+                                    {supervisors.map(s => (
+                                        <option key={s} value={s}>{s}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        </div>
+
+                        <div className="space-y-2">
+                            <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Status da Conta</label>
+                            <button
+                                type="button"
+                                onClick={() => setFormData({ ...formData, active: !formData.active })}
+                                className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl transition-colors font-bold text-sm border ${formData.active ? 'bg-green-50/50 text-green-600 border-green-200 hover:bg-green-100' : 'bg-red-50/50 text-red-600 border-red-200 hover:bg-red-100'}`}
                             >
-                                <option value="">SELECIONE UM SUPERVISOR</option>
-                                {supervisors.map(s => (
-                                    <option key={s} value={s}>{s}</option>
-                                ))}
-                                {/* Allow typing a new one? For now just selection, can add "Other" later */}
-                            </select>
+                                <Power size={18} className={formData.active ? 'text-green-500' : 'text-red-500'} />
+                                {formData.active ? 'ATIVO' : 'INATIVO'}
+                            </button>
                         </div>
                     </div>
 
