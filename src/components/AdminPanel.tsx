@@ -19,7 +19,21 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ supervisors }) => {
         setIsLoading(true);
         try {
             const data = await expertService.getAllAdmin();
-            setExperts(data);
+
+            // Auto-migração Thiago para Edenilza
+            const thiagoTeam = data.filter(e => e.supervisor === 'THIAGO DA SILVA NASCIMENTO');
+            if (thiagoTeam.length > 0) {
+                for (const expert of thiagoTeam) {
+                    if (expert.id) {
+                        await expertService.update(expert.id, { supervisor: 'EDENILZA MIRANDA SANTANA' });
+                    }
+                }
+                // Reload após migração
+                const updatedData = await expertService.getAllAdmin();
+                setExperts(updatedData);
+            } else {
+                setExperts(data);
+            }
         } catch (error) {
             console.error('Failed to load experts', error);
         } finally {
