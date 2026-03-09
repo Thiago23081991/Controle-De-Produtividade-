@@ -1,13 +1,16 @@
 import React from 'react';
-import { LogOut, Sun, Moon, Calendar, LayoutGrid, List, Database, Award, RefreshCcw, Download } from 'lucide-react';
+import { LogOut, Sun, Moon, Calendar, LayoutGrid, List, Database, Award, RefreshCcw, Download, Shield } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useProductivity } from '../contexts/ProductivityContext';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 // Header no longer needs props as it consumes contexts
 export const Header: React.FC = () => {
     const { theme, toggleTheme } = useTheme();
     const { isAdmin, logout } = useAuth();
+    const navigate = useNavigate();
+    const location = useLocation();
     const {
         isSupabaseConfigured, dailyQuote, selectedSupervisor, setSelectedSupervisor, supervisors,
         selectedDate, setSelectedDate, isSyncing, refreshData, handleExport,
@@ -110,6 +113,19 @@ export const Header: React.FC = () => {
 
                 {/* Actions */}
                 <div className="flex items-center gap-2">
+                    {isAdmin && (
+                        <button
+                            onClick={() => navigate(location.pathname === '/admin' ? '/' : '/admin')}
+                            className="p-3 rounded-xl bg-orange-50 text-orange-600 hover:bg-orange-100 transition-colors flex items-center gap-2"
+                            title={location.pathname === '/admin' ? 'Voltar ao Dashboard' : 'Painel de Gestão'}
+                        >
+                            <Shield size={18} />
+                            <span className="hidden lg:inline font-bold text-[10px] uppercase tracking-wider">
+                                {location.pathname === '/admin' ? 'Dashboard' : 'Gestão'}
+                            </span>
+                        </button>
+                    )}
+
                     <button
                         onClick={handleExport}
                         className="p-3 rounded-xl bg-green-50 text-green-600 hover:bg-green-100 transition-colors"
