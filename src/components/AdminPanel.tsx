@@ -20,13 +20,18 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ supervisors }) => {
         try {
             const data = await expertService.getAllAdmin();
 
-            // Auto-migração Thiago para Edenilza
-            const thiagoTeam = data.filter(e => e.supervisor === 'THIAGO DA SILVA NASCIMENTO');
-            if (thiagoTeam.length > 0) {
-                for (const expert of thiagoTeam) {
+            // Auto-migração Edenilza de volta para Thiago (Thiago voltou de férias)
+            const edenilzaTeam = data.filter(e => e.supervisor === 'EDENILZA MIRANDA SANTANA');
+            const edenilzaRecord = data.find(e => e.name === 'EDENILZA MIRANDA SANTANA');
+            const needsMigration = edenilzaTeam.length > 0 || (edenilzaRecord && edenilzaRecord.supervisor !== 'THIAGO DA SILVA NASCIMENTO');
+            if (needsMigration) {
+                for (const expert of edenilzaTeam) {
                     if (expert.id) {
-                        await expertService.update(expert.id, { supervisor: 'EDENILZA MIRANDA SANTANA' });
+                        await expertService.update(expert.id, { supervisor: 'THIAGO DA SILVA NASCIMENTO' });
                     }
+                }
+                if (edenilzaRecord?.id && edenilzaRecord.supervisor !== 'THIAGO DA SILVA NASCIMENTO') {
+                    await expertService.update(edenilzaRecord.id, { supervisor: 'THIAGO DA SILVA NASCIMENTO' });
                 }
                 // Reload após migração
                 const updatedData = await expertService.getAllAdmin();
