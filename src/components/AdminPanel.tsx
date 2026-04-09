@@ -3,12 +3,14 @@ import { UserPlus, Search, UserCog, Power, CheckCircle, XCircle } from 'lucide-r
 import { ExpertInfo } from '../types';
 import { expertService } from '../services/expertService';
 import { ExpertFormModal } from './ExpertFormModal';
+import { useAuth } from '../contexts/AuthContext';
 
 interface AdminPanelProps {
     supervisors: string[];
 }
 
 export const AdminPanel: React.FC<AdminPanelProps> = ({ supervisors }) => {
+    const { reloadExperts } = useAuth();
     const [experts, setExperts] = useState<ExpertInfo[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
@@ -36,6 +38,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ supervisors }) => {
                 // Reload após migração
                 const updatedData = await expertService.getAllAdmin();
                 setExperts(updatedData);
+                await reloadExperts(); // Atualiza dropdown de supervisores em toda a app
             } else {
                 setExperts(data);
             }

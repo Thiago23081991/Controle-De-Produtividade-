@@ -10,6 +10,7 @@ interface AuthContextType {
     logout: () => void;
     experts: ExpertInfo[];
     loadingHelpers: boolean;
+    reloadExperts: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -19,6 +20,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const [isAdmin, setIsAdmin] = useState(false);
     const [experts, setExperts] = useState<ExpertInfo[]>([]);
     const [loadingHelpers, setLoadingHelpers] = useState(true);
+
+    const reloadExperts = async () => {
+        if (!isSupabaseConfigured) return;
+        try {
+            const list = await expertService.getAll();
+            setExperts(list);
+        } catch (error) {
+            console.error("Erro ao carregar experts:", error);
+        }
+    };
 
     useEffect(() => {
         const loadExperts = async () => {
@@ -76,7 +87,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     };
 
     return (
-        <AuthContext.Provider value={{ currentUser, isAdmin, login, logout, experts, loadingHelpers }}>
+        <AuthContext.Provider value={{ currentUser, isAdmin, login, logout, experts, loadingHelpers, reloadExperts }}>
             {children}
         </AuthContext.Provider>
     );
