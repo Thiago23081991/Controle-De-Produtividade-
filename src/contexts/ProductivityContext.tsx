@@ -541,11 +541,31 @@ export const ProductivityProvider: React.FC<{ children: ReactNode }> = ({ childr
 
     const handleInputChange = (expert: string, field: 'tratado' | 'finalizado' | 'whatsapp' | 'revenda' | 'encontre_pintor' | 'observacao' | 'goal', value: string) => {
         const finalValue = field === 'observacao' ? value : Math.max(0, parseInt(value) || 0);
-        setData(prev => ({ ...prev, [expert]: { ...prev[expert], [field]: finalValue } }));
+        
+        let newTratadoSum: number | null = null;
+
+        setData(prev => {
+            const currentExpertData = prev[expert] || {};
+            const updatedData = { ...currentExpertData, [field]: finalValue };
+
+            if (field === 'whatsapp' || field === 'revenda' || field === 'encontre_pintor') {
+                const w = updatedData.whatsapp || 0;
+                const r = updatedData.revenda || 0;
+                const p = updatedData.encontre_pintor || 0;
+                updatedData.tratado = w + r + p;
+                newTratadoSum = updatedData.tratado;
+            }
+
+            return { ...prev, [expert]: updatedData };
+        });
 
         if (saveTimeoutRef.current[expert]) clearTimeout(saveTimeoutRef.current[expert]);
         saveTimeoutRef.current[expert] = setTimeout(() => {
-            saveToSupabase(expert, { [field]: finalValue });
+            const payloadToSave: Partial<ManualEntryData[string]> = { [field]: finalValue };
+            if (newTratadoSum !== null) {
+                payloadToSave.tratado = newTratadoSum;
+            }
+            saveToSupabase(expert, payloadToSave);
         }, SAVE_DEBOUNCE_MS);
     };
 
