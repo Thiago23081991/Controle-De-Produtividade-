@@ -43,6 +43,9 @@ export interface ManualEntryData {
   [expertName: string]: {
     tratado: number;
     finalizado: number;
+    whatsapp?: number;
+    revenda?: number;
+    encontre_pintor?: number;
     observacao?: string;
     isUrgent?: boolean;
     goal?: number;
@@ -59,6 +62,9 @@ export interface MonthlyData {
   year: number;
   tratado: number;
   finalizado: number;
+  whatsapp?: number;
+  revenda?: number;
+  encontre_pintor?: number;
   goal: number;
   observacao?: string;
 }

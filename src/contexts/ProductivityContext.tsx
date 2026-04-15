@@ -51,7 +51,7 @@ interface ProductivityContextType {
     isAnalyzing: boolean;
 
     // Actions
-    handleInputChange: (expert: string, field: 'tratado' | 'finalizado' | 'observacao' | 'goal', value: string) => void;
+    handleInputChange: (expert: string, field: 'tratado' | 'finalizado' | 'whatsapp' | 'revenda' | 'encontre_pintor' | 'observacao' | 'goal', value: string) => void;
     handleSendMessage: (expert: string) => void;
     handleSendExpertMessage: () => void;
     handleRunAnalysis: () => void;
@@ -108,7 +108,7 @@ const getCurrentWeekRange = () => {
 const getInitialData = (experts: ExpertInfo[]): ManualEntryData => {
     const sortedRoster = experts.map(e => e.name).sort((a, b) => a.localeCompare(b));
     return sortedRoster.reduce((acc, name) => {
-        acc[name] = { tratado: 0, finalizado: 0, observacao: '', isUrgent: false, goal: 0, managerMessage: '', expertMessage: '', targetSupervisor: '' };
+        acc[name] = { tratado: 0, finalizado: 0, whatsapp: 0, revenda: 0, encontre_pintor: 0, observacao: '', isUrgent: false, goal: 0, managerMessage: '', expertMessage: '', targetSupervisor: '' };
         return acc;
     }, {} as ManualEntryData);
 };
@@ -299,6 +299,9 @@ export const ProductivityProvider: React.FC<{ children: ReactNode }> = ({ childr
                     nextData[rec.expert_name] = {
                         tratado: rec.tratado,
                         finalizado: rec.finalizado,
+                        whatsapp: rec.whatsapp || 0,
+                        revenda: rec.revenda || 0,
+                        encontre_pintor: rec.encontre_pintor || 0,
                         goal: effectiveGoal,
                         observacao: rec.observacao || '',
                         isUrgent: rec.is_urgent,
@@ -343,6 +346,9 @@ export const ProductivityProvider: React.FC<{ children: ReactNode }> = ({ childr
                             ...nextData[rec.expert_name],
                             tratado: rec.tratado,
                             finalizado: rec.finalizado,
+                            whatsapp: rec.whatsapp || 0,
+                            revenda: rec.revenda || 0,
+                            encontre_pintor: rec.encontre_pintor || 0,
                             goal: rec.goal,
                             observacao: rec.observacao || ''
                         };
@@ -385,6 +391,9 @@ export const ProductivityProvider: React.FC<{ children: ReactNode }> = ({ childr
                         [rec.expert_name]: {
                             tratado: rec.tratado ?? 0,
                             finalizado: rec.finalizado ?? 0,
+                            whatsapp: rec.whatsapp ?? 0,
+                            revenda: rec.revenda ?? 0,
+                            encontre_pintor: rec.encontre_pintor ?? 0,
                             goal: rec.goal ?? 0,
                             observacao: rec.observacao || '',
                             isUrgent: rec.is_urgent,
@@ -497,6 +506,9 @@ export const ProductivityProvider: React.FC<{ children: ReactNode }> = ({ childr
             expert_name: expert,
             tratado: fullData.tratado ?? 0,
             finalizado: fullData.finalizado ?? 0,
+            whatsapp: fullData.whatsapp ?? 0,
+            revenda: fullData.revenda ?? 0,
+            encontre_pintor: fullData.encontre_pintor ?? 0,
             goal: fullData.goal ?? 0,
             observacao: fullData.observacao ?? '',
             updated_at: new Date().toISOString()
@@ -527,7 +539,7 @@ export const ProductivityProvider: React.FC<{ children: ReactNode }> = ({ childr
         if (currentUser && expert === currentUser.name) loadWeeklyStats(expert);
     };
 
-    const handleInputChange = (expert: string, field: 'tratado' | 'finalizado' | 'observacao' | 'goal', value: string) => {
+    const handleInputChange = (expert: string, field: 'tratado' | 'finalizado' | 'whatsapp' | 'revenda' | 'encontre_pintor' | 'observacao' | 'goal', value: string) => {
         const finalValue = field === 'observacao' ? value : Math.max(0, parseInt(value) || 0);
         setData(prev => ({ ...prev, [expert]: { ...prev[expert], [field]: finalValue } }));
 

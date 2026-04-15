@@ -66,7 +66,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ supervisors }) => {
             }
             setIsModalOpen(false);
             setEditingExpert(null);
-            loadExperts(); // Refresh list
+            await loadExperts(); // Refresh local list
+            await reloadExperts(); // Refresh global context
         } catch (error) {
             console.error('Error saving expert:', error);
             alert('Erro ao salvar. Verifique se a matrícula ou login já existem.');
@@ -79,7 +80,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ supervisors }) => {
 
         try {
             await expertService.toggleStatus(expert.id, !expert.active);
-            loadExperts();
+            await loadExperts();
+            await reloadExperts();
         } catch (error) {
             console.error('Error toggling status:', error);
             alert('Erro ao alterar status.');

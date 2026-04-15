@@ -11,7 +11,7 @@ interface ProductivityTableRowProps {
     historicalAverage: number;
     tempMessage: string;
     selectedSupervisor: string;
-    onInputChange: (expert: string, field: 'tratado' | 'finalizado' | 'observacao' | 'goal', value: string) => void;
+    onInputChange: (expert: string, field: 'tratado' | 'finalizado' | 'whatsapp' | 'revenda' | 'encontre_pintor' | 'observacao' | 'goal', value: string) => void;
     onSendMessage: (expert: string) => void;
     onTempMessageChange: (expert: string, value: string) => void;
 }
@@ -57,6 +57,15 @@ export const ProductivityTableRow: React.FC<ProductivityTableRowProps> = React.m
             </td>
             <td className="p-8">
                 <input type="number" value={entry.finalizado === 0 ? '' : entry.finalizado} onChange={(e) => onInputChange(name, 'finalizado', e.target.value)} className="w-full text-center font-black text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 rounded-xl p-3 border-2 border-transparent focus:border-green-200 dark:focus:border-green-800 outline-none shadow-sm dark:shadow-none" placeholder="0" />
+            </td>
+            <td className="p-8">
+                <input type="number" value={entry.whatsapp === 0 ? '' : entry.whatsapp} onChange={(e) => onInputChange(name, 'whatsapp', e.target.value)} className="w-full text-center font-bold text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-800 rounded-xl p-3 border-2 border-transparent focus:border-slate-200 dark:focus:border-slate-600 outline-none" placeholder="0" />
+            </td>
+            <td className="p-8">
+                <input type="number" value={entry.revenda === 0 ? '' : entry.revenda} onChange={(e) => onInputChange(name, 'revenda', e.target.value)} className="w-full text-center font-bold text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-800 rounded-xl p-3 border-2 border-transparent focus:border-slate-200 dark:focus:border-slate-600 outline-none" placeholder="0" />
+            </td>
+            <td className="p-8">
+                <input type="number" value={entry.encontre_pintor === 0 ? '' : entry.encontre_pintor} onChange={(e) => onInputChange(name, 'encontre_pintor', e.target.value)} className="w-full text-center font-bold text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-800 rounded-xl p-3 border-2 border-transparent focus:border-slate-200 dark:focus:border-slate-600 outline-none" placeholder="0" />
             </td>
             <td className="p-8 text-center">
                 <span className={`text-xs font-black p-2 rounded-lg ${eff >= 100 ? 'bg-orange-600 text-white shadow-lg' : 'text-slate-400 dark:text-slate-600'}`}>{eff}%</span>

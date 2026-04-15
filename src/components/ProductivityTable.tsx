@@ -55,13 +55,16 @@ export const ProductivityTable: React.FC = () => {
         </div>
       </div>
       <div className="overflow-x-auto">
-        <table className="w-full text-left table-fixed min-w-[1000px]">
+        <table className="w-full text-left table-fixed min-w-[1300px]">
           <thead className="bg-slate-50/50 dark:bg-slate-800/50 text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em]">
             <tr>
-              <th className="p-8 w-[25%]">Expert / Time</th>
-              <th className="p-8 text-center w-[10%]">Meta</th>
-              <th className="p-8 text-center w-[10%]">Tratativa</th>
-              <th className="p-8 text-center w-[10%]">Finalizado</th>
+              <th className="p-8 w-[20%]">Expert / Time</th>
+              <th className="p-8 text-center w-[8%]">Meta</th>
+              <th className="p-8 text-center w-[8%]">Tratativa</th>
+              <th className="p-8 text-center w-[8%]">Finalizado</th>
+              <th className="p-8 text-center w-[8%]">WhatsApp</th>
+              <th className="p-8 text-center w-[8%]">Revenda</th>
+              <th className="p-8 text-center w-[8%]">Pintor</th>
               <th className="p-8 text-center w-[8%]">Eficiência</th>
               {isAdmin && <th className="p-8 w-[15%]">Observação</th>}
               {isAdmin && viewMode === 'daily' && <th className="p-8 w-[22%]">Chat Direto</th>}
