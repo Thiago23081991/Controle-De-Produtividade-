@@ -54,56 +54,39 @@ export const ProductivityTable: React.FC = () => {
           {isSyncing && !isTableLoading && <div className="text-[9px] font-black text-orange-600 dark:text-orange-500 animate-pulse uppercase tracking-[0.2em]">Sincronizando Dados...</div>}
         </div>
       </div>
-      <div className="overflow-x-auto">
-        <table className="w-full text-left table-fixed min-w-[1300px]">
-          <thead className="bg-slate-50/50 dark:bg-slate-800/50 text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em]">
-            <tr>
-              <th className="p-8 w-[20%]">Expert / Time</th>
-              <th className="p-8 text-center w-[8%]">Meta</th>
-              <th className="p-8 text-center w-[8%]">Tratativa</th>
-              <th className="p-8 text-center w-[8%]">Finalizado</th>
-              <th className="p-8 text-center w-[8%]">WhatsApp</th>
-              <th className="p-8 text-center w-[8%]">Revenda</th>
-              <th className="p-8 text-center w-[8%]">Pintor</th>
-              <th className="p-8 text-center w-[8%]">Eficiência</th>
-              {isAdmin && <th className="p-8 w-[15%]">Observação</th>}
-              {isAdmin && viewMode === 'daily' && <th className="p-8 w-[22%]">Chat Direto</th>}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
-            {isTableLoading ? (
-              <>
-                <SkeletonRow />
-                <SkeletonRow />
-                <SkeletonRow />
-                <SkeletonRow />
-                <SkeletonRow />
-              </>
-            ) : visibleExperts.length > 0 ? visibleExperts.map((name) => (
-              <ProductivityTableRow
-                key={name}
-                name={name}
-                entry={data[name]}
-                expertInfo={expertMap[name]}
-                isAdmin={isAdmin}
-                viewMode={viewMode}
-                historicalAverage={historicalAverages[name]}
-                tempMessage={tempMessages[name]}
-                selectedSupervisor={selectedSupervisor}
-                onInputChange={handleInputChange}
-                onSendMessage={handleSendMessage}
-                onTempMessageChange={handleTempMessageChange}
-              />
-            )) : (
-              <tr>
-                <td colSpan={isAdmin ? 7 : 4} className="p-20 text-center">
-                  <AlertCircle size={40} className="mx-auto text-slate-100 dark:text-slate-800 mb-4" />
-                  <p className="text-slate-400 dark:text-slate-600 font-black uppercase text-[10px] tracking-widest italic">Nenhum registro localizado</p>
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+      <div className="p-6 sm:p-8 bg-slate-50/20 dark:bg-slate-900/50 border-t border-slate-100 dark:border-slate-800">
+        <div className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-8">
+          {isTableLoading ? (
+            <>
+              <SkeletonRow />
+              <SkeletonRow />
+              <SkeletonRow />
+              <SkeletonRow />
+              <SkeletonRow />
+              <SkeletonRow />
+            </>
+          ) : visibleExperts.length > 0 ? visibleExperts.map((name) => (
+            <ProductivityTableRow
+              key={name}
+              name={name}
+              entry={data[name]}
+              expertInfo={expertMap[name]}
+              isAdmin={isAdmin}
+              viewMode={viewMode}
+              historicalAverage={historicalAverages[name]}
+              tempMessage={tempMessages[name]}
+              selectedSupervisor={selectedSupervisor}
+              onInputChange={handleInputChange}
+              onSendMessage={handleSendMessage}
+              onTempMessageChange={handleTempMessageChange}
+            />
+          )) : (
+            <div className="col-span-full py-20 text-center flex flex-col items-center justify-center">
+              <AlertCircle size={48} className="text-slate-200 dark:text-slate-700 mb-6" />
+              <p className="text-slate-400 dark:text-slate-500 font-black uppercase text-xs tracking-[0.2em]">Nenhum registro localizado</p>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
