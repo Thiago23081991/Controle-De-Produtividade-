@@ -34,8 +34,8 @@ export const CasoPerfeitoProvider: React.FC<{ children: ReactNode }> = ({ childr
         try {
             let data: CasoPerfeitoRecord[];
             if (isAdmin) {
-                // Admin vê todos daquele dia
-                data = await casoPerfeitoService.getRecordsByDate(selectedDate);
+                // Admin vê todos os casos de todos os experts
+                data = await casoPerfeitoService.getAllRecords();
             } else if (currentUser) {
                 // Expert vê os seus daquele dia
                 data = await casoPerfeitoService.getRecordsByExpertAndDate(currentUser.name, selectedDate);

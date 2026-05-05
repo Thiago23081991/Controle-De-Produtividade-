@@ -2,6 +2,20 @@ import { supabase, isSupabaseConfigured } from './supabaseClient';
 import { CasoPerfeitoRecord } from '../types';
 
 export const casoPerfeitoService = {
+    async getAllRecords(): Promise<CasoPerfeitoRecord[]> {
+        if (!isSupabaseConfigured) return [];
+        const { data, error } = await supabase
+            .from('caso_perfeito_records')
+            .select('*')
+            .order('created_at', { ascending: false });
+
+        if (error) {
+            console.error('Erro ao buscar todos os casos:', error);
+            throw error;
+        }
+        return data || [];
+    },
+
     async getRecordsByDate(date: string): Promise<CasoPerfeitoRecord[]> {
         if (!isSupabaseConfigured) return [];
         const { data, error } = await supabase
