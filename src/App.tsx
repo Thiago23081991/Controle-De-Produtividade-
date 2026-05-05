@@ -4,8 +4,10 @@ import { LoginScreen } from './pages/Login';
 import { AdminPanel } from './components/AdminPanel';
 import { MainLayout } from './layouts/MainLayout';
 import { Dashboard } from './pages/Dashboard';
+import { CasoPerfeito } from './pages/CasoPerfeito';
 import { useAuth } from './contexts/AuthContext';
 import { useProductivity } from './contexts/ProductivityContext';
+import { CasoPerfeitoProvider } from './contexts/CasoPerfeitoContext';
 
 function App() {
   const { currentUser, isAdmin } = useAuth();
@@ -34,6 +36,14 @@ function App() {
           isLoggedIn && isAdmin ? (
             <AdminPanel supervisors={supervisors} />
           ) : <Navigate to="/" replace />
+        } />
+
+        <Route path="/caso-perfeito" element={
+          isLoggedIn ? (
+            <CasoPerfeitoProvider>
+              <CasoPerfeito />
+            </CasoPerfeitoProvider>
+          ) : <Navigate to="/login" replace />
         } />
       </Route>
 

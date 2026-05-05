@@ -20,6 +20,17 @@ export interface ExpertInfo {
   name: string;
   supervisor?: string;
   active?: boolean;
+  is_caso_perfeito_expert?: boolean;
+}
+
+export interface CasoPerfeitoRecord {
+  id?: string;
+  date: string;
+  expert_name: string;
+  protocolo: string;
+  consumidor_lojista: string;
+  processo_realizado: string;
+  celula: string;
 }
 
 export interface ParsedRecord {

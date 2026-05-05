@@ -1,5 +1,5 @@
 import React from 'react';
-import { LogOut, Sun, Moon, Calendar, LayoutGrid, List, Database, Award, RefreshCcw, Download, Shield } from 'lucide-react';
+import { LogOut, Sun, Moon, Calendar, LayoutGrid, List, Database, Award, RefreshCcw, Download, Shield, ShieldCheck } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useProductivity } from '../contexts/ProductivityContext';
@@ -8,7 +8,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 // Header no longer needs props as it consumes contexts
 export const Header: React.FC = () => {
     const { theme, toggleTheme } = useTheme();
-    const { isAdmin, logout } = useAuth();
+    const { currentUser, isAdmin, logout } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
     const {
@@ -113,6 +113,19 @@ export const Header: React.FC = () => {
 
                 {/* Actions */}
                 <div className="flex items-center gap-2">
+                    {(isAdmin || !!currentUser?.is_caso_perfeito_expert) && (
+                        <button
+                            onClick={() => navigate(location.pathname === '/caso-perfeito' ? '/' : '/caso-perfeito')}
+                            className="p-3 rounded-xl bg-orange-50 text-orange-600 hover:bg-orange-100 transition-colors flex items-center gap-2"
+                            title={location.pathname === '/caso-perfeito' ? 'Voltar ao Dashboard' : 'Projeto Caso Perfeito'}
+                        >
+                            <ShieldCheck size={18} />
+                            <span className="hidden lg:inline font-bold text-[10px] uppercase tracking-wider">
+                                {location.pathname === '/caso-perfeito' ? 'Produtividade' : 'Caso Perfeito'}
+                            </span>
+                        </button>
+                    )}
+
                     {isAdmin && (
                         <button
                             onClick={() => navigate(location.pathname === '/admin' ? '/' : '/admin')}
