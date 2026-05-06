@@ -51,7 +51,7 @@ interface ProductivityContextType {
     isAnalyzing: boolean;
 
     // Actions
-    handleInputChange: (expert: string, field: 'tratado' | 'finalizado' | 'whatsapp' | 'revenda' | 'encontre_pintor' | 'observacao' | 'goal', value: string) => void;
+    handleInputChange: (expert: string, field: 'tratado' | 'finalizado' | 'whatsapp' | 'revenda' | 'encontre_pintor' | 'lojas_online' | 'observacao' | 'goal', value: string) => void;
     handleSendMessage: (expert: string) => void;
     handleSendExpertMessage: () => void;
     handleRunAnalysis: () => void;
@@ -108,7 +108,7 @@ const getCurrentWeekRange = () => {
 const getInitialData = (experts: ExpertInfo[]): ManualEntryData => {
     const sortedRoster = experts.map(e => e.name).sort((a, b) => a.localeCompare(b));
     return sortedRoster.reduce((acc, name) => {
-        acc[name] = { tratado: 0, finalizado: 0, whatsapp: 0, revenda: 0, encontre_pintor: 0, observacao: '', isUrgent: false, goal: 0, managerMessage: '', expertMessage: '', targetSupervisor: '' };
+        acc[name] = { tratado: 0, finalizado: 0, whatsapp: 0, revenda: 0, encontre_pintor: 0, lojas_online: 0, observacao: '', isUrgent: false, goal: 0, managerMessage: '', expertMessage: '', targetSupervisor: '' };
         return acc;
     }, {} as ManualEntryData);
 };
@@ -302,6 +302,7 @@ export const ProductivityProvider: React.FC<{ children: ReactNode }> = ({ childr
                         whatsapp: rec.whatsapp || 0,
                         revenda: rec.revenda || 0,
                         encontre_pintor: rec.encontre_pintor || 0,
+                        lojas_online: rec.lojas_online || 0,
                         goal: effectiveGoal,
                         observacao: rec.observacao || '',
                         isUrgent: rec.is_urgent,
@@ -349,6 +350,7 @@ export const ProductivityProvider: React.FC<{ children: ReactNode }> = ({ childr
                             whatsapp: rec.whatsapp || 0,
                             revenda: rec.revenda || 0,
                             encontre_pintor: rec.encontre_pintor || 0,
+                            lojas_online: rec.lojas_online || 0,
                             goal: rec.goal,
                             observacao: rec.observacao || ''
                         };
@@ -394,6 +396,7 @@ export const ProductivityProvider: React.FC<{ children: ReactNode }> = ({ childr
                             whatsapp: rec.whatsapp ?? 0,
                             revenda: rec.revenda ?? 0,
                             encontre_pintor: rec.encontre_pintor ?? 0,
+                            lojas_online: rec.lojas_online ?? 0,
                             goal: rec.goal ?? 0,
                             observacao: rec.observacao || '',
                             isUrgent: rec.is_urgent,
@@ -509,6 +512,7 @@ export const ProductivityProvider: React.FC<{ children: ReactNode }> = ({ childr
             whatsapp: fullData.whatsapp ?? 0,
             revenda: fullData.revenda ?? 0,
             encontre_pintor: fullData.encontre_pintor ?? 0,
+            lojas_online: fullData.lojas_online ?? 0,
             goal: fullData.goal ?? 0,
             observacao: fullData.observacao ?? '',
             updated_at: new Date().toISOString()
@@ -539,7 +543,7 @@ export const ProductivityProvider: React.FC<{ children: ReactNode }> = ({ childr
         if (currentUser && expert === currentUser.name) loadWeeklyStats(expert);
     };
 
-    const handleInputChange = (expert: string, field: 'tratado' | 'finalizado' | 'whatsapp' | 'revenda' | 'encontre_pintor' | 'observacao' | 'goal', value: string) => {
+    const handleInputChange = (expert: string, field: 'tratado' | 'finalizado' | 'whatsapp' | 'revenda' | 'encontre_pintor' | 'lojas_online' | 'observacao' | 'goal', value: string) => {
         const finalValue = field === 'observacao' ? value : Math.max(0, parseInt(value) || 0);
         
         let newTratadoSum: number | null = null;
@@ -548,11 +552,12 @@ export const ProductivityProvider: React.FC<{ children: ReactNode }> = ({ childr
             const currentExpertData = prev[expert] || {};
             const updatedData = { ...currentExpertData, [field]: finalValue };
 
-            if (field === 'whatsapp' || field === 'revenda' || field === 'encontre_pintor') {
+            if (field === 'whatsapp' || field === 'revenda' || field === 'encontre_pintor' || field === 'lojas_online') {
                 const w = updatedData.whatsapp || 0;
                 const r = updatedData.revenda || 0;
                 const p = updatedData.encontre_pintor || 0;
-                updatedData.tratado = w + r + p;
+                const lo = updatedData.lojas_online || 0;
+                updatedData.tratado = w + r + p + lo;
                 newTratadoSum = updatedData.tratado;
             }
 

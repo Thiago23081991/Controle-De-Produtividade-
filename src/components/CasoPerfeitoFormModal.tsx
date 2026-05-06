@@ -31,7 +31,11 @@ const FILTROS_OPTIONS = [
     'Produto ausente do pedido',
     'Recebeu cor errada',
     'Recebeu produto diferente',
-    'Cliente ausente'
+    'Cliente ausente',
+    'Aguardando Evidências do cliente/lojista',
+    'Encaminhado Ao Ressarcimento',
+    'Encaminhado Para Produto',
+    'Encaminhado para Serviço ao mercado'
 ];
 
 export const CasoPerfeitoFormModal: React.FC<CasoPerfeitoFormModalProps> = ({ isOpen, onClose, recordToEdit }) => {

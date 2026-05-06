@@ -58,6 +58,7 @@ export interface ManualEntryData {
     whatsapp?: number;
     revenda?: number;
     encontre_pintor?: number;
+    lojas_online?: number;
     observacao?: string;
     isUrgent?: boolean;
     goal?: number;
@@ -77,6 +78,7 @@ export interface MonthlyData {
   whatsapp?: number;
   revenda?: number;
   encontre_pintor?: number;
+  lojas_online?: number;
   goal: number;
   observacao?: string;
 }

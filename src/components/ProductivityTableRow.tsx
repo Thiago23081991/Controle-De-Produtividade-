@@ -11,7 +11,7 @@ interface ProductivityTableRowProps {
     historicalAverage: number;
     tempMessage: string;
     selectedSupervisor: string;
-    onInputChange: (expert: string, field: 'tratado' | 'finalizado' | 'whatsapp' | 'revenda' | 'encontre_pintor' | 'observacao' | 'goal', value: string) => void;
+    onInputChange: (expert: string, field: 'tratado' | 'finalizado' | 'whatsapp' | 'revenda' | 'encontre_pintor' | 'lojas_online' | 'observacao' | 'goal', value: string) => void;
     onSendMessage: (expert: string) => void;
     onTempMessageChange: (expert: string, value: string) => void;
 }
@@ -46,26 +46,26 @@ export const ProductivityTableRow: React.FC<ProductivityTableRowProps> = React.m
             </div>
 
             {/* Mini-Grid of Inputs */}
-            <div className="grid grid-cols-6 gap-3">
+            <div className="grid grid-cols-8 gap-3">
                 {/* Meta */}
-                <div className="col-span-6 flex flex-col gap-1">
+                <div className="col-span-8 flex flex-col gap-1">
                     <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest pl-1">Meta do Dia</label>
                     <input type="number" value={entry.goal === 0 ? '' : entry.goal} disabled={!isAdmin} onChange={(e) => onInputChange(name, 'goal', e.target.value)} className="w-full text-center font-black text-orange-600 bg-orange-50/50 rounded-xl p-3 border-2 border-transparent outline-none focus:border-orange-200 disabled:bg-transparent placeholder:text-orange-200 transition-colors" placeholder="0" />
                 </div>
                 
                 {/* Tratado */}
-                <div className="col-span-3 flex flex-col gap-1">
+                <div className="col-span-4 flex flex-col gap-1">
                     <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest pl-1 text-center">Tratado Geral</label>
                     <input type="number" value={entry.tratado === 0 ? '' : entry.tratado} onChange={(e) => onInputChange(name, 'tratado', e.target.value)} className="w-full text-center font-bold text-slate-600 bg-slate-50 rounded-xl p-3 outline-none focus:ring-2 focus:ring-slate-200 placeholder:text-slate-200 transition-shadow" placeholder="0" />
                 </div>
 
                 {/* Finalizado */}
-                <div className="col-span-3 flex flex-col gap-1">
+                <div className="col-span-4 flex flex-col gap-1">
                     <label className="text-[9px] font-black text-emerald-500 uppercase tracking-widest pl-1 text-center">Finalizado</label>
                     <input type="number" value={entry.finalizado === 0 ? '' : entry.finalizado} onChange={(e) => onInputChange(name, 'finalizado', e.target.value)} className="w-full text-center font-black text-emerald-600 bg-emerald-50 rounded-xl p-3 outline-none focus:ring-2 focus:ring-emerald-200 placeholder:text-emerald-200 transition-shadow" placeholder="0" />
                 </div>
 
-                {/* Queues (Whatsapp, Revenda, Pintor) */}
+                {/* Queues (Whatsapp, Revenda, Pintor, Lojas) */}
                 <div className="col-span-2 flex flex-col gap-1 mt-2">
                     <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest pl-1 text-center truncate" title="WhatsApp">Whats</label>
                     <input type="number" value={entry.whatsapp === 0 ? '' : entry.whatsapp} onChange={(e) => onInputChange(name, 'whatsapp', e.target.value)} className="w-full text-center font-bold text-slate-600 bg-white border border-slate-200 rounded-xl p-2 text-sm outline-none focus:ring-2 focus:ring-orange-100 placeholder:text-slate-200 shadow-sm" placeholder="-" />
@@ -77,6 +77,10 @@ export const ProductivityTableRow: React.FC<ProductivityTableRowProps> = React.m
                 <div className="col-span-2 flex flex-col gap-1 mt-2">
                     <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest pl-1 text-center truncate" title="Encontre seu pintor">Pintor</label>
                     <input type="number" value={entry.encontre_pintor === 0 ? '' : entry.encontre_pintor} onChange={(e) => onInputChange(name, 'encontre_pintor', e.target.value)} className="w-full text-center font-bold text-slate-600 bg-white border border-slate-200 rounded-xl p-2 text-sm outline-none focus:ring-2 focus:ring-orange-100 placeholder:text-slate-200 shadow-sm" placeholder="-" />
+                </div>
+                <div className="col-span-2 flex flex-col gap-1 mt-2">
+                    <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest pl-1 text-center truncate" title="Lojas Online">Lojas</label>
+                    <input type="number" value={entry.lojas_online === 0 ? '' : entry.lojas_online} onChange={(e) => onInputChange(name, 'lojas_online', e.target.value)} className="w-full text-center font-bold text-slate-600 bg-white border border-slate-200 rounded-xl p-2 text-sm outline-none focus:ring-2 focus:ring-orange-100 placeholder:text-slate-200 shadow-sm" placeholder="-" />
                 </div>
             </div>
 
