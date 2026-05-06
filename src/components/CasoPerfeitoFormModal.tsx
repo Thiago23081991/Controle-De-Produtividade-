@@ -18,6 +18,22 @@ const CELULAS_OPTIONS = [
     'SERVIÇO AO MERCADO'
 ];
 
+const FILTROS_OPTIONS = [
+    'Atrasos na entrega',
+    'Erro na compra',
+    'Solicitações de cancelamento / devolução / troca',
+    '2ª via da Nota Fiscal',
+    'Duplicidade / cobrança indevida',
+    'Avaria',
+    'Falta de estoque',
+    'Atraso na retirada',
+    'Alteração no pedido',
+    'Produto ausente do pedido',
+    'Recebeu cor errada',
+    'Recebeu produto diferente',
+    'Cliente ausente'
+];
+
 export const CasoPerfeitoFormModal: React.FC<CasoPerfeitoFormModalProps> = ({ isOpen, onClose, recordToEdit }) => {
     const { addRecord, updateRecord, isSaving } = useCasoPerfeito();
     
@@ -25,6 +41,7 @@ export const CasoPerfeitoFormModal: React.FC<CasoPerfeitoFormModalProps> = ({ is
     const [consumidor, setConsumidor] = useState('');
     const [processo, setProcesso] = useState('');
     const [celula, setCelula] = useState('');
+    const [filtro, setFiltro] = useState('');
 
     useEffect(() => {
         if (recordToEdit) {
@@ -32,11 +49,13 @@ export const CasoPerfeitoFormModal: React.FC<CasoPerfeitoFormModalProps> = ({ is
             setConsumidor(recordToEdit.consumidor_lojista);
             setProcesso(recordToEdit.processo_realizado || '');
             setCelula(recordToEdit.celula);
+            setFiltro(recordToEdit.filtro || '');
         } else {
             setProtocolo('');
             setConsumidor('');
             setProcesso('');
             setCelula('');
+            setFiltro('');
         }
     }, [recordToEdit, isOpen]);
 
@@ -49,7 +68,8 @@ export const CasoPerfeitoFormModal: React.FC<CasoPerfeitoFormModalProps> = ({ is
             protocolo,
             consumidor_lojista: consumidor,
             processo_realizado: processo,
-            celula
+            celula,
+            filtro
         };
 
         let success = false;
@@ -108,19 +128,36 @@ export const CasoPerfeitoFormModal: React.FC<CasoPerfeitoFormModalProps> = ({ is
                             </div>
                         </div>
 
-                        <div className="space-y-2">
-                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Está em qual célula?</label>
-                            <select
-                                required
-                                value={celula}
-                                onChange={(e) => setCelula(e.target.value)}
-                                className="w-full bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 rounded-2xl py-3 px-4 text-sm font-bold text-slate-700 dark:text-slate-200 focus:border-orange-400 focus:ring-4 focus:ring-orange-400/20 outline-none transition-all appearance-none cursor-pointer"
-                            >
-                                <option value="" disabled>Selecione a célula...</option>
-                                {CELULAS_OPTIONS.map(opt => (
-                                    <option key={opt} value={opt}>{opt}</option>
-                                ))}
-                            </select>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Está em qual célula?</label>
+                                <select
+                                    required
+                                    value={celula}
+                                    onChange={(e) => setCelula(e.target.value)}
+                                    className="w-full bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 rounded-2xl py-3 px-4 text-sm font-bold text-slate-700 dark:text-slate-200 focus:border-orange-400 focus:ring-4 focus:ring-orange-400/20 outline-none transition-all appearance-none cursor-pointer"
+                                >
+                                    <option value="" disabled>Selecione a célula...</option>
+                                    {CELULAS_OPTIONS.map(opt => (
+                                        <option key={opt} value={opt}>{opt}</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Filtro / Motivo</label>
+                                <select
+                                    required
+                                    value={filtro}
+                                    onChange={(e) => setFiltro(e.target.value)}
+                                    className="w-full bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 rounded-2xl py-3 px-4 text-sm font-bold text-slate-700 dark:text-slate-200 focus:border-orange-400 focus:ring-4 focus:ring-orange-400/20 outline-none transition-all appearance-none cursor-pointer"
+                                >
+                                    <option value="" disabled>Selecione o filtro...</option>
+                                    {FILTROS_OPTIONS.map(opt => (
+                                        <option key={opt} value={opt}>{opt}</option>
+                                    ))}
+                                </select>
+                            </div>
                         </div>
 
                         <div className="space-y-2">

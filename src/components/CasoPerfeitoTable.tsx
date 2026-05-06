@@ -45,6 +45,7 @@ export const CasoPerfeitoTable: React.FC<CasoPerfeitoTableProps> = ({ onEdit }) 
                             <th className="p-6 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Protocolo</th>
                             <th className="p-6 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Consumidor Final / Lojista</th>
                             <th className="p-6 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Processo Realizado</th>
+                            <th className="p-6 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Filtro / Motivo</th>
                             <th className="p-6 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Está em qual Célula?</th>
                             <th className="p-6 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400 text-right">Ações</th>
                         </tr>
@@ -64,6 +65,9 @@ export const CasoPerfeitoTable: React.FC<CasoPerfeitoTableProps> = ({ onEdit }) 
                                 </td>
                                 <td className="p-6 text-sm font-bold text-slate-600 dark:text-slate-300 max-w-xs truncate" title={record.processo_realizado}>
                                     {record.processo_realizado}
+                                </td>
+                                <td className="p-6 text-sm font-bold text-slate-600 dark:text-slate-300 max-w-xs truncate" title={record.filtro}>
+                                    {record.filtro || '-'}
                                 </td>
                                 <td className="p-6">
                                     <span className="inline-flex items-center px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400">

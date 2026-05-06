@@ -31,6 +31,7 @@ export interface CasoPerfeitoRecord {
   consumidor_lojista: string;
   processo_realizado: string;
   celula: string;
+  filtro?: string;
 }
 
 export interface ParsedRecord {
