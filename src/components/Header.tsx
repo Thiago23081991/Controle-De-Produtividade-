@@ -1,5 +1,5 @@
 import React from 'react';
-import { LogOut, Sun, Moon, Calendar, LayoutGrid, List, Database, Award, RefreshCcw, Download, Shield, ShieldCheck } from 'lucide-react';
+import { LogOut, Sun, Moon, Calendar, LayoutGrid, List, Database, Award, RefreshCcw, Download, Shield, ShieldCheck, AlertTriangle } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useProductivity } from '../contexts/ProductivityContext';
@@ -125,6 +125,22 @@ export const Header: React.FC = () => {
                             </span>
                         </button>
                     )}
+
+                    {/* Botão Erros — visível para todos */}
+                    <button
+                        onClick={() => navigate(location.pathname === '/erros' ? '/' : '/erros')}
+                        className={`p-3 rounded-xl flex items-center gap-2 transition-colors ${
+                            location.pathname === '/erros'
+                                ? 'bg-red-100 text-red-600 hover:bg-red-200'
+                                : 'bg-red-50 text-red-500 hover:bg-red-100'
+                        }`}
+                        title={location.pathname === '/erros' ? 'Voltar ao Dashboard' : 'Registro de Erros'}
+                    >
+                        <AlertTriangle size={18} />
+                        <span className="hidden lg:inline font-bold text-[10px] uppercase tracking-wider">
+                            {location.pathname === '/erros' ? 'Dashboard' : 'Erros'}
+                        </span>
+                    </button>
 
                     {isAdmin && (
                         <button

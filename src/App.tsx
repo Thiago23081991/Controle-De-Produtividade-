@@ -5,6 +5,7 @@ import { AdminPanel } from './components/AdminPanel';
 import { MainLayout } from './layouts/MainLayout';
 import { Dashboard } from './pages/Dashboard';
 import { CasoPerfeito } from './pages/CasoPerfeito';
+import { Erros } from './pages/Erros';
 import { useAuth } from './contexts/AuthContext';
 import { useProductivity } from './contexts/ProductivityContext';
 import { CasoPerfeitoProvider } from './contexts/CasoPerfeitoContext';
@@ -43,6 +44,12 @@ function App() {
             <CasoPerfeitoProvider>
               <CasoPerfeito />
             </CasoPerfeitoProvider>
+          ) : <Navigate to="/login" replace />
+        } />
+
+        <Route path="/erros" element={
+          isLoggedIn ? (
+            <Erros />
           ) : <Navigate to="/login" replace />
         } />
       </Route>

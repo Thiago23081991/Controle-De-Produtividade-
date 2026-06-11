@@ -82,3 +82,13 @@ export interface MonthlyData {
   goal: number;
   observacao?: string;
 }
+
+export interface ErroRecord {
+  id?: string;
+  date: string;
+  numero_caso: string;
+  expert_name: string;
+  descricao_erro: string;
+  registrado_por?: string;
+  created_at?: string;
+}
