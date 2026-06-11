@@ -31,10 +31,10 @@ const RankingCard: React.FC<{ item: RankingItem; position: number; total: number
                     </div>
                     <div>
                         <p className="text-sm font-black text-slate-800 dark:text-white leading-tight">
-                            {item.expert_name.split(' ').slice(0, 2).join(' ')}
+                            {(item.expert_name || '').split(' ').slice(0, 2).join(' ')}
                         </p>
                         <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
-                            {item.expert_name.split(' ').slice(2).join(' ')}
+                            {(item.expert_name || '').split(' ').slice(2).join(' ')}
                         </p>
                     </div>
                 </div>

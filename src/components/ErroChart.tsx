@@ -144,7 +144,7 @@ export const ErroChart: React.FC = () => {
                         <div key={idx} className="flex items-center gap-2">
                             <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: d.color }} />
                             <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 truncate" title={d.name}>
-                                {d.name.split(' ')[0]} ({d.percentage}%)
+                                {(d.name || '').split(' ')[0]} ({d.percentage}%)
                             </span>
                         </div>
                     ))}

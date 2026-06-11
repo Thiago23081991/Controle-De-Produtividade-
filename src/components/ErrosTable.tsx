@@ -12,7 +12,10 @@ export const ErrosTable: React.FC = () => {
         : erros.filter(e => e.registrado_por === currentUser?.name);
 
     const formatDate = (dateStr: string) => {
-        const [y, m, d] = dateStr.split('-');
+        if (!dateStr || !dateStr.includes('-')) return dateStr || '';
+        const parts = dateStr.split('-');
+        if (parts.length !== 3) return dateStr;
+        const [y, m, d] = parts;
         return `${d}/${m}/${y}`;
     };
 
