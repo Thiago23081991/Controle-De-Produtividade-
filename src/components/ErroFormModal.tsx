@@ -13,9 +13,40 @@ const getTodayString = () => {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 };
 
+const ERROS_EXPERTS = [
+    'ANA PATRICIA PEREIRA SOUSA',
+    'BRENNDA SUYANE GOMES DE OLIVEIRA MORAES',
+    'BRUNO MACIEL DE ARAUJO',
+    'CAIO FELIPE DA SILVA',
+    'CRISLANE LIMA DE SOUZA',
+    'DOUGLAS FALCAO CAVALCANTE',
+    'EDUARDA TACIANA DA SILVA AVELINO FERREIRA',
+    'EDUARDO NASCIMENTO E SILVA',
+    'EMANUELLE COBO SALLES',
+    'GABRIELA PINHEIRO',
+    'GIOVANNA AIORFE DIAS',
+    'GUILHERME SOARES DA SILVA',
+    'GUSTAVO HENRIQUE DOS SANTOS CAMPOS',
+    'INGRYD OLIVEIRA MENDES DE BRITO',
+    'JOAO PEDRO MARTINS CARVALHO',
+    'KAWANY MATHIOLA SOUTO RIBEIRO',
+    'KETHELIN SENNA PEREIRA',
+    'KETLYN DAIANE DA SILVA FREIRE',
+    'LUCINEIA BENEDITO DE SOUZA RIBEIRO',
+    'LUIZ FERNANDO DE SOUZA DA SILVA',
+    'NATAGLIA CHALEGRA DA SILVA',
+    'RAFAELA RAVENA PEREIRA PADILHA DOS ROSARIO',
+    'ROBERTA NICOLETTI PORTELA',
+    'RODRIGO FERREIRA DE VASCONCELOS',
+    'SABRINA DA SILVA',
+    'SOFIA LAURA VIALE BRANDAO',
+    'TATIANE APARECIDA DE ARAUJO JACINTO',
+    'VINICIUS LOPES LINS'
+];
+
 export const ErroFormModal: React.FC<ErroFormModalProps> = ({ isOpen, onClose }) => {
     const { addErro, isSaving } = useErros();
-    const { experts, currentUser, isAdmin } = useAuth();
+    const { currentUser, isAdmin } = useAuth();
 
     const [numeroCaso, setNumeroCaso] = useState('');
     const [expertName, setExpertName] = useState('');
@@ -32,8 +63,6 @@ export const ErroFormModal: React.FC<ErroFormModalProps> = ({ isOpen, onClose })
     }, [isOpen]);
 
     if (!isOpen) return null;
-
-    const activeExperts = experts.filter(e => e.active !== false);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -120,8 +149,8 @@ export const ErroFormModal: React.FC<ErroFormModalProps> = ({ isOpen, onClose })
                             className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl py-3 px-4 text-sm font-bold text-slate-700 dark:text-slate-200 focus:border-red-400 focus:ring-2 focus:ring-red-100 outline-none transition-all appearance-none cursor-pointer"
                         >
                             <option value="">Selecione o expert...</option>
-                            {activeExperts.map(e => (
-                                <option key={e.id || e.matricula} value={e.name}>{e.name}</option>
+                            {ERROS_EXPERTS.map(name => (
+                                <option key={name} value={name}>{name}</option>
                             ))}
                         </select>
                     </div>
