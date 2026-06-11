@@ -1,15 +1,21 @@
 import React, { useState } from 'react';
-import { AlertTriangle, Plus, RefreshCcw } from 'lucide-react';
+import { AlertTriangle, Plus, RefreshCcw, Download } from 'lucide-react';
 import { ErroFormModal } from '../components/ErroFormModal';
 import { ErroRankingCards } from '../components/ErroRankingCards';
 import { ErrosTable } from '../components/ErrosTable';
 import { ErrosProvider, useErros } from '../contexts/ErrosContext';
 import { useAuth } from '../contexts/AuthContext';
+import { exportErrosToExcel } from '../utils/excelExport';
 
 const ErrosContent: React.FC = () => {
     const { isAdmin } = useAuth();
-    const { loadErros, isLoading } = useErros();
+    const { loadErros, isLoading, erros, period } = useErros();
     const [isModalOpen, setIsModalOpen] = useState(false);
+
+    const handleExportExcel = () => {
+        const periodLabel = period === 'today' ? 'Hoje' : period === 'week' ? 'Semana' : 'Mes';
+        exportErrosToExcel(erros, periodLabel);
+    };
 
     return (
         <div className="space-y-6 animate-in fade-in slide-in-from-top-10 duration-700">
@@ -34,7 +40,7 @@ const ErrosContent: React.FC = () => {
                     </p>
                 </div>
 
-                <div className="flex items-center gap-3 z-10">
+                <div className="flex flex-wrap items-center gap-3 z-10">
                     <button
                         onClick={() => loadErros()}
                         disabled={isLoading}
@@ -43,6 +49,19 @@ const ErrosContent: React.FC = () => {
                     >
                         <RefreshCcw size={18} className={isLoading ? 'animate-spin' : ''} />
                     </button>
+
+                    {isAdmin && (
+                        <button
+                            onClick={handleExportExcel}
+                            disabled={isLoading || erros.length === 0}
+                            className="bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-white px-6 py-4 rounded-[2rem] font-black uppercase tracking-widest text-xs flex items-center gap-3 transition-all border border-slate-700 shadow-xl active:scale-95"
+                            title="Exportar Relatório Excel"
+                        >
+                            <Download size={18} />
+                            Planilha
+                        </button>
+                    )}
+
                     <button
                         onClick={() => setIsModalOpen(true)}
                         className="bg-red-600 hover:bg-red-500 text-white px-8 py-4 rounded-[2rem] font-black uppercase tracking-widest text-xs flex items-center gap-3 transition-all shadow-xl shadow-red-900/40 active:scale-95 group"

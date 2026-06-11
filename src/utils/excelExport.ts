@@ -69,3 +69,40 @@ export const exportToExcel = ({ data, expertMap, viewMode, period }: ExportOptio
     // 7. Write File
     XLSX.writeFile(workbook, fileName);
 };
+
+export const exportErrosToExcel = (erros: any[], periodLabel: string) => {
+    const rows = erros.map(e => {
+        let formattedDate = e.date;
+        if (e.date && e.date.includes('-')) {
+            const parts = e.date.split('-');
+            if (parts.length === 3) {
+                formattedDate = `${parts[2]}/${parts[1]}/${parts[0]}`;
+            }
+        }
+        return {
+            "Data": formattedDate,
+            "Número do Caso / Atividade": e.numero_caso,
+            "Expert que Errou": e.expert_name,
+            "Onde está o erro no script": e.descricao_erro,
+            "Registrado Por": e.registrado_por || ''
+        };
+    });
+
+    const worksheet = XLSX.utils.json_to_sheet(rows);
+    
+    worksheet['!cols'] = [
+        { wch: 15 }, // Data
+        { wch: 25 }, // Número do Caso
+        { wch: 30 }, // Expert que Errou
+        { wch: 55 }, // Onde está o erro no script
+        { wch: 30 }, // Registrado Por
+    ];
+
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Relatorio de Erros");
+
+    const cleanPeriod = periodLabel.replace(/\//g, '-').replace(/ /g, '_');
+    const fileName = `Relatorio_Erros_${cleanPeriod}.xlsx`;
+
+    XLSX.writeFile(workbook, fileName);
+};

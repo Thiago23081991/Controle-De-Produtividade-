@@ -5,7 +5,11 @@ import { useAuth } from '../contexts/AuthContext';
 
 export const ErrosTable: React.FC = () => {
     const { erros, isLoading, deleteErro } = useErros();
-    const { isAdmin } = useAuth();
+    const { currentUser, isAdmin } = useAuth();
+
+    const visibleErros = isAdmin
+        ? erros
+        : erros.filter(e => e.registrado_por === currentUser?.name);
 
     const formatDate = (dateStr: string) => {
         const [y, m, d] = dateStr.split('-');
@@ -25,16 +29,18 @@ export const ErrosTable: React.FC = () => {
                     <FileSearch size={18} className="text-red-600" />
                 </div>
                 <div>
-                    <h3 className="font-black text-slate-800 dark:text-white text-base tracking-tight">Registros de Erros</h3>
+                    <h3 className="font-black text-slate-800 dark:text-white text-base tracking-tight">
+                        {isAdmin ? 'Registros de Erros' : 'Meus Registros de Erros'}
+                    </h3>
                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                        {erros.length} registro{erros.length !== 1 ? 's' : ''} no período
+                        {visibleErros.length} registro{visibleErros.length !== 1 ? 's' : ''} no período
                     </p>
                 </div>
             </div>
 
             {isLoading ? (
                 <div className="py-16 text-center text-slate-400 font-bold">Carregando...</div>
-            ) : erros.length === 0 ? (
+            ) : visibleErros.length === 0 ? (
                 <div className="py-16 text-center">
                     <AlertTriangle size={40} className="text-slate-200 mx-auto mb-3" />
                     <p className="text-slate-400 font-bold">Nenhum erro registrado no período</p>
@@ -53,7 +59,7 @@ export const ErrosTable: React.FC = () => {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
-                            {erros.map((erro, idx) => (
+                            {visibleErros.map((erro, idx) => (
                                 <tr key={erro.id || idx} className="hover:bg-red-50/40 dark:hover:bg-red-900/10 transition-colors group">
                                     <td className="px-5 py-4">
                                         <span className="text-xs font-bold text-slate-500 dark:text-slate-400 whitespace-nowrap">
