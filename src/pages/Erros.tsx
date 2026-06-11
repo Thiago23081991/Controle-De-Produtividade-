@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { AlertTriangle, Plus, RefreshCcw, Download } from 'lucide-react';
 import { ErroFormModal } from '../components/ErroFormModal';
 import { ErroRankingCards } from '../components/ErroRankingCards';
+import { ErroChart } from '../components/ErroChart';
 import { ErrosTable } from '../components/ErrosTable';
 import { ErrosProvider, useErros } from '../contexts/ErrosContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -76,6 +77,9 @@ const ErrosContent: React.FC = () => {
 
             {/* Ranking — Apenas Admin */}
             {isAdmin && <ErroRankingCards />}
+
+            {/* Gráficos — Apenas Admin */}
+            {isAdmin && <ErroChart />}
 
             {/* Tabela */}
             <ErrosTable />
