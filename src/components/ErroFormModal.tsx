@@ -45,11 +45,13 @@ const ERROS_EXPERTS = [
 ];
 
 const MOTIVO_OPTIONS = [
-    'Erro Script',
+    'Erro Script - Nota de Crédito',
+    'Erro Script - Depósito Bancário',
+    'Erro Script - Nota de Devolução',
     'Outro'
 ];
 
-const SUBMOTIVO_OPTIONS = [
+const SUBMOTIVO_NOTA_CREDITO_DEVOLUCAO = [
     'Cod. produto',
     'Descrição',
     'Cor',
@@ -59,6 +61,24 @@ const SUBMOTIVO_OPTIONS = [
     'Pessoa de contato',
     'E-mail',
     'SAP Compra'
+];
+
+const SUBMOTIVO_DEPOSITO_BANCARIO = [
+    'Cod. produto',
+    'Descrição',
+    'Cor',
+    'Quantidade',
+    'Nome completo do cliente',
+    'CPF do cliente',
+    'Endereço',
+    'Banco',
+    'Agência',
+    'Conta',
+    'Tipo de conta',
+    'Telefone',
+    'E-mail',
+    'Valor R$',
+    'Motivo'
 ];
 
 export const ErroFormModal: React.FC<ErroFormModalProps> = ({ isOpen, onClose }) => {
@@ -83,12 +103,22 @@ export const ErroFormModal: React.FC<ErroFormModalProps> = ({ isOpen, onClose })
         }
     }, [isOpen]);
 
+    const getSubmotivoOptions = () => {
+        if (motivo === 'Erro Script - Nota de Crédito' || motivo === 'Erro Script - Nota de Devolução') {
+            return SUBMOTIVO_NOTA_CREDITO_DEVOLUCAO;
+        }
+        if (motivo === 'Erro Script - Depósito Bancário') {
+            return SUBMOTIVO_DEPOSITO_BANCARIO;
+        }
+        return [];
+    };
+
     if (!isOpen) return null;
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!numeroCaso.trim() || !expertName || !descricaoErro.trim() || !motivo) return;
-        if (motivo === 'Erro Script' && !submotivo) return;
+        if (motivo.startsWith('Erro Script') && !submotivo) return;
 
         const success = await addErro({
             date,
@@ -96,7 +126,7 @@ export const ErroFormModal: React.FC<ErroFormModalProps> = ({ isOpen, onClose })
             expert_name: expertName,
             descricao_erro: descricaoErro.trim(),
             motivo,
-            submotivo: motivo === 'Erro Script' ? submotivo : undefined,
+            submotivo: motivo.startsWith('Erro Script') ? submotivo : undefined,
         });
 
         if (success) onClose();
@@ -200,8 +230,8 @@ export const ErroFormModal: React.FC<ErroFormModalProps> = ({ isOpen, onClose })
                         </select>
                     </div>
 
-                    {/* Submotivo (exibido apenas se motivo for 'Erro Script') */}
-                    {motivo === 'Erro Script' && (
+                    {/* Submotivo (exibido apenas se motivo começar com 'Erro Script') */}
+                    {motivo.startsWith('Erro Script') && (
                         <div className="animate-in slide-in-from-top-2 duration-200">
                             <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">
                                 Submotivo <span className="text-red-500">*</span>
@@ -213,7 +243,7 @@ export const ErroFormModal: React.FC<ErroFormModalProps> = ({ isOpen, onClose })
                                 className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl py-3 px-4 text-sm font-bold text-slate-700 dark:text-slate-200 focus:border-red-400 focus:ring-2 focus:ring-red-100 outline-none transition-all appearance-none cursor-pointer"
                             >
                                 <option value="">Selecione o submotivo...</option>
-                                {SUBMOTIVO_OPTIONS.map(opt => (
+                                {getSubmotivoOptions().map(opt => (
                                     <option key={opt} value={opt}>{opt}</option>
                                 ))}
                             </select>
@@ -246,7 +276,7 @@ export const ErroFormModal: React.FC<ErroFormModalProps> = ({ isOpen, onClose })
                         </button>
                         <button
                             type="submit"
-                            disabled={isSaving || !numeroCaso || !expertName || !descricaoErro || !motivo || (motivo === 'Erro Script' && !submotivo)}
+                            disabled={isSaving || !numeroCaso || !expertName || !descricaoErro || !motivo || (motivo.startsWith('Erro Script') && !submotivo)}
                             className="flex-1 py-3 rounded-xl bg-red-600 hover:bg-red-700 disabled:bg-slate-200 disabled:text-slate-400 text-white font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 transition-all shadow-lg shadow-red-200 active:scale-95"
                         >
                             {isSaving ? <Loader2 size={16} className="animate-spin" /> : <AlertTriangle size={16} />}
