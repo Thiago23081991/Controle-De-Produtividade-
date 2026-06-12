@@ -53,6 +53,24 @@ export const ErroChart: React.FC = () => {
         ];
     }, [ranking, erros]);
 
+    const submotivoRanking = useMemo(() => {
+        const counts: Record<string, number> = {};
+        erros.forEach(e => {
+            if (e.submotivo) {
+                counts[e.submotivo] = (counts[e.submotivo] || 0) + 1;
+            }
+        });
+        const total = Object.values(counts).reduce((a, b) => a + b, 0);
+        return Object.entries(counts)
+            .map(([name, count]) => ({
+                name,
+                count,
+                percentage: total > 0 ? Math.round((count / total) * 100) : 0
+            }))
+            .sort((a, b) => b.count - a.count)
+            .slice(0, 5);
+    }, [erros]);
+
     // Donut SVG Math Constants
     const RADIUS = 50;
     const CIRCUMFERENCE = 2 * Math.PI * RADIUS; // ~314.16
@@ -152,7 +170,7 @@ export const ErroChart: React.FC = () => {
             </div>
 
             {/* Bar Chart Comparison Card */}
-            <div className="lg:col-span-2 bg-white dark:bg-slate-900 rounded-[2.5rem] p-8 border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col justify-between min-h-[350px]">
+            <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-8 border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col justify-between min-h-[350px]">
                 <div className="flex items-center justify-between mb-6">
                     <div className="flex items-center gap-3">
                         <div className="bg-red-100 dark:bg-red-900/30 p-2.5 rounded-xl text-red-600">
@@ -172,7 +190,7 @@ export const ErroChart: React.FC = () => {
 
                 {/* Comparison Bar List */}
                 <div className="space-y-4 flex-1 flex flex-col justify-center">
-                    {chartData.map((d, idx) => {
+                    {chartData.slice(0, 5).map((d, idx) => {
                         // Max count to scale width proportion of bar
                         const maxCount = chartData[0]?.count || 1;
                         const barWidthScale = (d.count / maxCount) * 100;
@@ -180,7 +198,7 @@ export const ErroChart: React.FC = () => {
                         return (
                             <div key={idx} className="space-y-1">
                                 <div className="flex items-center justify-between text-xs font-bold text-slate-600 dark:text-slate-300">
-                                    <span className="truncate max-w-[180px] md:max-w-xs">{d.name}</span>
+                                    <span className="truncate max-w-[150px]">{d.name}</span>
                                     <span className="font-black">
                                         {d.count} <span className="text-slate-400 font-normal">({d.percentage}%)</span>
                                     </span>
@@ -197,6 +215,52 @@ export const ErroChart: React.FC = () => {
                             </div>
                         );
                     })}
+                </div>
+            </div>
+
+            {/* Top 5 Submotivos Card */}
+            <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-8 border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col justify-between min-h-[350px]">
+                <div className="w-full flex items-center gap-3 mb-6">
+                    <div className="bg-red-100 dark:bg-red-900/30 p-2.5 rounded-xl text-red-600">
+                        <BarChart3 size={18} />
+                    </div>
+                    <div>
+                        <h3 className="font-black text-slate-800 dark:text-white text-sm tracking-tight">Top 5 Submotivos</h3>
+                        <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Submotivos mais recorrentes</p>
+                    </div>
+                </div>
+
+                {/* Submotivos Bar List */}
+                <div className="space-y-4 flex-1 flex flex-col justify-center">
+                    {submotivoRanking.length === 0 ? (
+                        <p className="text-xs text-slate-400 font-bold text-center py-8">Nenhum submotivo registrado no período</p>
+                    ) : (
+                        submotivoRanking.map((d, idx) => {
+                            const maxCount = submotivoRanking[0]?.count || 1;
+                            const barWidthScale = (d.count / maxCount) * 100;
+                            // Colors corresponding to rank
+                            const barColor = idx === 0 ? 'bg-red-500' : idx === 1 ? 'bg-orange-500' : idx === 2 ? 'bg-yellow-500' : 'bg-slate-400';
+
+                            return (
+                                <div key={idx} className="space-y-1">
+                                    <div className="flex items-center justify-between text-xs font-bold text-slate-600 dark:text-slate-300">
+                                        <span className="truncate max-w-[155px]" title={d.name}>{d.name}</span>
+                                        <span className="font-black">
+                                            {d.count} <span className="text-slate-400 font-normal">({d.percentage}%)</span>
+                                        </span>
+                                    </div>
+                                    <div className="h-4 bg-slate-50 dark:bg-slate-800 rounded-lg overflow-hidden flex">
+                                        <div
+                                            className={`h-full rounded-lg transition-all duration-1000 ease-out ${barColor}`}
+                                            style={{
+                                                width: `${barWidthScale}%`
+                                            }}
+                                        />
+                                    </div>
+                                </div>
+                            );
+                        })
+                    )}
                 </div>
             </div>
 
