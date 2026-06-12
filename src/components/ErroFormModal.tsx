@@ -60,7 +60,8 @@ const SUBMOTIVO_NOTA_CREDITO_DEVOLUCAO = [
     'Motivo',
     'Pessoa de contato',
     'E-mail',
-    'SAP Compra'
+    'SAP Compra',
+    ' ERRO NO DIRECIONAMENTO'
 ];
 
 const SUBMOTIVO_DEPOSITO_BANCARIO = [
@@ -78,7 +79,8 @@ const SUBMOTIVO_DEPOSITO_BANCARIO = [
     'Telefone',
     'E-mail',
     'Valor R$',
-    'Motivo'
+    'Motivo',
+    ' ERRO NO DIRECIONAMENTO'
 ];
 
 export const ErroFormModal: React.FC<ErroFormModalProps> = ({ isOpen, onClose }) => {
