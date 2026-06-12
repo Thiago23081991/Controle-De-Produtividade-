@@ -145,7 +145,6 @@ export const ErroChart: React.FC = () => {
                                 transform={`rotate(${seg.rotation} 60 60)`}
                                 strokeLinecap={seg.percentage > 0 ? "butt" : "round"}
                                 className="transition-all duration-1000 ease-out hover:stroke-[14px] cursor-pointer"
-                                style={{ transformOrigin: 'center' }}
                             />
                         ))}
                     </svg>
