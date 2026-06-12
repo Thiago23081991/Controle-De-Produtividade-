@@ -11,6 +11,23 @@ interface LoginScreenProps {
 
 const ADMIN_MATRICULAS = ['301052', '322110', '221362', '333596', '246794', '321773'];
 
+const ALLOWED_MATRICULAS = [
+    '308652',
+    '300031',
+    '243176',
+    '284336',
+    '306700',
+    '298615',
+    '284397',
+    '304244',
+    '317094',
+    '284396',
+    '284419',
+    '295565',
+    '284389',
+    '344343'
+];
+
 export const LoginScreen: React.FC<LoginScreenProps> = ({ isDemoMode = false }) => {
     const { login, experts } = useAuth();
     const [loginInput, setLoginInput] = useState('');
@@ -29,7 +46,11 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ isDemoMode = false }) 
         // Expert Check
         const expert = experts.find(e => e.matricula === input || e.login === input);
         if (expert) {
-            login(expert);
+            if (ALLOWED_MATRICULAS.includes(expert.matricula)) {
+                login(expert);
+            } else {
+                setLoginError('Acesso não autorizado para esta matrícula.');
+            }
         } else {
             setLoginError('Login não encontrado.');
         }
