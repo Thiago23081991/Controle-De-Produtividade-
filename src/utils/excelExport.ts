@@ -83,6 +83,8 @@ export const exportErrosToExcel = (erros: any[], periodLabel: string) => {
             "Data": formattedDate,
             "Número do Caso / Atividade": e.numero_caso,
             "Expert que Errou": e.expert_name,
+            "Motivo": e.motivo || '',
+            "Submotivo": e.submotivo || '',
             "Onde está o erro no script": e.descricao_erro,
             "Registrado Por": e.registrado_por || ''
         };
@@ -94,6 +96,8 @@ export const exportErrosToExcel = (erros: any[], periodLabel: string) => {
         { wch: 15 }, // Data
         { wch: 25 }, // Número do Caso
         { wch: 30 }, // Expert que Errou
+        { wch: 20 }, // Motivo
+        { wch: 25 }, // Submotivo
         { wch: 55 }, // Onde está o erro no script
         { wch: 30 }, // Registrado Por
     ];

@@ -44,6 +44,21 @@ const ERROS_EXPERTS = [
     'VINICIUS LOPES LINS'
 ];
 
+const MOTIVO_OPTIONS = [
+    'Erro Script',
+    'Outro'
+];
+
+const SUBMOTIVO_OPTIONS = [
+    'Cod. produto',
+    'Descrição',
+    'Cor',
+    'Quantidade',
+    'Form embal a ser ressarcido',
+    'Motivo',
+    'Pessoa de contato email ou SAP Compra'
+];
+
 export const ErroFormModal: React.FC<ErroFormModalProps> = ({ isOpen, onClose }) => {
     const { addErro, isSaving } = useErros();
     const { currentUser, isAdmin } = useAuth();
@@ -52,6 +67,8 @@ export const ErroFormModal: React.FC<ErroFormModalProps> = ({ isOpen, onClose })
     const [expertName, setExpertName] = useState('');
     const [descricaoErro, setDescricaoErro] = useState('');
     const [date, setDate] = useState(getTodayString());
+    const [motivo, setMotivo] = useState('');
+    const [submotivo, setSubmotivo] = useState('');
 
     useEffect(() => {
         if (isOpen) {
@@ -59,6 +76,8 @@ export const ErroFormModal: React.FC<ErroFormModalProps> = ({ isOpen, onClose })
             setExpertName('');
             setDescricaoErro('');
             setDate(getTodayString());
+            setMotivo('');
+            setSubmotivo('');
         }
     }, [isOpen]);
 
@@ -66,13 +85,16 @@ export const ErroFormModal: React.FC<ErroFormModalProps> = ({ isOpen, onClose })
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!numeroCaso.trim() || !expertName || !descricaoErro.trim()) return;
+        if (!numeroCaso.trim() || !expertName || !descricaoErro.trim() || !motivo) return;
+        if (motivo === 'Erro Script' && !submotivo) return;
 
         const success = await addErro({
             date,
             numero_caso: numeroCaso.trim(),
             expert_name: expertName,
             descricao_erro: descricaoErro.trim(),
+            motivo,
+            submotivo: motivo === 'Erro Script' ? submotivo : undefined,
         });
 
         if (success) onClose();
@@ -155,6 +177,47 @@ export const ErroFormModal: React.FC<ErroFormModalProps> = ({ isOpen, onClose })
                         </select>
                     </div>
 
+                    {/* Motivo */}
+                    <div>
+                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">
+                            Motivo <span className="text-red-500">*</span>
+                        </label>
+                        <select
+                            value={motivo}
+                            onChange={e => {
+                                setMotivo(e.target.value);
+                                setSubmotivo(''); // Limpa o submotivo quando muda o motivo
+                            }}
+                            required
+                            className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl py-3 px-4 text-sm font-bold text-slate-700 dark:text-slate-200 focus:border-red-400 focus:ring-2 focus:ring-red-100 outline-none transition-all appearance-none cursor-pointer"
+                        >
+                            <option value="">Selecione o motivo...</option>
+                            {MOTIVO_OPTIONS.map(opt => (
+                                <option key={opt} value={opt}>{opt}</option>
+                            ))}
+                        </select>
+                    </div>
+
+                    {/* Submotivo (exibido apenas se motivo for 'Erro Script') */}
+                    {motivo === 'Erro Script' && (
+                        <div className="animate-in slide-in-from-top-2 duration-200">
+                            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">
+                                Submotivo <span className="text-red-500">*</span>
+                            </label>
+                            <select
+                                value={submotivo}
+                                onChange={e => setSubmotivo(e.target.value)}
+                                required
+                                className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl py-3 px-4 text-sm font-bold text-slate-700 dark:text-slate-200 focus:border-red-400 focus:ring-2 focus:ring-red-100 outline-none transition-all appearance-none cursor-pointer"
+                            >
+                                <option value="">Selecione o submotivo...</option>
+                                {SUBMOTIVO_OPTIONS.map(opt => (
+                                    <option key={opt} value={opt}>{opt}</option>
+                                ))}
+                            </select>
+                        </div>
+                    )}
+
                     {/* Descrição do Erro */}
                     <div>
                         <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">
@@ -181,7 +244,7 @@ export const ErroFormModal: React.FC<ErroFormModalProps> = ({ isOpen, onClose })
                         </button>
                         <button
                             type="submit"
-                            disabled={isSaving || !numeroCaso || !expertName || !descricaoErro}
+                            disabled={isSaving || !numeroCaso || !expertName || !descricaoErro || !motivo || (motivo === 'Erro Script' && !submotivo)}
                             className="flex-1 py-3 rounded-xl bg-red-600 hover:bg-red-700 disabled:bg-slate-200 disabled:text-slate-400 text-white font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 transition-all shadow-lg shadow-red-200 active:scale-95"
                         >
                             {isSaving ? <Loader2 size={16} className="animate-spin" /> : <AlertTriangle size={16} />}

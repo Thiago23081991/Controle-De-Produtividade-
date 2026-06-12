@@ -91,4 +91,6 @@ export interface ErroRecord {
   descricao_erro: string;
   registrado_por?: string;
   created_at?: string;
+  motivo?: string;
+  submotivo?: string;
 }

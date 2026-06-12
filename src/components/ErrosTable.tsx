@@ -56,6 +56,8 @@ export const ErrosTable: React.FC = () => {
                                 <th className="px-5 py-3 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Data</th>
                                 <th className="px-5 py-3 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Nº Caso/Atividade</th>
                                 <th className="px-5 py-3 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Expert</th>
+                                <th className="px-5 py-3 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Motivo</th>
+                                <th className="px-5 py-3 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Submotivo</th>
                                 <th className="px-5 py-3 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Onde está o Erro</th>
                                 <th className="px-5 py-3 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Registrado por</th>
                                 {isAdmin && <th className="px-5 py-3 text-center text-[10px] font-black text-slate-400 uppercase tracking-widest">Ação</th>}
@@ -84,6 +86,26 @@ export const ErrosTable: React.FC = () => {
                                                 {erro.expert_name}
                                             </span>
                                         </div>
+                                    </td>
+                                    <td className="px-5 py-4 whitespace-nowrap">
+                                        <span className={`inline-flex px-2 py-1 rounded-md text-[10px] font-black uppercase tracking-wider ${
+                                            erro.motivo === 'Erro Script'
+                                                ? 'bg-red-50 text-red-600 dark:bg-red-950/30 dark:text-red-400'
+                                                : erro.motivo
+                                                    ? 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
+                                                    : 'text-slate-400'
+                                        }`}>
+                                            {erro.motivo || '—'}
+                                        </span>
+                                    </td>
+                                    <td className="px-5 py-4 whitespace-nowrap">
+                                        <span className={`inline-flex px-2 py-1 rounded-md text-[10px] font-bold ${
+                                            erro.submotivo
+                                                ? 'bg-slate-50 border border-slate-100 text-slate-600 dark:bg-slate-800/40 dark:border-slate-700/30 dark:text-slate-300'
+                                                : 'text-slate-400'
+                                        }`}>
+                                            {erro.submotivo || '—'}
+                                        </span>
                                     </td>
                                     <td className="px-5 py-4 max-w-xs">
                                         <p className="text-xs font-medium text-slate-600 dark:text-slate-300 line-clamp-2 leading-relaxed">

@@ -9,6 +9,8 @@ CREATE TABLE IF NOT EXISTS erros_ressarcimento (
     date DATE NOT NULL DEFAULT CURRENT_DATE,
     numero_caso TEXT NOT NULL,
     expert_name TEXT NOT NULL,
+    motivo TEXT,
+    submotivo TEXT,
     descricao_erro TEXT NOT NULL,
     registrado_por TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
