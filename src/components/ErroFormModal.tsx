@@ -56,7 +56,9 @@ const SUBMOTIVO_OPTIONS = [
     'Quantidade',
     'Form embal a ser ressarcido',
     'Motivo',
-    'Pessoa de contato email ou SAP Compra'
+    'Pessoa de contato',
+    'E-mail',
+    'SAP Compra'
 ];
 
 export const ErroFormModal: React.FC<ErroFormModalProps> = ({ isOpen, onClose }) => {
