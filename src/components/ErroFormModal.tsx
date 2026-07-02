@@ -81,6 +81,7 @@ const SUBMOTIVO_DEPOSITO_BANCARIO = [
     'E-mail',
     'Valor R$',
     'Motivo',
+    'Erro De Calculo De MO',
     ' ERRO NO DIRECIONAMENTO'
 ];
 
