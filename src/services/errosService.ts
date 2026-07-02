@@ -1,7 +1,7 @@
 import { supabase, isSupabaseConfigured } from './supabaseClient';
 import { ErroRecord } from '../types';
 
-export type ErroPeriod = 'today' | 'week' | 'month';
+export type ErroPeriod = 'today' | 'week' | 'month' | string; // string cobre 'YYYY-MM'
 
 const getDateRange = (period: ErroPeriod): { start: string; end: string } => {
     const now = new Date();
@@ -23,7 +23,15 @@ const getDateRange = (period: ErroPeriod): { start: string; end: string } => {
         return { start: fmt(monday), end: fmt(sunday) };
     }
 
-    // month
+    // Formato 'YYYY-MM' — mês específico
+    if (/^\d{4}-\d{2}$/.test(period)) {
+        const [year, month] = period.split('-').map(Number);
+        const start = new Date(year, month - 1, 1);
+        const end   = new Date(year, month, 0);
+        return { start: fmt(start), end: fmt(end) };
+    }
+
+    // month — mês atual
     const start = new Date(now.getFullYear(), now.getMonth(), 1);
     const end   = new Date(now.getFullYear(), now.getMonth() + 1, 0);
     return { start: fmt(start), end: fmt(end) };

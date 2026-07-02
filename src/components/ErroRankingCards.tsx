@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { AlertTriangle, TrendingUp, Calendar, CalendarDays, CalendarRange } from 'lucide-react';
 import { useErros, RankingItem } from '../contexts/ErrosContext';
 import { ErroPeriod } from '../services/errosService';
@@ -6,8 +6,23 @@ import { ErroPeriod } from '../services/errosService';
 const PERIOD_OPTIONS: { key: ErroPeriod; label: string; icon: React.ReactNode }[] = [
     { key: 'today', label: 'Hoje',   icon: <Calendar size={14} /> },
     { key: 'week',  label: 'Semana', icon: <CalendarDays size={14} /> },
-    { key: 'month', label: 'Mês',    icon: <CalendarRange size={14} /> },
+    { key: 'month', label: 'Mês Atual', icon: <CalendarRange size={14} /> },
 ];
+
+/** Gera os últimos 13 meses no formato { value: 'YYYY-MM', label: 'Mês/AAAA' } */
+const MESES_PT = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+
+const getLastMonths = () => {
+    const options: { value: string; label: string }[] = [];
+    const now = new Date();
+    for (let i = 0; i < 13; i++) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        const value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        const label = `${MESES_PT[d.getMonth()]}/${d.getFullYear()}`;
+        options.push({ value, label });
+    }
+    return options;
+};
 
 const getBarColor = (pct: number) => {
     if (pct >= 50) return 'bg-red-500';
@@ -65,6 +80,10 @@ const RankingCard: React.FC<{ item: RankingItem; position: number; total: number
 
 export const ErroRankingCards: React.FC = () => {
     const { ranking, erros, period, setPeriod, isLoading } = useErros();
+    const monthOptions = useMemo(() => getLastMonths(), []);
+
+    // Detecta se o período atual é um mês específico (YYYY-MM)
+    const isSpecificMonth = /^\d{4}-\d{2}$/.test(period);
 
     return (
         <section className="space-y-5">
@@ -82,20 +101,39 @@ export const ErroRankingCards: React.FC = () => {
                     </div>
                 </div>
 
-                {/* Period Tabs */}
-                <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
-                    {PERIOD_OPTIONS.map(opt => (
-                        <button
-                            key={opt.key}
-                            onClick={() => setPeriod(opt.key)}
-                            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${period === opt.key
-                                ? 'bg-white dark:bg-slate-700 shadow text-red-600'
-                                : 'text-slate-400 hover:text-slate-600'
+                {/* Period Tabs + Seletor de Mês */}
+                <div className="flex flex-wrap items-center gap-2">
+                    <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
+                        {PERIOD_OPTIONS.map(opt => (
+                            <button
+                                key={opt.key}
+                                onClick={() => setPeriod(opt.key)}
+                                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${period === opt.key
+                                    ? 'bg-white dark:bg-slate-700 shadow text-red-600'
+                                    : 'text-slate-400 hover:text-slate-600'
+                                }`}
+                            >
+                                {opt.icon} {opt.label}
+                            </button>
+                        ))}
+                    </div>
+
+                    {/* Seletor de mês específico */}
+                    <select
+                        value={isSpecificMonth ? period : ''}
+                        onChange={e => { if (e.target.value) setPeriod(e.target.value); }}
+                        className={`px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all border cursor-pointer
+                            ${isSpecificMonth
+                                ? 'bg-white dark:bg-slate-700 border-red-300 dark:border-red-700 text-red-600 shadow'
+                                : 'bg-slate-100 dark:bg-slate-800 border-transparent text-slate-400 hover:text-slate-600'
                             }`}
-                        >
-                            {opt.icon} {opt.label}
-                        </button>
-                    ))}
+                        title="Selecionar mês específico"
+                    >
+                        <option value="" disabled>📅 Mês anterior</option>
+                        {monthOptions.map(opt => (
+                            <option key={opt.value} value={opt.value}>{opt.label}</option>
+                        ))}
+                    </select>
                 </div>
             </div>
 
