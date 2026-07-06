@@ -110,3 +110,36 @@ export const exportErrosToExcel = (erros: any[], periodLabel: string) => {
 
     XLSX.writeFile(workbook, fileName);
 };
+
+export const exportBacklogToExcel = (records: any[], dateLabel: string) => {
+    const rows = records.map(r => ({
+        "Data": r.date ? r.date.split('-').reverse().join('/') : '',
+        "Caso / Chamado": r.numero_caso,
+        "Responsável (RESP)": r.resp,
+        "Período (PERIODO)": r.periodo,
+        "Fila de Referência": r.fila,
+        "Status": r.status,
+        "SLA Real": r.sla_real
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(rows);
+    
+    worksheet['!cols'] = [
+        { wch: 15 }, // Data
+        { wch: 20 }, // Caso
+        { wch: 25 }, // RESP
+        { wch: 20 }, // Período
+        { wch: 25 }, // Fila
+        { wch: 20 }, // Status
+        { wch: 15 }, // SLA Real
+    ];
+
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Relatorio Backlog");
+
+    const cleanDate = dateLabel.replace(/\//g, '-').replace(/ /g, '_');
+    const fileName = `Relatorio_Backlog_${cleanDate}.xlsx`;
+
+    XLSX.writeFile(workbook, fileName);
+};
+

@@ -549,7 +549,20 @@ export const ProductivityProvider: React.FC<{ children: ReactNode }> = ({ childr
         let newTratadoSum: number | null = null;
 
         setData(prev => {
-            const currentExpertData = prev[expert] || {};
+            const currentExpertData = prev[expert] || {
+                tratado: 0,
+                finalizado: 0,
+                whatsapp: 0,
+                revenda: 0,
+                encontre_pintor: 0,
+                lojas_online: 0,
+                observacao: '',
+                isUrgent: false,
+                goal: 0,
+                managerMessage: '',
+                expertMessage: '',
+                targetSupervisor: ''
+            };
             const updatedData = { ...currentExpertData, [field]: finalValue };
 
             if (field === 'whatsapp' || field === 'revenda' || field === 'encontre_pintor' || field === 'lojas_online') {

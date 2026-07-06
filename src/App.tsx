@@ -9,6 +9,9 @@ import { Erros } from './pages/Erros';
 import { useAuth } from './contexts/AuthContext';
 import { useProductivity } from './contexts/ProductivityContext';
 import { CasoPerfeitoProvider } from './contexts/CasoPerfeitoContext';
+import { Backlog } from './pages/Backlog';
+import { BacklogProvider } from './contexts/BacklogContext';
+import { CasosBR01 } from './pages/CasosBR01';
 
 function App() {
   const { currentUser, isAdmin } = useAuth();
@@ -50,6 +53,20 @@ function App() {
         <Route path="/erros" element={
           isLoggedIn ? (
             <Erros />
+          ) : <Navigate to="/login" replace />
+        } />
+
+        <Route path="/backlog" element={
+          isLoggedIn ? (
+            <BacklogProvider>
+              <Backlog />
+            </BacklogProvider>
+          ) : <Navigate to="/login" replace />
+        } />
+
+        <Route path="/casos-br01" element={
+          isLoggedIn ? (
+            <CasosBR01 />
           ) : <Navigate to="/login" replace />
         } />
       </Route>

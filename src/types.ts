@@ -94,3 +94,17 @@ export interface ErroRecord {
   motivo?: string;
   submotivo?: string;
 }
+
+export interface BacklogRecord {
+  id?: string;
+  date: string;
+  numero_caso: string;
+  resp: string;
+  tp: string;
+  periodo: string;
+  fila: string;
+  status: string;
+  sla_real: number;
+  created_at?: string;
+}
+

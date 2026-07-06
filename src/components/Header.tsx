@@ -1,5 +1,5 @@
 import React from 'react';
-import { LogOut, Sun, Moon, Calendar, LayoutGrid, List, Database, Award, RefreshCcw, Download, Shield, ShieldCheck, AlertTriangle } from 'lucide-react';
+import { LogOut, Sun, Moon, Calendar, LayoutGrid, List, Database, Award, RefreshCcw, Download, Shield, ShieldCheck, AlertTriangle, ListTodo, PackageSearch } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useProductivity } from '../contexts/ProductivityContext';
@@ -139,6 +139,38 @@ export const Header: React.FC = () => {
                         <AlertTriangle size={18} />
                         <span className="hidden lg:inline font-bold text-[10px] uppercase tracking-wider">
                             {location.pathname === '/erros' ? 'Dashboard' : 'Erros'}
+                        </span>
+                    </button>
+
+                    {/* Botão Backlog — visível para todos */}
+                    <button
+                        onClick={() => navigate(location.pathname === '/backlog' ? '/' : '/backlog')}
+                        className={`p-3 rounded-xl flex items-center gap-2 transition-colors ${
+                            location.pathname === '/backlog'
+                                ? 'bg-sky-100 text-sky-600 hover:bg-sky-200'
+                                : 'bg-sky-50 text-sky-500 hover:bg-sky-100'
+                        }`}
+                        title={location.pathname === '/backlog' ? 'Voltar ao Dashboard' : 'Controle de Backlog'}
+                    >
+                        <ListTodo size={18} />
+                        <span className="hidden lg:inline font-bold text-[10px] uppercase tracking-wider">
+                            {location.pathname === '/backlog' ? 'Dashboard' : 'Backlog'}
+                        </span>
+                    </button>
+
+                    {/* Botão BR01 — visível para todos */}
+                    <button
+                        onClick={() => navigate(location.pathname === '/casos-br01' ? '/' : '/casos-br01')}
+                        className={`p-3 rounded-xl flex items-center gap-2 transition-colors ${
+                            location.pathname === '/casos-br01'
+                                ? 'bg-violet-100 text-violet-700 hover:bg-violet-200'
+                                : 'bg-violet-50 text-violet-600 hover:bg-violet-100'
+                        }`}
+                        title={location.pathname === '/casos-br01' ? 'Voltar ao Dashboard' : 'Casos BR01'}
+                    >
+                        <PackageSearch size={18} />
+                        <span className="hidden lg:inline font-bold text-[10px] uppercase tracking-wider">
+                            {location.pathname === '/casos-br01' ? 'Dashboard' : 'BR01'}
                         </span>
                     </button>
 
