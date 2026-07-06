@@ -112,32 +112,28 @@ export const exportErrosToExcel = (erros: any[], periodLabel: string) => {
 };
 
 export const exportCasosBR01ToExcel = (cases: any[]) => {
-    const rows: any[] = [];
-
-    cases.forEach(c => {
+    const rows = cases.map(c => {
         const dataFormatada = c.savedAt
             ? c.savedAt.split('-').reverse().join('/')
             : '';
 
-        if (c.produtos && c.produtos.length > 0) {
-            c.produtos.forEach((p: any) => {
-                rows.push({
-                    "Data":              dataFormatada,
-                    "Número do Caso":    c.numeroCaso,
-                    "Testou em BR0Y":    c.testouEmBR0Y || '',
-                    "Produto Reclamado": p.nome || '',
-                    "Quantidade":        p.quantidade !== '' ? Number(p.quantidade) : 0,
-                });
-            });
-        } else {
-            rows.push({
-                "Data":              dataFormatada,
-                "Número do Caso":    c.numeroCaso,
-                "Testou em BR0Y":    c.testouEmBR0Y || '',
-                "Produto Reclamado": '',
-                "Quantidade":        '',
-            });
-        }
+        // Monta uma string única com todos os produtos: "Produto A (2un), Produto B (5un)"
+        const produtosStr = (c.produtos && c.produtos.length > 0)
+            ? c.produtos
+                .filter((p: any) => p.nome?.trim())
+                .map((p: any) => {
+                    const qtd = p.quantidade !== '' ? p.quantidade : '0';
+                    return `${p.nome} (${qtd}un)`;
+                })
+                .join(', ')
+            : '';
+
+        return {
+            "Data":               dataFormatada,
+            "Número do Caso":     c.numeroCaso,
+            "Testou em BR0Y":     c.testouEmBR0Y || '',
+            "Produtos Reclamados": produtosStr,
+        };
     });
 
     const worksheet = XLSX.utils.json_to_sheet(rows);
@@ -146,8 +142,7 @@ export const exportCasosBR01ToExcel = (cases: any[]) => {
         { wch: 14 }, // Data
         { wch: 22 }, // Número do Caso
         { wch: 16 }, // Testou em BR0Y
-        { wch: 30 }, // Produto Reclamado
-        { wch: 12 }, // Quantidade
+        { wch: 60 }, // Produtos Reclamados
     ];
 
     const workbook = XLSX.utils.book_new();
