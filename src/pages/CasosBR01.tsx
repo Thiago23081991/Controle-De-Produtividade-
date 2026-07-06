@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Plus, Trash2, PackageSearch, CheckCircle2, X, ChevronDown, ChevronUp } from 'lucide-react';
+import { Plus, Trash2, PackageSearch, CheckCircle2, X, ChevronDown, ChevronUp, Download } from 'lucide-react';
+import { exportCasosBR01ToExcel } from '../utils/excelExport';
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 interface ProdutoReclamado {
@@ -126,13 +127,23 @@ export const CasosBR01: React.FC = () => {
             {/* ── Lista de Casos Salvos ─────────────────────────────────────── */}
             {savedCases.length > 0 && (
                 <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl border border-slate-100 dark:border-slate-800 overflow-hidden">
-                    <div className="p-6 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50">
-                        <h3 className="text-sm font-black italic uppercase tracking-wider text-slate-900 dark:text-white">
-                            Casos BR01 Registrados
-                        </h3>
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">
-                            {savedCases.length} caso(s) registrado(s)
-                        </p>
+                    <div className="p-6 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 flex items-center justify-between gap-4">
+                        <div>
+                            <h3 className="text-sm font-black italic uppercase tracking-wider text-slate-900 dark:text-white">
+                                Casos BR01 Registrados
+                            </h3>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">
+                                {savedCases.length} caso(s) registrado(s)
+                            </p>
+                        </div>
+                        <button
+                            onClick={() => exportCasosBR01ToExcel(savedCases)}
+                            className="bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-3 rounded-2xl font-black uppercase tracking-widest text-xs flex items-center gap-2 transition-all shadow-lg shadow-emerald-200 dark:shadow-emerald-900/30 active:scale-95"
+                            title="Exportar para Excel"
+                        >
+                            <Download size={16} />
+                            Excel
+                        </button>
                     </div>
                     <div className="divide-y divide-slate-50 dark:divide-slate-800">
                         {savedCases.map(c => (

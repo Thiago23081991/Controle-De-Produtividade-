@@ -111,6 +111,53 @@ export const exportErrosToExcel = (erros: any[], periodLabel: string) => {
     XLSX.writeFile(workbook, fileName);
 };
 
+export const exportCasosBR01ToExcel = (cases: any[]) => {
+    const rows: any[] = [];
+
+    cases.forEach(c => {
+        const dataFormatada = c.savedAt
+            ? c.savedAt.split('-').reverse().join('/')
+            : '';
+
+        if (c.produtos && c.produtos.length > 0) {
+            c.produtos.forEach((p: any) => {
+                rows.push({
+                    "Data":              dataFormatada,
+                    "Número do Caso":    c.numeroCaso,
+                    "Testou em BR0Y":    c.testouEmBR0Y || '',
+                    "Produto Reclamado": p.nome || '',
+                    "Quantidade":        p.quantidade !== '' ? Number(p.quantidade) : 0,
+                });
+            });
+        } else {
+            rows.push({
+                "Data":              dataFormatada,
+                "Número do Caso":    c.numeroCaso,
+                "Testou em BR0Y":    c.testouEmBR0Y || '',
+                "Produto Reclamado": '',
+                "Quantidade":        '',
+            });
+        }
+    });
+
+    const worksheet = XLSX.utils.json_to_sheet(rows);
+
+    worksheet['!cols'] = [
+        { wch: 14 }, // Data
+        { wch: 22 }, // Número do Caso
+        { wch: 16 }, // Testou em BR0Y
+        { wch: 30 }, // Produto Reclamado
+        { wch: 12 }, // Quantidade
+    ];
+
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Casos BR01");
+
+    const now = new Date();
+    const dateStr = `${String(now.getDate()).padStart(2,'0')}-${String(now.getMonth()+1).padStart(2,'0')}-${now.getFullYear()}`;
+    XLSX.writeFile(workbook, `Casos_BR01_${dateStr}.xlsx`);
+};
+
 export const exportBacklogToExcel = (records: any[], dateLabel: string) => {
     const rows = records.map(r => ({
         "Data": r.date ? r.date.split('-').reverse().join('/') : '',
