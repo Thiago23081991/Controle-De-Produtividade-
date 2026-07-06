@@ -14,21 +14,14 @@ interface CasosBR01Form {
     produtos: ProdutoReclamado[];
 }
 
-// ─── Produtos pré-definidos (primeiros 5) ─────────────────────────────────────
-const PRODUTOS_PADRAO = [
-    'Tinta Acrílica',
-    'Tinta Esmalte',
-    'Verniz',
-    'Massa Corrida',
-    'Selador',
-];
-
 const getTodayString = () => {
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 };
 
-let nextId = 6;
+let nextId = 2;
+
+const newProduto = (): ProdutoReclamado => ({ id: nextId++, nome: '', quantidade: '' });
 
 // ─── Componente Principal ─────────────────────────────────────────────────────
 export const CasosBR01: React.FC = () => {
@@ -39,16 +32,12 @@ export const CasosBR01: React.FC = () => {
     // Estado do formulário
     const [numeroCaso, setNumeroCaso] = useState('');
     const [testouEmBR0Y, setTestouEmBR0Y] = useState('');
-    const [produtos, setProdutos] = useState<ProdutoReclamado[]>(
-        PRODUTOS_PADRAO.map((nome, i) => ({ id: i + 1, nome, quantidade: '' }))
-    );
-    const [produtosExtras, setProdutosExtras] = useState<ProdutoReclamado[]>([]);
+    const [produtos, setProdutos] = useState<ProdutoReclamado[]>([{ id: 1, nome: '', quantidade: '' }]);
 
     const resetForm = () => {
         setNumeroCaso('');
         setTestouEmBR0Y('');
-        setProdutos(PRODUTOS_PADRAO.map((nome, i) => ({ id: i + 1, nome, quantidade: '' })));
-        setProdutosExtras([]);
+        setProdutos([{ id: 1, nome: '', quantidade: '' }]);
     };
 
     const handleOpenForm = () => {
@@ -60,45 +49,36 @@ export const CasosBR01: React.FC = () => {
         setIsFormOpen(false);
     };
 
-    // Atualiza quantidade dos produtos padrão
-    const updateProdutoQtd = (id: number, quantidade: string) => {
-        setProdutos(prev => prev.map(p => p.id === id ? { ...p, quantidade } : p));
+    // Adiciona nova linha de produto
+    const addProduto = () => {
+        setProdutos(prev => [...prev, newProduto()]);
     };
 
-    // Adiciona produto extra
-    const addProdutoExtra = () => {
-        const newId = nextId++;
-        setProdutosExtras(prev => [...prev, { id: newId, nome: '', quantidade: '' }]);
+    // Atualiza campo de um produto
+    const updateProduto = (id: number, field: 'nome' | 'quantidade', value: string) => {
+        setProdutos(prev => prev.map(p => p.id === id ? { ...p, [field]: value } : p));
     };
 
-    // Atualiza produto extra
-    const updateProdutoExtra = (id: number, field: 'nome' | 'quantidade', value: string) => {
-        setProdutosExtras(prev => prev.map(p => p.id === id ? { ...p, [field]: value } : p));
-    };
-
-    // Remove produto extra
-    const removeProdutoExtra = (id: number) => {
-        setProdutosExtras(prev => prev.filter(p => p.id !== id));
+    // Remove um produto (mantém pelo menos 1)
+    const removeProduto = (id: number) => {
+        setProdutos(prev => prev.length > 1 ? prev.filter(p => p.id !== id) : prev);
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!numeroCaso.trim() || !testouEmBR0Y) return;
+        if (!numeroCaso.trim()) return;
 
         setIsSaving(true);
-        await new Promise(r => setTimeout(r, 600)); // Simula delay de salvamento
+        await new Promise(r => setTimeout(r, 600));
 
-        const allProdutos = [
-            ...produtos.filter(p => p.quantidade.trim() !== ''),
-            ...produtosExtras.filter(p => p.nome.trim() !== ''),
-        ];
+        const produtosFilled = produtos.filter(p => p.nome.trim() !== '');
 
         setSavedCases(prev => [{
             id: Date.now(),
             savedAt: getTodayString(),
             numeroCaso: numeroCaso.trim(),
             testouEmBR0Y,
-            produtos: allProdutos,
+            produtos: produtosFilled,
         }, ...prev]);
 
         setIsSaving(false);
@@ -156,7 +136,11 @@ export const CasosBR01: React.FC = () => {
                     </div>
                     <div className="divide-y divide-slate-50 dark:divide-slate-800">
                         {savedCases.map(c => (
-                            <CasoBR01Card key={c.id} caso={c} onDelete={() => setSavedCases(prev => prev.filter(x => x.id !== c.id))} />
+                            <CasoBR01Card
+                                key={c.id}
+                                caso={c}
+                                onDelete={() => setSavedCases(prev => prev.filter(x => x.id !== c.id))}
+                            />
                         ))}
                     </div>
                 </div>
@@ -247,70 +231,58 @@ export const CasosBR01: React.FC = () => {
                                 </div>
                             </div>
 
-                            {/* Produtos Reclamados */}
+                            {/* Produtos Reclamados — todos livres */}
                             <div>
                                 <div className="flex items-center justify-between mb-3">
                                     <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">
                                         Produtos Reclamados
                                     </label>
                                     <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">
-                                        Informe a quantidade de cada produto
+                                        Nome do produto + quantidade
                                     </span>
                                 </div>
 
                                 <div className="space-y-2">
-                                    {/* Produtos Padrão (5 fixos) */}
-                                    {produtos.map(produto => (
-                                        <div key={produto.id} className="flex items-center gap-3 bg-slate-50 dark:bg-slate-800 rounded-xl p-3 border border-slate-100 dark:border-slate-700">
-                                            <div className="flex-1">
-                                                <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                                                    {produto.nome}
-                                                </span>
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                                <label className="text-[9px] font-black text-slate-400 uppercase tracking-wider">Qtd.</label>
-                                                <input
-                                                    type="number"
-                                                    min="0"
-                                                    value={produto.quantidade}
-                                                    onChange={e => updateProdutoQtd(produto.id, e.target.value)}
-                                                    placeholder="0"
-                                                    className="w-20 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg py-2 px-3 text-sm font-bold text-slate-700 dark:text-slate-200 focus:border-violet-400 focus:ring-2 focus:ring-violet-100 dark:focus:ring-violet-900/30 outline-none transition-all text-center"
-                                                />
-                                            </div>
-                                        </div>
-                                    ))}
-
-                                    {/* Produtos Extras (adicionados pelo botão +) */}
-                                    {produtosExtras.map((produto, index) => (
+                                    {produtos.map((produto, index) => (
                                         <div
                                             key={produto.id}
                                             className="flex items-center gap-3 bg-violet-50 dark:bg-violet-900/10 rounded-xl p-3 border border-violet-100 dark:border-violet-800/30 animate-in slide-in-from-top-2 duration-200"
                                         >
+                                            {/* Número da linha */}
+                                            <span className="text-[10px] font-black text-violet-400 w-5 text-center flex-shrink-0">
+                                                {index + 1}
+                                            </span>
+
+                                            {/* Nome do produto */}
                                             <div className="flex-1">
                                                 <input
                                                     type="text"
                                                     value={produto.nome}
-                                                    onChange={e => updateProdutoExtra(produto.id, 'nome', e.target.value)}
-                                                    placeholder={`Produto extra ${index + 1}...`}
+                                                    onChange={e => updateProduto(produto.id, 'nome', e.target.value)}
+                                                    placeholder={`Nome do produto ${index + 1}...`}
                                                     className="w-full bg-white dark:bg-slate-700 border border-violet-200 dark:border-violet-700/50 rounded-lg py-2 px-3 text-sm font-bold text-slate-700 dark:text-slate-200 focus:border-violet-400 focus:ring-2 focus:ring-violet-100 dark:focus:ring-violet-900/30 outline-none transition-all placeholder:font-normal placeholder:text-slate-300"
                                                 />
                                             </div>
-                                            <div className="flex items-center gap-2">
+
+                                            {/* Quantidade */}
+                                            <div className="flex items-center gap-2 flex-shrink-0">
                                                 <label className="text-[9px] font-black text-slate-400 uppercase tracking-wider">Qtd.</label>
                                                 <input
                                                     type="number"
                                                     min="0"
                                                     value={produto.quantidade}
-                                                    onChange={e => updateProdutoExtra(produto.id, 'quantidade', e.target.value)}
+                                                    onChange={e => updateProduto(produto.id, 'quantidade', e.target.value)}
                                                     placeholder="0"
                                                     className="w-20 bg-white dark:bg-slate-700 border border-violet-200 dark:border-violet-700/50 rounded-lg py-2 px-3 text-sm font-bold text-slate-700 dark:text-slate-200 focus:border-violet-400 focus:ring-2 focus:ring-violet-100 dark:focus:ring-violet-900/30 outline-none transition-all text-center"
                                                 />
                                             </div>
+
+                                            {/* Remover (oculto se só tiver 1) */}
                                             <button
                                                 type="button"
-                                                onClick={() => removeProdutoExtra(produto.id)}
-                                                className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                                                onClick={() => removeProduto(produto.id)}
+                                                disabled={produtos.length === 1}
+                                                className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors disabled:opacity-20 disabled:cursor-not-allowed flex-shrink-0"
                                                 title="Remover produto"
                                             >
                                                 <Trash2 size={14} />
@@ -319,10 +291,10 @@ export const CasosBR01: React.FC = () => {
                                     ))}
                                 </div>
 
-                                {/* Botão para adicionar mais produtos */}
+                                {/* Botão + Adicionar Produto */}
                                 <button
                                     type="button"
-                                    onClick={addProdutoExtra}
+                                    onClick={addProduto}
                                     className="mt-3 w-full flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-dashed border-violet-200 dark:border-violet-800/40 text-violet-500 dark:text-violet-400 hover:border-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/10 font-black text-xs uppercase tracking-widest transition-all group"
                                 >
                                     <div className="w-6 h-6 bg-violet-100 dark:bg-violet-900/30 rounded-lg flex items-center justify-center group-hover:bg-violet-200 dark:group-hover:bg-violet-800/40 transition-colors">
@@ -378,9 +350,10 @@ const CasoBR01Card: React.FC<CasoBR01CardProps> = ({ caso, onDelete }) => {
     const [expanded, setExpanded] = useState(false);
 
     const testouColor =
-        caso.testouEmBR0Y === 'Sim' ? 'bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400' :
-        caso.testouEmBR0Y === 'Não' ? 'bg-red-50 dark:bg-red-950/20 text-red-600 dark:text-red-400' :
-        'bg-yellow-50 dark:bg-yellow-950/20 text-yellow-600 dark:text-yellow-400';
+        caso.testouEmBR0Y === 'Sim'     ? 'bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400' :
+        caso.testouEmBR0Y === 'Não'     ? 'bg-red-50 dark:bg-red-950/20 text-red-600 dark:text-red-400' :
+        caso.testouEmBR0Y === 'Parcial' ? 'bg-yellow-50 dark:bg-yellow-950/20 text-yellow-600 dark:text-yellow-400' :
+        '';
 
     return (
         <div className="p-5 hover:bg-slate-50 dark:hover:bg-slate-800/20 transition-colors">
@@ -435,7 +408,7 @@ const CasoBR01Card: React.FC<CasoBR01CardProps> = ({ caso, onDelete }) => {
                 <div className="mt-4 ml-14 grid grid-cols-2 sm:grid-cols-3 gap-2 animate-in slide-in-from-top-2 duration-200">
                     {caso.produtos.map(p => (
                         <div key={p.id} className="bg-slate-50 dark:bg-slate-800 rounded-xl p-3 border border-slate-100 dark:border-slate-700">
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider">{p.nome || '—'}</p>
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider truncate">{p.nome || '—'}</p>
                             <p className="text-lg font-black text-violet-600 dark:text-violet-400 mt-1">
                                 {p.quantidade || '0'}
                                 <span className="text-[10px] text-slate-400 font-bold ml-1">un.</span>
