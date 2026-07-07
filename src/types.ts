@@ -114,6 +114,7 @@ export interface CasosBR01Record {
   testou_em_br0y: string;
   produtos: { id?: number; nome: string; quantidade: string }[];
   saved_at: string;
+  registrado_por?: string;
   created_at?: string;
 }
 

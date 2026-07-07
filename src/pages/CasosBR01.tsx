@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Plus, Trash2, PackageSearch, CheckCircle2, X, ChevronDown, ChevronUp, Download, Loader2 } from 'lucide-react';
+import { Plus, Trash2, PackageSearch, CheckCircle2, X, ChevronDown, ChevronUp, Download, Loader2, User } from 'lucide-react';
 import { exportCasosBR01ToExcel } from '../utils/excelExport';
 import { casosBR01Service } from '../services/casosBR01Service';
 import { CasosBR01Record } from '../types';
+import { useAuth } from '../contexts/AuthContext';
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 interface ProdutoReclamado {
@@ -22,6 +23,7 @@ const newProduto = (): ProdutoReclamado => ({ id: nextId++, nome: '', quantidade
 
 // ─── Componente Principal ─────────────────────────────────────────────────────
 export const CasosBR01: React.FC = () => {
+    const { currentUser, isAdmin } = useAuth();
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
@@ -97,11 +99,14 @@ export const CasosBR01: React.FC = () => {
 
             console.log('[BR01] Salvando caso:', { numero_caso: numeroCaso.trim(), testou_em_br0y: testouEmBR0Y, produtos: produtosFilled });
 
+            const registradoPor = isAdmin ? 'Admin' : (currentUser?.name || 'Desconhecido');
+
             const newRecord = await casosBR01Service.addCase({
                 numero_caso: numeroCaso.trim(),
                 testou_em_br0y: testouEmBR0Y,
                 produtos: produtosFilled,
                 saved_at: getTodayString(),
+                registrado_por: registradoPor,
             });
 
             console.log('[BR01] Registro salvo:', newRecord);
@@ -426,7 +431,7 @@ export const CasosBR01: React.FC = () => {
     );
 };
 
-// ─── Card de Caso Salvo ───────────────────────────────────────────────────────
+// ─── Card de Caso Salvo ─────────────────────────────────────────────────────
 interface CasoBR01CardProps {
     caso: {
         id?: string;
@@ -434,6 +439,7 @@ interface CasoBR01CardProps {
         numero_caso: string;
         testou_em_br0y: string;
         produtos: { id?: number; nome: string; quantidade: string }[];
+        registrado_por?: string;
     };
     onDelete: () => void;
 }
@@ -470,9 +476,17 @@ const CasoBR01Card: React.FC<CasoBR01CardProps> = ({ caso, onDelete }) => {
                             </span>
                         )}
                     </div>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-1">
-                        Registrado em {caso.saved_at.split('-').reverse().join('/')}
-                    </p>
+                    <div className="flex flex-wrap items-center gap-2 mt-1">
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                            Registrado em {caso.saved_at.split('-').reverse().join('/')}
+                        </p>
+                        {caso.registrado_por && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-wider bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">
+                                <User size={9} />
+                                {caso.registrado_por}
+                            </span>
+                        )}
+                    </div>
                 </div>
 
                 <div className="flex items-center gap-2">
