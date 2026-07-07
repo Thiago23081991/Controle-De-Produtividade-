@@ -16,5 +16,8 @@ CREATE INDEX IF NOT EXISTS idx_casos_br01_saved_at ON casos_br01(saved_at);
 -- Índice para busca por número do caso
 CREATE INDEX IF NOT EXISTS idx_casos_br01_numero_caso ON casos_br01(numero_caso);
 
--- (Opcional) Habilitar acesso público se não estiver usando Auth
+-- IMPORTANTE: Desativar RLS para permitir inserções sem autenticação
+ALTER TABLE casos_br01 DISABLE ROW LEVEL SECURITY;
+
+-- OU, se preferir manter RLS com policy permissiva:
 -- CREATE POLICY "Enable all access" ON casos_br01 FOR ALL USING (true) WITH CHECK (true);
