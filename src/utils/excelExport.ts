@@ -113,8 +113,8 @@ export const exportErrosToExcel = (erros: any[], periodLabel: string) => {
 
 export const exportCasosBR01ToExcel = (cases: any[]) => {
     const rows = cases.map(c => {
-        const dataFormatada = c.savedAt
-            ? c.savedAt.split('-').reverse().join('/')
+        const dataFormatada = (c.saved_at || c.savedAt)
+            ? (c.saved_at || c.savedAt).split('-').reverse().join('/')
             : '';
 
         // Monta uma string única com todos os produtos: "Produto A (2un), Produto B (5un)"
@@ -130,8 +130,8 @@ export const exportCasosBR01ToExcel = (cases: any[]) => {
 
         return {
             "Data":               dataFormatada,
-            "Número do Caso":     c.numeroCaso,
-            "Testou em BR0Y":     c.testouEmBR0Y || '',
+            "Número do Caso":     c.numero_caso || c.numeroCaso || '',
+            "Testou em BR0Y":     c.testou_em_br0y || c.testouEmBR0Y || '',
             "Produtos Reclamados": produtosStr,
         };
     });

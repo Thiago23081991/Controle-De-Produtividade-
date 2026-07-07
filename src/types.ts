@@ -108,3 +108,12 @@ export interface BacklogRecord {
   created_at?: string;
 }
 
+export interface CasosBR01Record {
+  id?: string;
+  numero_caso: string;
+  testou_em_br0y: string;
+  produtos: { id?: number; nome: string; quantidade: string }[];
+  saved_at: string;
+  created_at?: string;
+}
+

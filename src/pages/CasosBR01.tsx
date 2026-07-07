@@ -1,18 +1,14 @@
-import React, { useState } from 'react';
-import { Plus, Trash2, PackageSearch, CheckCircle2, X, ChevronDown, ChevronUp, Download } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Plus, Trash2, PackageSearch, CheckCircle2, X, ChevronDown, ChevronUp, Download, Loader2 } from 'lucide-react';
 import { exportCasosBR01ToExcel } from '../utils/excelExport';
+import { casosBR01Service } from '../services/casosBR01Service';
+import { CasosBR01Record } from '../types';
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 interface ProdutoReclamado {
     id: number;
     nome: string;
     quantidade: string;
-}
-
-interface CasosBR01Form {
-    numeroCaso: string;
-    testouEmBR0Y: string;
-    produtos: ProdutoReclamado[];
 }
 
 const getTodayString = () => {
@@ -28,12 +24,35 @@ const newProduto = (): ProdutoReclamado => ({ id: nextId++, nome: '', quantidade
 export const CasosBR01: React.FC = () => {
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
-    const [savedCases, setSavedCases] = useState<(CasosBR01Form & { id: number; savedAt: string })[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [savedCases, setSavedCases] = useState<CasosBR01Record[]>([]);
+    const [errorMsg, setErrorMsg] = useState<string | null>(null);
+    const [saveErrorMsg, setSaveErrorMsg] = useState<string | null>(null);
 
     // Estado do formulário
     const [numeroCaso, setNumeroCaso] = useState('');
     const [testouEmBR0Y, setTestouEmBR0Y] = useState('');
     const [produtos, setProdutos] = useState<ProdutoReclamado[]>([{ id: 1, nome: '', quantidade: '' }]);
+
+    const loadCases = useCallback(async () => {
+        setIsLoading(true);
+        setErrorMsg(null);
+        try {
+            console.log('[BR01] Carregando casos do Supabase...');
+            const data = await casosBR01Service.getAllCases();
+            console.log('[BR01] Casos carregados:', data);
+            setSavedCases(data);
+        } catch (err: any) {
+            console.error('[BR01] Erro ao carregar casos:', err);
+            setErrorMsg(`Erro ao carregar: ${err?.message || JSON.stringify(err)}`);
+        } finally {
+            setIsLoading(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        loadCases();
+    }, [loadCases]);
 
     const resetForm = () => {
         setNumeroCaso('');
@@ -70,21 +89,45 @@ export const CasosBR01: React.FC = () => {
         if (!numeroCaso.trim()) return;
 
         setIsSaving(true);
-        await new Promise(r => setTimeout(r, 600));
+        setSaveErrorMsg(null);
+        try {
+            const produtosFilled = produtos
+                .filter(p => p.nome.trim() !== '')
+                .map(p => ({ nome: p.nome, quantidade: p.quantidade }));
 
-        const produtosFilled = produtos.filter(p => p.nome.trim() !== '');
+            console.log('[BR01] Salvando caso:', { numero_caso: numeroCaso.trim(), testou_em_br0y: testouEmBR0Y, produtos: produtosFilled });
 
-        setSavedCases(prev => [{
-            id: Date.now(),
-            savedAt: getTodayString(),
-            numeroCaso: numeroCaso.trim(),
-            testouEmBR0Y,
-            produtos: produtosFilled,
-        }, ...prev]);
+            const newRecord = await casosBR01Service.addCase({
+                numero_caso: numeroCaso.trim(),
+                testou_em_br0y: testouEmBR0Y,
+                produtos: produtosFilled,
+                saved_at: getTodayString(),
+            });
 
-        setIsSaving(false);
-        setIsFormOpen(false);
-        resetForm();
+            console.log('[BR01] Registro salvo:', newRecord);
+
+            if (newRecord) {
+                setSavedCases(prev => [newRecord, ...prev]);
+                setIsFormOpen(false);
+                resetForm();
+            } else {
+                setSaveErrorMsg('Supabase não está configurado. Verifique as variáveis de ambiente VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY.');
+            }
+        } catch (err: any) {
+            console.error('[BR01] Erro ao salvar caso:', err);
+            setSaveErrorMsg(`Erro ao salvar: ${err?.message || JSON.stringify(err)}`);
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const handleDelete = async (id: string) => {
+        try {
+            await casosBR01Service.deleteCase(id);
+            setSavedCases(prev => prev.filter(c => c.id !== id));
+        } catch (err) {
+            console.error('Erro ao deletar caso BR01:', err);
+        }
     };
 
     return (
@@ -124,8 +167,38 @@ export const CasosBR01: React.FC = () => {
                 </div>
             </div>
 
+            {/* ── Erro de Carregamento ─────────────────────────────────────── */}
+            {errorMsg && (
+                <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-2xl p-5 flex items-start gap-4">
+                    <div className="w-8 h-8 bg-red-100 dark:bg-red-900/30 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <X size={16} className="text-red-500" />
+                    </div>
+                    <div className="flex-1">
+                        <p className="text-xs font-black text-red-700 dark:text-red-400 uppercase tracking-wider">Erro ao conectar com o banco de dados</p>
+                        <p className="text-[11px] font-mono text-red-500 dark:text-red-400 mt-1 break-all">{errorMsg}</p>
+                    </div>
+                    <button
+                        onClick={loadCases}
+                        className="text-[10px] font-black text-red-600 hover:text-red-800 uppercase tracking-wider flex-shrink-0 underline"
+                    >
+                        Tentar novamente
+                    </button>
+                </div>
+            )}
+
             {/* ── Lista de Casos Salvos ─────────────────────────────────────── */}
-            {savedCases.length > 0 && (
+            {isLoading && (
+                <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl border border-slate-100 dark:border-slate-800 p-16 text-center">
+                    <div className="inline-flex items-center justify-center w-20 h-20 bg-violet-50 dark:bg-violet-900/20 rounded-3xl mb-6 animate-pulse">
+                        <Loader2 size={36} className="text-violet-400 animate-spin" />
+                    </div>
+                    <h3 className="text-base font-black uppercase tracking-widest text-slate-700 dark:text-white">
+                        Carregando histórico...
+                    </h3>
+                </div>
+            )}
+
+            {!isLoading && savedCases.length > 0 && (
                 <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl border border-slate-100 dark:border-slate-800 overflow-hidden">
                     <div className="p-6 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 flex items-center justify-between gap-4">
                         <div>
@@ -150,14 +223,14 @@ export const CasosBR01: React.FC = () => {
                             <CasoBR01Card
                                 key={c.id}
                                 caso={c}
-                                onDelete={() => setSavedCases(prev => prev.filter(x => x.id !== c.id))}
+                                onDelete={() => c.id && handleDelete(c.id)}
                             />
                         ))}
                     </div>
                 </div>
             )}
 
-            {savedCases.length === 0 && (
+            {!isLoading && savedCases.length === 0 && (
                 <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl border border-slate-100 dark:border-slate-800 p-16 text-center">
                     <div className="inline-flex items-center justify-center w-20 h-20 bg-violet-50 dark:bg-violet-900/20 rounded-3xl mb-6">
                         <PackageSearch size={36} className="text-violet-400" />
@@ -315,6 +388,14 @@ export const CasosBR01: React.FC = () => {
                                 </button>
                             </div>
 
+                            {/* Erro de salvar */}
+                            {saveErrorMsg && (
+                                <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-xl p-4 flex items-start gap-3">
+                                    <X size={14} className="text-red-500 flex-shrink-0 mt-0.5" />
+                                    <p className="text-[11px] font-bold text-red-600 dark:text-red-400 break-all">{saveErrorMsg}</p>
+                                </div>
+                            )}
+
                             {/* Botões de Ação */}
                             <div className="flex gap-3 pt-2">
                                 <button
@@ -348,11 +429,11 @@ export const CasosBR01: React.FC = () => {
 // ─── Card de Caso Salvo ───────────────────────────────────────────────────────
 interface CasoBR01CardProps {
     caso: {
-        id: number;
-        savedAt: string;
-        numeroCaso: string;
-        testouEmBR0Y: string;
-        produtos: ProdutoReclamado[];
+        id?: string;
+        saved_at: string;
+        numero_caso: string;
+        testou_em_br0y: string;
+        produtos: { id?: number; nome: string; quantidade: string }[];
     };
     onDelete: () => void;
 }
@@ -361,9 +442,9 @@ const CasoBR01Card: React.FC<CasoBR01CardProps> = ({ caso, onDelete }) => {
     const [expanded, setExpanded] = useState(false);
 
     const testouColor =
-        caso.testouEmBR0Y === 'Sim'     ? 'bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400' :
-        caso.testouEmBR0Y === 'Não'     ? 'bg-red-50 dark:bg-red-950/20 text-red-600 dark:text-red-400' :
-        caso.testouEmBR0Y === 'Parcial' ? 'bg-yellow-50 dark:bg-yellow-950/20 text-yellow-600 dark:text-yellow-400' :
+        caso.testou_em_br0y === 'Sim'     ? 'bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400' :
+        caso.testou_em_br0y === 'Não'     ? 'bg-red-50 dark:bg-red-950/20 text-red-600 dark:text-red-400' :
+        caso.testou_em_br0y === 'Parcial' ? 'bg-yellow-50 dark:bg-yellow-950/20 text-yellow-600 dark:text-yellow-400' :
         '';
 
     return (
@@ -376,11 +457,11 @@ const CasoBR01Card: React.FC<CasoBR01CardProps> = ({ caso, onDelete }) => {
                 <div className="flex-1 min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
                         <span className="font-mono font-black text-sm text-slate-900 dark:text-white">
-                            {caso.numeroCaso}
+                            {caso.numero_caso}
                         </span>
-                        {caso.testouEmBR0Y && (
+                        {caso.testou_em_br0y && (
                             <span className={`px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider ${testouColor}`}>
-                                BR0Y: {caso.testouEmBR0Y}
+                                BR0Y: {caso.testou_em_br0y}
                             </span>
                         )}
                         {caso.produtos.length > 0 && (
@@ -390,7 +471,7 @@ const CasoBR01Card: React.FC<CasoBR01CardProps> = ({ caso, onDelete }) => {
                         )}
                     </div>
                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-1">
-                        Registrado em {caso.savedAt.split('-').reverse().join('/')}
+                        Registrado em {caso.saved_at.split('-').reverse().join('/')}
                     </p>
                 </div>
 
@@ -417,8 +498,8 @@ const CasoBR01Card: React.FC<CasoBR01CardProps> = ({ caso, onDelete }) => {
             {/* Produtos expandidos */}
             {expanded && caso.produtos.length > 0 && (
                 <div className="mt-4 ml-14 grid grid-cols-2 sm:grid-cols-3 gap-2 animate-in slide-in-from-top-2 duration-200">
-                    {caso.produtos.map(p => (
-                        <div key={p.id} className="bg-slate-50 dark:bg-slate-800 rounded-xl p-3 border border-slate-100 dark:border-slate-700">
+                    {caso.produtos.map((p, idx) => (
+                        <div key={idx} className="bg-slate-50 dark:bg-slate-800 rounded-xl p-3 border border-slate-100 dark:border-slate-700">
                             <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider truncate">{p.nome || '—'}</p>
                             <p className="text-lg font-black text-violet-600 dark:text-violet-400 mt-1">
                                 {p.quantidade || '0'}
