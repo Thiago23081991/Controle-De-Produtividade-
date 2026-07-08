@@ -54,16 +54,20 @@ export const ProductivityTable: React.FC = () => {
           {isSyncing && !isTableLoading && <div className="text-[9px] font-black text-orange-600 dark:text-orange-500 animate-pulse uppercase tracking-[0.2em]">Sincronizando Dados...</div>}
         </div>
       </div>
-      <div className="p-6 sm:p-8 bg-slate-50/20 dark:bg-slate-900/50 border-t border-slate-100 dark:border-slate-800">
-        <div className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-8">
+      <div className="overflow-x-auto">
+        <div className="min-w-[800px] divide-y divide-slate-50 dark:divide-slate-800">
           {isTableLoading ? (
             <>
-              <SkeletonRow />
-              <SkeletonRow />
-              <SkeletonRow />
-              <SkeletonRow />
-              <SkeletonRow />
-              <SkeletonRow />
+              {[...Array(6)].map((_, i) => (
+                <div key={i} className="flex items-center gap-3 px-4 py-3 animate-pulse">
+                  <div className="w-9 h-9 rounded-xl bg-slate-200 dark:bg-slate-700 flex-shrink-0" />
+                  <div className="w-32 h-3 bg-slate-200 dark:bg-slate-700 rounded" />
+                  <div className="w-12 h-8 bg-slate-100 dark:bg-slate-800 rounded-xl ml-auto" />
+                  <div className="w-16 h-8 bg-slate-100 dark:bg-slate-800 rounded-xl" />
+                  <div className="w-20 h-8 bg-slate-100 dark:bg-slate-800 rounded-xl" />
+                  <div className="w-20 h-8 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl" />
+                </div>
+              ))}
             </>
           ) : visibleExperts.length > 0 ? visibleExperts.map((name) => (
             <ProductivityTableRow
@@ -81,7 +85,7 @@ export const ProductivityTable: React.FC = () => {
               onTempMessageChange={handleTempMessageChange}
             />
           )) : (
-            <div className="col-span-full py-20 text-center flex flex-col items-center justify-center">
+            <div className="py-20 text-center flex flex-col items-center justify-center">
               <AlertCircle size={48} className="text-slate-200 dark:text-slate-700 mb-6" />
               <p className="text-slate-400 dark:text-slate-500 font-black uppercase text-xs tracking-[0.2em]">Nenhum registro localizado</p>
             </div>
