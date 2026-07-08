@@ -25,7 +25,8 @@ const ALLOWED_MATRICULAS = [
     '284419',
     '295565',
     '284389',
-    '344343'
+    '344343',
+    '382374',
 ];
 
 export const LoginScreen: React.FC<LoginScreenProps> = ({ isDemoMode = false }) => {
