@@ -251,8 +251,8 @@ export const CasosBR01: React.FC = () => {
 
             {/* ── Modal do Formulário ───────────────────────────────────────── */}
             {isFormOpen && (
-                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-300">
-                    <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl w-full max-w-2xl border border-slate-100 dark:border-slate-800 overflow-hidden animate-in zoom-in duration-300 max-h-[90vh] flex flex-col">
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-start justify-center z-50 p-4 pt-8 overflow-y-auto animate-in fade-in duration-300">
+                    <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl w-full max-w-2xl border border-slate-100 dark:border-slate-800 overflow-hidden animate-in zoom-in duration-300 flex flex-col mb-8">
 
                         {/* Header do Modal */}
                         <div className="bg-gradient-to-br from-violet-600 to-purple-700 p-8 relative overflow-hidden flex-shrink-0">
@@ -279,8 +279,8 @@ export const CasosBR01: React.FC = () => {
                             </div>
                         </div>
 
-                        {/* Formulário com scroll */}
-                        <form onSubmit={handleSubmit} className="p-8 space-y-6 overflow-y-auto flex-1">
+                        {/* Formulário */}
+                        <form onSubmit={handleSubmit} className="p-8 space-y-6">
 
                             {/* Número do Caso */}
                             <div>
