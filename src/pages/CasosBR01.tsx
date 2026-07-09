@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Plus, Trash2, PackageSearch, CheckCircle2, X, ChevronDown, ChevronUp, Download, Loader2, User } from 'lucide-react';
+import { Plus, Trash2, PackageSearch, CheckCircle2, X, ChevronDown, ChevronUp, Download, Loader2, User, Search } from 'lucide-react';
 import { exportCasosBR01ToExcel } from '../utils/excelExport';
 import { casosBR01Service } from '../services/casosBR01Service';
 import { CasosBR01Record } from '../types';
@@ -30,6 +30,7 @@ export const CasosBR01: React.FC = () => {
     const [savedCases, setSavedCases] = useState<CasosBR01Record[]>([]);
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
     const [saveErrorMsg, setSaveErrorMsg] = useState<string | null>(null);
+    const [searchQuery, setSearchQuery] = useState('');
 
     // Estado do formulário
     const [numeroCaso, setNumeroCaso] = useState('');
@@ -135,6 +136,17 @@ export const CasosBR01: React.FC = () => {
         }
     };
 
+    // Filtra os casos com base na busca
+    const filteredCases = savedCases.filter(c => {
+        if (!searchQuery.trim()) return true;
+        const q = searchQuery.toLowerCase();
+        const matchNumero = c.numero_caso?.toLowerCase().includes(q);
+        const matchRegistrado = c.registrado_por?.toLowerCase().includes(q);
+        const matchData = c.saved_at?.toLowerCase().includes(q);
+        const matchProduto = c.produtos?.some(p => p.nome?.toLowerCase().includes(q));
+        return matchNumero || matchRegistrado || matchData || matchProduto;
+    });
+
     return (
         <div className="space-y-6 animate-in fade-in slide-in-from-top-10 duration-700">
 
@@ -171,6 +183,31 @@ export const CasosBR01: React.FC = () => {
                     </button>
                 </div>
             </div>
+
+            {/* ── Buscador de Casos ─────────────────────────────────────── */}
+            {!isLoading && savedCases.length > 0 && (
+                <div className="relative">
+                    <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
+                        <Search size={18} className="text-violet-400" />
+                    </div>
+                    <input
+                        type="text"
+                        value={searchQuery}
+                        onChange={e => setSearchQuery(e.target.value)}
+                        placeholder="Buscar por número do caso, produto, responsável ou data..."
+                        className="w-full bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-700 focus:border-violet-500 dark:focus:border-violet-500 rounded-2xl py-4 pl-12 pr-12 text-sm font-bold text-slate-700 dark:text-slate-200 outline-none transition-all placeholder:font-normal placeholder:text-slate-400 shadow-md"
+                    />
+                    {searchQuery && (
+                        <button
+                            onClick={() => setSearchQuery('')}
+                            className="absolute inset-y-0 right-4 flex items-center text-slate-400 hover:text-violet-600 transition-colors"
+                            title="Limpar busca"
+                        >
+                            <X size={18} />
+                        </button>
+                    )}
+                </div>
+            )}
 
             {/* ── Erro de Carregamento ─────────────────────────────────────── */}
             {errorMsg && (
@@ -211,7 +248,10 @@ export const CasosBR01: React.FC = () => {
                                 Casos BR01 Registrados
                             </h3>
                             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">
-                                {savedCases.length} caso(s) registrado(s)
+                                {searchQuery.trim()
+                                    ? <><span className="text-violet-500">{filteredCases.length}</span> de {savedCases.length} caso(s)
+                                    </>
+                                    : <>{savedCases.length} caso(s) registrado(s)</>}
                             </p>
                         </div>
                         <button
@@ -223,8 +263,25 @@ export const CasosBR01: React.FC = () => {
                             Excel
                         </button>
                     </div>
+
+                    {/* Nenhum resultado para a busca */}
+                    {filteredCases.length === 0 && searchQuery.trim() && (
+                        <div className="p-12 text-center">
+                            <div className="inline-flex items-center justify-center w-14 h-14 bg-slate-100 dark:bg-slate-800 rounded-2xl mb-4">
+                                <Search size={24} className="text-slate-400" />
+                            </div>
+                            <p className="text-sm font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">
+                                Nenhum caso encontrado
+                            </p>
+                            <p className="text-[11px] font-bold text-slate-400 mt-1">
+                                Tente buscar por outro termo ou{' '}
+                                <button onClick={() => setSearchQuery('')} className="text-violet-500 underline">limpar a busca</button>.
+                            </p>
+                        </div>
+                    )}
+
                     <div className="divide-y divide-slate-50 dark:divide-slate-800">
-                        {savedCases.map(c => (
+                        {filteredCases.map(c => (
                             <CasoBR01Card
                                 key={c.id}
                                 caso={c}
