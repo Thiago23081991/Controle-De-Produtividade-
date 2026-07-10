@@ -213,8 +213,8 @@ export const Header: React.FC = () => {
 
                     <div className="h-8 w-px bg-slate-200 dark:bg-slate-700 mx-2"></div>
 
-                    <button onClick={logout} className="flex items-center gap-2 text-slate-400 font-black text-[10px] hover:text-red-600 transition-colors bg-slate-50 dark:bg-slate-800 p-3 rounded-2xl border border-slate-100 dark:border-slate-700 uppercase tracking-widest">
-                        <LogOut size={16} /> <span className="hidden md:inline">Sair</span>
+                    <button onClick={logout} className="flex items-center gap-1.5 text-red-500 font-black text-[10px] hover:text-white hover:bg-red-500 transition-all bg-red-50 dark:bg-red-900/20 p-3 rounded-xl border border-red-200 dark:border-red-800/50 uppercase tracking-widest" title="Sair">
+                        <LogOut size={18} /> <span>Sair</span>
                     </button>
                 </div>
             </div>
