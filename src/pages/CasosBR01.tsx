@@ -35,6 +35,7 @@ export const CasosBR01: React.FC = () => {
     // Estado do formulário
     const [numeroCaso, setNumeroCaso] = useState('');
     const [testouEmBR0Y, setTestouEmBR0Y] = useState('');
+    const [casoMiral, setCasoMiral] = useState<boolean | null>(null);
     const [produtos, setProdutos] = useState<ProdutoReclamado[]>([{ id: 1, nome: '', quantidade: '' }]);
 
     const loadCases = useCallback(async () => {
@@ -60,6 +61,7 @@ export const CasosBR01: React.FC = () => {
     const resetForm = () => {
         setNumeroCaso('');
         setTestouEmBR0Y('');
+        setCasoMiral(null);
         setProdutos([{ id: 1, nome: '', quantidade: '' }]);
     };
 
@@ -91,6 +93,16 @@ export const CasosBR01: React.FC = () => {
         e.preventDefault();
         if (!numeroCaso.trim()) return;
 
+        // ── Verificação de duplicata ──────────────────────────────────────────
+        const isDuplicate = savedCases.some(
+            c => c.numero_caso?.trim().toLowerCase() === numeroCaso.trim().toLowerCase()
+        );
+        if (isDuplicate) {
+            setSaveErrorMsg('Caso Já Cadastrado');
+            return;
+        }
+        // ─────────────────────────────────────────────────────────────────────
+
         setIsSaving(true);
         setSaveErrorMsg(null);
         try {
@@ -98,13 +110,14 @@ export const CasosBR01: React.FC = () => {
                 .filter(p => p.nome.trim() !== '')
                 .map(p => ({ nome: p.nome, quantidade: p.quantidade }));
 
-            console.log('[BR01] Salvando caso:', { numero_caso: numeroCaso.trim(), testou_em_br0y: testouEmBR0Y, produtos: produtosFilled });
+            console.log('[BR01] Salvando caso:', { numero_caso: numeroCaso.trim(), testou_em_br0y: testouEmBR0Y, caso_miral: casoMiral, produtos: produtosFilled });
 
             const registradoPor = isAdmin ? 'Admin' : (currentUser?.name || 'Desconhecido');
 
             const newRecord = await casosBR01Service.addCase({
                 numero_caso: numeroCaso.trim(),
                 testou_em_br0y: testouEmBR0Y,
+                caso_miral: casoMiral,
                 produtos: produtosFilled,
                 saved_at: getTodayString(),
                 registrado_por: registradoPor,
@@ -144,7 +157,8 @@ export const CasosBR01: React.FC = () => {
         const matchRegistrado = c.registrado_por?.toLowerCase().includes(q);
         const matchData = c.saved_at?.toLowerCase().includes(q);
         const matchProduto = c.produtos?.some(p => p.nome?.toLowerCase().includes(q));
-        return matchNumero || matchRegistrado || matchData || matchProduto;
+        const matchMiral = c.caso_miral === true && 'miral'.includes(q);
+        return matchNumero || matchRegistrado || matchData || matchProduto || matchMiral;
     });
 
     return (
@@ -347,7 +361,7 @@ export const CasosBR01: React.FC = () => {
                                 <input
                                     type="text"
                                     value={numeroCaso}
-                                    onChange={e => setNumeroCaso(e.target.value)}
+                                    onChange={e => { setNumeroCaso(e.target.value); setSaveErrorMsg(null); }}
                                     placeholder="Ex: 2024-123456"
                                     required
                                     className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl py-3 px-4 text-sm font-bold text-slate-700 dark:text-slate-200 focus:border-violet-400 focus:ring-2 focus:ring-violet-100 dark:focus:ring-violet-900/30 outline-none transition-all placeholder:font-normal placeholder:text-slate-300"
@@ -372,6 +386,31 @@ export const CasosBR01: React.FC = () => {
                                             }`}
                                         >
                                             {opt}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Caso é da MIRAL? */}
+                            <div>
+                                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">
+                                    Caso é da MIRAL?
+                                </label>
+                                <div className="flex gap-3">
+                                    {([{ label: 'Sim', value: true }, { label: 'Não', value: false }] as const).map(opt => (
+                                        <button
+                                            key={opt.label}
+                                            type="button"
+                                            onClick={() => setCasoMiral(casoMiral === opt.value ? null : opt.value)}
+                                            className={`flex-1 py-3 rounded-xl text-xs font-black uppercase tracking-wider border transition-all ${
+                                                casoMiral === opt.value
+                                                    ? opt.value
+                                                        ? 'bg-emerald-600 border-emerald-500 text-white shadow-lg shadow-emerald-200 dark:shadow-emerald-900/30'
+                                                        : 'bg-red-500 border-red-400 text-white shadow-lg shadow-red-200 dark:shadow-red-900/30'
+                                                    : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:border-violet-300 hover:text-violet-600'
+                                            }`}
+                                        >
+                                            {opt.label}
                                         </button>
                                     ))}
                                 </div>
@@ -488,7 +527,7 @@ export const CasosBR01: React.FC = () => {
     );
 };
 
-// ─── Card de Caso Salvo ─────────────────────────────────────────────────────
+// ─── Card de Caso Salvo ─────────────────────────────────────────────
 interface CasoBR01CardProps {
     caso: {
         id?: string;
@@ -497,6 +536,7 @@ interface CasoBR01CardProps {
         testou_em_br0y: string;
         produtos: { id?: number; nome: string; quantidade: string }[];
         registrado_por?: string;
+        caso_miral?: boolean | null;
     };
     onDelete: () => void;
 }
@@ -525,6 +565,16 @@ const CasoBR01Card: React.FC<CasoBR01CardProps> = ({ caso, onDelete }) => {
                         {caso.testou_em_br0y && (
                             <span className={`px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider ${testouColor}`}>
                                 BR0Y: {caso.testou_em_br0y}
+                            </span>
+                        )}
+                        {caso.caso_miral === true && (
+                            <span className="px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/40">
+                                ✓ MIRAL
+                            </span>
+                        )}
+                        {caso.caso_miral === false && (
+                            <span className="px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">
+                                Não MIRAL
                             </span>
                         )}
                         {caso.produtos.length > 0 && (

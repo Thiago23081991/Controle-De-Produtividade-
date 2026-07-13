@@ -115,6 +115,7 @@ export interface CasosBR01Record {
   produtos: { id?: number; nome: string; quantidade: string }[];
   saved_at: string;
   registrado_por?: string;
+  caso_miral?: boolean | null;
   created_at?: string;
 }
 
