@@ -128,10 +128,16 @@ export const exportCasosBR01ToExcel = (cases: any[]) => {
                 .join(', ')
             : '';
 
+        const miralStr =
+            c.caso_miral === true  ? 'Sim' :
+            c.caso_miral === false ? 'Não' :
+            'Não informado';
+
         return {
             "Data":               dataFormatada,
             "Número do Caso":     c.numero_caso || c.numeroCaso || '',
             "Testou em BR0Y":     c.testou_em_br0y || c.testouEmBR0Y || '',
+            "Caso MIRAL?":        miralStr,
             "Produtos Reclamados": produtosStr,
         };
     });
@@ -142,6 +148,7 @@ export const exportCasosBR01ToExcel = (cases: any[]) => {
         { wch: 14 }, // Data
         { wch: 22 }, // Número do Caso
         { wch: 16 }, // Testou em BR0Y
+        { wch: 16 }, // Caso MIRAL?
         { wch: 60 }, // Produtos Reclamados
     ];
 
