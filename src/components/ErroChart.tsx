@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { BarChart3, PieChart, Info } from 'lucide-react';
+import { BarChart3, PieChart, Info, Layers } from 'lucide-react';
 import { useErros } from '../contexts/ErrosContext';
 
 const COLORS = [
@@ -16,7 +16,8 @@ const COLORS = [
 const OTHER_COLOR = '#64748B'; // Slate 500
 
 export const ErroChart: React.FC = () => {
-    const { ranking, erros, isLoading } = useErros();
+    const { ranking, erros, isLoading, period } = useErros();
+    const isAll = period === 'all';
 
     const chartData = useMemo(() => {
         if (ranking.length === 0) return [];
@@ -104,17 +105,37 @@ export const ErroChart: React.FC = () => {
     }
 
     return (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="space-y-4">
+            {/* Badge consolidado */}
+            {isAll && (
+                <div className="flex items-center gap-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700/40 rounded-2xl px-5 py-3">
+                    <div className="bg-amber-500 p-2 rounded-xl">
+                        <Layers size={16} className="text-white" />
+                    </div>
+                    <div>
+                        <p className="text-xs font-black text-amber-700 dark:text-amber-300 uppercase tracking-wider">Modo Consolidado Ativo</p>
+                        <p className="text-[11px] text-amber-600 dark:text-amber-400 font-medium">
+                            Exibindo <span className="font-black">{erros.length}</span> erros de todo o histórico disponível
+                        </p>
+                    </div>
+                </div>
+            )}
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             
             {/* Donut Chart Card */}
-            <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-8 border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col items-center justify-between min-h-[350px]">
+            <div className={`bg-white dark:bg-slate-900 rounded-[2.5rem] p-8 border shadow-sm flex flex-col items-center justify-between min-h-[350px] transition-colors ${
+                isAll ? 'border-amber-200 dark:border-amber-700/40' : 'border-slate-100 dark:border-slate-800'
+            }`}>
                 <div className="w-full flex items-center gap-3 mb-6">
-                    <div className="bg-red-100 dark:bg-red-900/30 p-2.5 rounded-xl text-red-600">
+                    <div className={`p-2.5 rounded-xl ${isAll ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-600' : 'bg-red-100 dark:bg-red-900/30 text-red-600'}`}>
                         <PieChart size={18} />
                     </div>
                     <div>
                         <h3 className="font-black text-slate-800 dark:text-white text-sm tracking-tight">Participação de Erros</h3>
-                        <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Distribuição Percentual</p>
+                        <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
+                            {isAll ? 'Consolidado — Todo o histórico' : 'Distribuição Percentual'}
+                        </p>
                     </div>
                 </div>
 
@@ -169,15 +190,19 @@ export const ErroChart: React.FC = () => {
             </div>
 
             {/* Bar Chart Comparison Card */}
-            <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-8 border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col justify-between min-h-[350px]">
+            <div className={`bg-white dark:bg-slate-900 rounded-[2.5rem] p-8 border shadow-sm flex flex-col justify-between min-h-[350px] transition-colors ${
+                isAll ? 'border-amber-200 dark:border-amber-700/40' : 'border-slate-100 dark:border-slate-800'
+            }`}>
                 <div className="flex items-center justify-between mb-6">
                     <div className="flex items-center gap-3">
-                        <div className="bg-red-100 dark:bg-red-900/30 p-2.5 rounded-xl text-red-600">
+                        <div className={`p-2.5 rounded-xl ${isAll ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-600' : 'bg-red-100 dark:bg-red-900/30 text-red-600'}`}>
                             <BarChart3 size={18} />
                         </div>
                         <div>
                             <h3 className="font-black text-slate-800 dark:text-white text-sm tracking-tight">Comparativo de Experts</h3>
-                            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Frequência comparada de erros</p>
+                            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
+                                {isAll ? 'Consolidado — Todo o histórico' : 'Frequência comparada de erros'}
+                            </p>
                         </div>
                     </div>
                     
@@ -218,14 +243,18 @@ export const ErroChart: React.FC = () => {
             </div>
 
             {/* Top 5 Submotivos Card */}
-            <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-8 border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col justify-between min-h-[350px]">
+            <div className={`bg-white dark:bg-slate-900 rounded-[2.5rem] p-8 border shadow-sm flex flex-col justify-between min-h-[350px] transition-colors ${
+                isAll ? 'border-amber-200 dark:border-amber-700/40' : 'border-slate-100 dark:border-slate-800'
+            }`}>
                 <div className="w-full flex items-center gap-3 mb-6">
-                    <div className="bg-red-100 dark:bg-red-900/30 p-2.5 rounded-xl text-red-600">
+                    <div className={`p-2.5 rounded-xl ${isAll ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-600' : 'bg-red-100 dark:bg-red-900/30 text-red-600'}`}>
                         <BarChart3 size={18} />
                     </div>
                     <div>
                         <h3 className="font-black text-slate-800 dark:text-white text-sm tracking-tight">Top 5 Submotivos</h3>
-                        <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Submotivos mais recorrentes</p>
+                        <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
+                            {isAll ? 'Consolidado — Todo o histórico' : 'Submotivos mais recorrentes'}
+                        </p>
                     </div>
                 </div>
 
@@ -263,6 +292,7 @@ export const ErroChart: React.FC = () => {
                 </div>
             </div>
 
+            </div>{/* end grid */}
         </div>
     );
 };

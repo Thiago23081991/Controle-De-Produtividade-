@@ -92,6 +92,7 @@ const ErrosContent: React.FC = () => {
                     </div>
                 </div>
 
+
                 {/* Filtro de Período — visível para todos */}
                 <div className="z-10 flex flex-wrap items-center gap-2">
                     <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mr-1">Período:</span>
@@ -130,6 +131,20 @@ const ErrosContent: React.FC = () => {
                             <option key={opt.value} value={opt.value} className="bg-slate-900 text-white">{opt.label}</option>
                         ))}
                     </select>
+
+                    {/* Botão Consolidado — agrupa todos os erros */}
+                    <button
+                        onClick={() => setPeriod('all')}
+                        className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all border flex items-center gap-2 ${
+                            period === 'all'
+                                ? 'bg-amber-500 border-amber-400 text-white shadow-lg shadow-amber-900/40'
+                                : 'bg-white/10 border-white/10 text-slate-300 hover:bg-amber-500/30 hover:border-amber-400/40'
+                        }`}
+                        title="Ver todos os erros consolidados no gráfico"
+                    >
+                        <span className={`w-2 h-2 rounded-full ${period === 'all' ? 'bg-white animate-pulse' : 'bg-amber-400'}`} />
+                        Consolidado
+                    </button>
                 </div>
             </div>
 

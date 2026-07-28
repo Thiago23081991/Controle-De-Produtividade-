@@ -1,7 +1,7 @@
 import { supabase, isSupabaseConfigured } from './supabaseClient';
 import { ErroRecord } from '../types';
 
-export type ErroPeriod = 'today' | 'week' | 'month' | string; // string cobre 'YYYY-MM'
+export type ErroPeriod = 'today' | 'week' | 'month' | 'all' | string; // string cobre 'YYYY-MM'
 
 const getDateRange = (period: ErroPeriod): { start: string; end: string } => {
     const now = new Date();
@@ -40,6 +40,17 @@ const getDateRange = (period: ErroPeriod): { start: string; end: string } => {
 export const errosService = {
     async getAll(period: ErroPeriod = 'today'): Promise<ErroRecord[]> {
         if (!isSupabaseConfigured) return [];
+
+        // Período 'all' — busca sem filtro de data
+        if (period === 'all') {
+            const { data, error } = await supabase
+                .from('erros_ressarcimento')
+                .select('*')
+                .order('created_at', { ascending: false });
+            if (error) throw error;
+            return data || [];
+        }
+
         const { start, end } = getDateRange(period);
         const { data, error } = await supabase
             .from('erros_ressarcimento')
