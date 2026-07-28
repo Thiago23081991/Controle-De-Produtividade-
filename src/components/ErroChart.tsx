@@ -274,7 +274,8 @@ export const ErroChart: React.FC = () => {
                             const maxCount = submotivoRanking[0]?.count || 1;
                             const barWidthScale = (d.count / maxCount) * 100;
                             // Colors corresponding to rank
-                            const barColor = idx === 0 ? 'bg-red-500' : idx === 1 ? 'bg-orange-500' : idx === 2 ? 'bg-yellow-500' : 'bg-slate-400';
+                            const BAR_COLORS = ['bg-red-500', 'bg-orange-500', 'bg-amber-400', 'bg-violet-500', 'bg-cyan-500'];
+                            const barColor = BAR_COLORS[idx] ?? 'bg-slate-400';
 
                             return (
                                 <div key={idx} className="space-y-1">
