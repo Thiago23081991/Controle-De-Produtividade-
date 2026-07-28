@@ -1,5 +1,5 @@
 import React from 'react';
-import { LogOut, Sun, Moon, Calendar, LayoutGrid, List, Database, Award, RefreshCcw, Download, Shield, ShieldCheck, AlertTriangle, ListTodo, PackageSearch } from 'lucide-react';
+import { LogOut, Sun, Moon, Calendar, LayoutGrid, List, Database, Award, RefreshCcw, Download, Shield, ShieldCheck, AlertTriangle, ListTodo, PackageSearch, Phone } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useProductivity } from '../contexts/ProductivityContext';
@@ -171,6 +171,22 @@ export const Header: React.FC = () => {
                         <PackageSearch size={18} />
                         <span className="hidden lg:inline font-bold text-[10px] uppercase tracking-wider">
                             {location.pathname === '/casos-br01' ? 'Dashboard' : 'BR01'}
+                        </span>
+                    </button>
+
+                    {/* Botão Voz de Campo — visível para todos */}
+                    <button
+                        onClick={() => navigate(location.pathname === '/voz-campo' ? '/' : '/voz-campo')}
+                        className={`p-3 rounded-xl flex items-center gap-2 transition-colors ${
+                            location.pathname === '/voz-campo'
+                                ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'
+                                : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'
+                        }`}
+                        title={location.pathname === '/voz-campo' ? 'Voltar ao Dashboard' : 'Voz de Campo'}
+                    >
+                        <Phone size={18} />
+                        <span className="hidden lg:inline font-bold text-[10px] uppercase tracking-wider">
+                            {location.pathname === '/voz-campo' ? 'Dashboard' : 'Voz Campo'}
                         </span>
                     </button>
 

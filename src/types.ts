@@ -119,3 +119,15 @@ export interface CasosBR01Record {
   created_at?: string;
 }
 
+export interface VozCampoRecord {
+  id?: string;
+  date: string;
+  funcao: string;
+  sub_campo: string;
+  nome_tecnico_consultor: string;
+  solicitacao: string;
+  tempo_ligacao: string;
+  quantos_casos_ligacao: number;
+  registrado_por?: string;
+  created_at?: string;
+}

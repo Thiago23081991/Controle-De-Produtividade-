@@ -12,6 +12,7 @@ import { CasoPerfeitoProvider } from './contexts/CasoPerfeitoContext';
 import { Backlog } from './pages/Backlog';
 import { BacklogProvider } from './contexts/BacklogContext';
 import { CasosBR01 } from './pages/CasosBR01';
+import { VozCampo } from './pages/VozCampo';
 
 function App() {
   const { currentUser, isAdmin } = useAuth();
@@ -67,6 +68,12 @@ function App() {
         <Route path="/casos-br01" element={
           isLoggedIn ? (
             <CasosBR01 />
+          ) : <Navigate to="/login" replace />
+        } />
+
+        <Route path="/voz-campo" element={
+          isLoggedIn ? (
+            <VozCampo />
           ) : <Navigate to="/login" replace />
         } />
       </Route>
