@@ -57,7 +57,7 @@ const SUBMOTIVO_NOTA_CREDITO_DEVOLUCAO = [
     'Descrição',
     'Cor',
     'Quantidade',
-    'Form embal a ser ressarcido',
+    'Formula',
     'Motivo',
     'Pessoa de contato',
     'E-mail',
