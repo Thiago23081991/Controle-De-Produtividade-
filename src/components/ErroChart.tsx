@@ -54,11 +54,18 @@ export const ErroChart: React.FC = () => {
         ];
     }, [ranking, erros]);
 
+    // Mapeamento de nomes antigos → novos (normaliza registros legados no banco)
+    const SUBMOTIVO_RENAME: Record<string, string> = {
+        'Form embal a ser ressarcido': 'Formula',
+    };
+
     const submotivoRanking = useMemo(() => {
         const counts: Record<string, number> = {};
         erros.forEach(e => {
             if (e.submotivo) {
-                counts[e.submotivo] = (counts[e.submotivo] || 0) + 1;
+                // Normaliza nome legado se existir no mapeamento
+                const name = SUBMOTIVO_RENAME[e.submotivo] ?? e.submotivo;
+                counts[name] = (counts[name] || 0) + 1;
             }
         });
         const total = Object.values(counts).reduce((a, b) => a + b, 0);
