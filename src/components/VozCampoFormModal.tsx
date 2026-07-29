@@ -89,6 +89,31 @@ const FUNCAO_OPTIONS = [
     'Consultor',
 ];
 
+const SOLICITACAO_OPTIONS = [
+    'Apoio no caso (Geral)',
+    'Verificar andamento do caso',
+    'Entender o caso',
+    'Apoio com Laboratório',
+    'Direcionamento ao Laboratório',
+    'Ajustar Patologia',
+    'Ajustar alguma informação do caso',
+    'Verificar o atraso do Caso',
+    'Prioridade ou andamento no chamado',
+    'Verificar pagamento',
+    'Verificar data do pagamento',
+    'Apoio com atualização de Senha do Selfcolor',
+    'Apoio com Selfcolor',
+    'Apoio com Fórmula',
+    'Apoio com Cadastro NovoSelf',
+    'Apoio com Contrato do Novo Self',
+    'Apoio com confirmação de Fórmula',
+    'Ajuda com os 11 passos',
+    'Ajuda com o Preenchimento dos 11 passos',
+    'Ajuste de pagamento no Portal do Cliente em NC',
+    'Ajuste de pagamento no Portal do Cliente em ND',
+    'Atribuição de caso ao nome dele (a)'
+];
+
 const inputClass =
     'w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl py-3 px-4 text-sm font-bold text-slate-700 dark:text-slate-200 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 outline-none transition-all placeholder:font-normal placeholder:text-slate-300';
 
@@ -322,16 +347,19 @@ export const VozCampoFormModal: React.FC<VozCampoFormModalProps> = ({ isOpen, on
                     {/* Solicitação */}
                     <div>
                         <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">
-                            Solicitação <span className="text-emerald-500">*</span>
+                            Motivo / Solicitação <span className="text-emerald-500">*</span>
                         </label>
-                        <textarea
+                        <select
                             value={solicitacao}
                             onChange={e => setSolicitacao(e.target.value)}
-                            placeholder="Descreva a solicitação realizada na ligação..."
                             required
-                            rows={3}
-                            className={`${inputClass} resize-none`}
-                        />
+                            className={selectClass}
+                        >
+                            <option value="">Selecione o motivo...</option>
+                            {SOLICITACAO_OPTIONS.map(opt => (
+                                <option key={opt} value={opt}>{opt}</option>
+                            ))}
+                        </select>
                     </div>
 
                     {/* Tempo de Ligação + Casos em Ligação — side by side */}
