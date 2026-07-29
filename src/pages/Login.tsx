@@ -12,6 +12,7 @@ interface LoginScreenProps {
 const ADMIN_MATRICULAS = ['301052', '322110', '221362', '333596', '246794', '321773'];
 
 const ALLOWED_MATRICULAS = [
+    // Experts Ressarcimento
     '308652',
     '300031',
     '243176',
@@ -27,6 +28,15 @@ const ALLOWED_MATRICULAS = [
     '284389',
     '344343',
     '382374',
+    // Experts BKO
+    '340021',
+    '321773',
+    '339944',
+    '374454',
+    '255921',
+    '372143',
+    '372438',
+    '372436',
 ];
 
 export const LoginScreen: React.FC<LoginScreenProps> = ({ isDemoMode = false }) => {
