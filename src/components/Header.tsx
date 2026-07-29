@@ -43,6 +43,14 @@ export const Header: React.FC = () => {
             show: true,
         },
         {
+            path: '/erros-bko',
+            label: 'Erros BKO',
+            icon: <AlertTriangle size={15} />,
+            activeColor: 'bg-indigo-100 text-indigo-700 border-indigo-300 dark:bg-indigo-900/30 dark:text-indigo-300 dark:border-indigo-700',
+            inactiveColor: 'bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-transparent hover:bg-indigo-50 hover:text-indigo-600 dark:hover:bg-indigo-900/20',
+            show: true,
+        },
+        {
             path: '/backlog',
             label: 'Backlog',
             icon: <ListTodo size={15} />,
