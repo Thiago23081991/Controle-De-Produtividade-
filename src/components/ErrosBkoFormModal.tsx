@@ -28,43 +28,12 @@ const BKO_EXPERTS = [
 ];
 
 const MOTIVO_OPTIONS = [
-    'Erro Script - Nota de Crédito',
-    'Erro Script - Depósito Bancário',
-    'Erro Script - Nota de Devolução',
-    'Outro',
-];
-
-const SUBMOTIVO_NOTA_CREDITO_DEVOLUCAO = [
-    'Cod. produto',
-    'Descrição',
-    'Cor',
-    'Quantidade',
-    'Formula',
-    'Motivo',
-    'Pessoa de contato',
-    'E-mail',
-    'SAP Compra',
-    'ERRO NO DIRECIONAMENTO',
-];
-
-const SUBMOTIVO_DEPOSITO_BANCARIO = [
-    'Cod. produto',
-    'Descrição',
-    'Cor',
-    'Quantidade',
-    'Nome completo do cliente',
-    'CPF do cliente',
-    'Endereço',
-    'Banco',
-    'Agência',
-    'Conta',
-    'Tipo de conta',
-    'Telefone',
-    'E-mail',
-    'Valor R$',
-    'Motivo',
-    'Erro De Calculo De MO',
-    'ERRO NO DIRECIONAMENTO',
+    'Não fazer conferência de mídias',
+    'Copiar e colar tabulações',
+    'Direcionamento ao setor errado',
+    'Não fazer alteração do motivo (ex: separação liquida, etc)',
+    'Não solicitar evidências adicionais para melhor conclusão',
+    'Em casos de dif ton (em continuação de pintura, as vzs não questionam sobre as outras latas anteriores e mandam apenas com a que apresentou dif ton, sem comparativo)',
 ];
 
 export const ErrosBkoFormModal: React.FC<ErrosBkoFormModalProps> = ({ isOpen, onClose }) => {
@@ -75,7 +44,6 @@ export const ErrosBkoFormModal: React.FC<ErrosBkoFormModalProps> = ({ isOpen, on
     const [descricaoErro, setDescricaoErro] = useState('');
     const [date, setDate] = useState(getTodayString());
     const [motivo, setMotivo] = useState('');
-    const [submotivo, setSubmotivo] = useState('');
 
     useEffect(() => {
         if (isOpen) {
@@ -84,26 +52,14 @@ export const ErrosBkoFormModal: React.FC<ErrosBkoFormModalProps> = ({ isOpen, on
             setDescricaoErro('');
             setDate(getTodayString());
             setMotivo('');
-            setSubmotivo('');
         }
     }, [isOpen]);
-
-    const getSubmotivoOptions = () => {
-        if (motivo === 'Erro Script - Nota de Crédito' || motivo === 'Erro Script - Nota de Devolução') {
-            return SUBMOTIVO_NOTA_CREDITO_DEVOLUCAO;
-        }
-        if (motivo === 'Erro Script - Depósito Bancário') {
-            return SUBMOTIVO_DEPOSITO_BANCARIO;
-        }
-        return [];
-    };
 
     if (!isOpen) return null;
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!numeroCaso.trim() || !expertName || !descricaoErro.trim() || !motivo) return;
-        if (motivo.startsWith('Erro Script') && !submotivo) return;
 
         const success = await addErro({
             date,
@@ -111,7 +67,6 @@ export const ErrosBkoFormModal: React.FC<ErrosBkoFormModalProps> = ({ isOpen, on
             expert_name: expertName,
             descricao_erro: descricaoErro.trim(),
             motivo,
-            submotivo: motivo.startsWith('Erro Script') ? submotivo : undefined,
         });
 
         if (success) onClose();
@@ -201,10 +156,7 @@ export const ErrosBkoFormModal: React.FC<ErrosBkoFormModalProps> = ({ isOpen, on
                         </label>
                         <select
                             value={motivo}
-                            onChange={e => {
-                                setMotivo(e.target.value);
-                                setSubmotivo('');
-                            }}
+                            onChange={e => setMotivo(e.target.value)}
                             required
                             className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl py-3 px-4 text-sm font-bold text-slate-700 dark:text-slate-200 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none transition-all appearance-none cursor-pointer"
                         >
@@ -214,26 +166,6 @@ export const ErrosBkoFormModal: React.FC<ErrosBkoFormModalProps> = ({ isOpen, on
                             ))}
                         </select>
                     </div>
-
-                    {/* Submotivo */}
-                    {motivo.startsWith('Erro Script') && (
-                        <div className="animate-in slide-in-from-top-2 duration-200">
-                            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">
-                                Submotivo <span className="text-indigo-500">*</span>
-                            </label>
-                            <select
-                                value={submotivo}
-                                onChange={e => setSubmotivo(e.target.value)}
-                                required
-                                className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl py-3 px-4 text-sm font-bold text-slate-700 dark:text-slate-200 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none transition-all appearance-none cursor-pointer"
-                            >
-                                <option value="">Selecione o submotivo...</option>
-                                {getSubmotivoOptions().map(opt => (
-                                    <option key={opt} value={opt}>{opt}</option>
-                                ))}
-                            </select>
-                        </div>
-                    )}
 
                     {/* Descrição do Erro */}
                     <div>
@@ -261,7 +193,7 @@ export const ErrosBkoFormModal: React.FC<ErrosBkoFormModalProps> = ({ isOpen, on
                         </button>
                         <button
                             type="submit"
-                            disabled={isSaving || !numeroCaso || !expertName || !descricaoErro || !motivo || (motivo.startsWith('Erro Script') && !submotivo)}
+                            disabled={isSaving || !numeroCaso || !expertName || !descricaoErro || !motivo}
                             className="flex-1 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-200 disabled:text-slate-400 text-white font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 transition-all shadow-lg shadow-indigo-200 active:scale-95"
                         >
                             {isSaving ? <Loader2 size={16} className="animate-spin" /> : <AlertTriangle size={16} />}
