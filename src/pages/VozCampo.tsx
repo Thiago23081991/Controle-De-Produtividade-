@@ -26,7 +26,7 @@ const VozCampoContent: React.FC = () => {
     const isSpecificMonth = /^\d{4}-\d{2}$/.test(period);
 
     return (
-        <div className="space-y-6 animate-in fade-in slide-in-from-top-10 duration-700">
+        <div className="space-y-6 animate-in fade-in slide-in-from-top-10 duration-700 pb-24">
 
             {/* Banner Hero */}
             <div className="bg-gradient-to-br from-slate-900 to-emerald-950 rounded-[3rem] shadow-2xl p-8 md:p-12 border-4 border-emerald-600 relative overflow-hidden flex flex-col gap-6">
@@ -114,6 +114,18 @@ const VozCampoContent: React.FC = () => {
 
             {/* Tabela */}
             <VozCampoTable />
+
+            {/* FAB — Botão flutuante fixo */}
+            <button
+                onClick={() => setIsModalOpen(true)}
+                className="fixed bottom-8 right-8 z-40 bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-4 rounded-[2rem] font-black uppercase tracking-widest text-xs flex items-center gap-3 shadow-2xl shadow-emerald-900/50 active:scale-95 transition-all group animate-in fade-in slide-in-from-bottom-4 duration-500"
+                title="Registrar nova ligação"
+            >
+                <div className="bg-white/20 p-1.5 rounded-xl group-hover:rotate-90 transition-transform">
+                    <Plus size={16} />
+                </div>
+                Registrar Ligação
+            </button>
 
             {/* Modal */}
             <VozCampoFormModal
