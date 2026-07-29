@@ -21,6 +21,7 @@ export interface ExpertInfo {
   supervisor?: string;
   active?: boolean;
   is_caso_perfeito_expert?: boolean;
+  is_bko_expert?: boolean;
 }
 
 export interface CasoPerfeitoRecord {

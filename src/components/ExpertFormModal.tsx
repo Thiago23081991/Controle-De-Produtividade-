@@ -22,7 +22,9 @@ export const ExpertFormModal: React.FC<ExpertFormModalProps> = ({
         matricula: '',
         login: '',
         supervisor: '',
-        active: true
+        active: true,
+        is_caso_perfeito_expert: false,
+        is_bko_expert: false,
     });
 
     useEffect(() => {
@@ -34,7 +36,9 @@ export const ExpertFormModal: React.FC<ExpertFormModalProps> = ({
                 matricula: '',
                 login: '',
                 supervisor: '',
-                active: true
+                active: true,
+                is_caso_perfeito_expert: false,
+                is_bko_expert: false,
             });
         }
     }, [initialData, isOpen]);
@@ -137,6 +141,35 @@ export const ExpertFormModal: React.FC<ExpertFormModalProps> = ({
                             >
                                 <Power size={18} className={formData.active ? 'text-green-500' : 'text-red-500'} />
                                 {formData.active ? 'ATIVO' : 'INATIVO'}
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Permissões especiais */}
+                    <div className="space-y-2">
+                        <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Permissões Especiais</label>
+                        <div className="flex flex-col gap-2">
+                            <button
+                                type="button"
+                                onClick={() => setFormData({ ...formData, is_caso_perfeito_expert: !formData.is_caso_perfeito_expert })}
+                                className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-xl transition-colors font-bold text-xs border ${
+                                    formData.is_caso_perfeito_expert
+                                        ? 'bg-orange-50 text-orange-600 border-orange-200 hover:bg-orange-100'
+                                        : 'bg-slate-50 text-slate-400 border-slate-200 hover:bg-slate-100'
+                                }`}
+                            >
+                                {formData.is_caso_perfeito_expert ? '✅' : '⬜'} Caso Perfeito
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setFormData({ ...formData, is_bko_expert: !formData.is_bko_expert })}
+                                className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-xl transition-colors font-bold text-xs border ${
+                                    formData.is_bko_expert
+                                        ? 'bg-indigo-50 text-indigo-600 border-indigo-200 hover:bg-indigo-100'
+                                        : 'bg-slate-50 text-slate-400 border-slate-200 hover:bg-slate-100'
+                                }`}
+                            >
+                                {formData.is_bko_expert ? '✅' : '⬜'} Erros BKO
                             </button>
                         </div>
                     </div>

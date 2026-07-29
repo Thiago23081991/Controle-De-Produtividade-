@@ -59,9 +59,9 @@ function App() {
         } />
 
         <Route path="/erros-bko" element={
-          isLoggedIn ? (
+          isLoggedIn && (isAdmin || currentUser?.is_bko_expert) ? (
             <ErrosBko />
-          ) : <Navigate to="/login" replace />
+          ) : <Navigate to="/" replace />
         } />
 
         <Route path="/backlog" element={
