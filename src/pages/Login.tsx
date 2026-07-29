@@ -9,7 +9,7 @@ interface LoginScreenProps {
     isDemoMode?: boolean;
 }
 
-const ADMIN_MATRICULAS = ['301052', '322110', '221362', '333596', '246794', '321773'];
+const ADMIN_MATRICULAS = ['301052', '322110', '221362', '333596', '246794'];
 
 const ALLOWED_MATRICULAS = [
     // Experts Ressarcimento
