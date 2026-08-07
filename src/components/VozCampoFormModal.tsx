@@ -164,7 +164,7 @@ export const VozCampoFormModal: React.FC<VozCampoFormModalProps> = ({ isOpen, on
         }
     };
 
-    const isConsultor = funcao === 'Consultor';
+    const isConsultor = funcao === 'Consultor' || funcao === 'Técnico da Distribuição';
 
     const isValid =
         funcao &&
@@ -260,7 +260,7 @@ export const VozCampoFormModal: React.FC<VozCampoFormModalProps> = ({ isOpen, on
                     <div>
                         <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">
                             Nome Técnico / Consultor {!isConsultor && <span className="text-emerald-500">*</span>}
-                            {isConsultor && <span className="text-slate-400 normal-case font-normal"> (opcional)</span>}
+                            {isConsultor && <span className="text-slate-400 normal-case font-normal"> (opcional — digite livremente)</span>}
                         </label>
                         {isConsultor ? (
                             <input
