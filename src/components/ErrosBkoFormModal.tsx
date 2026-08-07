@@ -34,6 +34,9 @@ const MOTIVO_OPTIONS = [
     'Não fazer alteração do motivo (ex: separação liquida, etc)',
     'Não solicitar evidências adicionais para melhor conclusão',
     'Em casos de dif ton (em continuação de pintura, as vzs não questionam sobre as outras latas anteriores e mandam apenas com a que apresentou dif ton, sem comparativo)',
+    'OP incorreta (descrição não condiz com mídia)',
+    'OP não identificada (mais de uma OP e não direcionou todas para análise)',
+    'Chamado sem Nota Fiscal',
 ];
 
 export const ErrosBkoFormModal: React.FC<ErrosBkoFormModalProps> = ({ isOpen, onClose }) => {
