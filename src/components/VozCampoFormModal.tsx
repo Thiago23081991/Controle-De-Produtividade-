@@ -164,10 +164,12 @@ export const VozCampoFormModal: React.FC<VozCampoFormModalProps> = ({ isOpen, on
         }
     };
 
+    const isConsultor = funcao === 'Consultor';
+
     const isValid =
         funcao &&
         subCampo.trim() &&
-        nomeTecnico.trim() &&
+        (isConsultor || nomeTecnico.trim()) &&
         solicitacao.trim() &&
         tempoLigacao.trim() &&
         quantosCasos !== '' &&
@@ -254,26 +256,37 @@ export const VozCampoFormModal: React.FC<VozCampoFormModalProps> = ({ isOpen, on
                         </select>
                     </div>
 
-                    {/* Nome Técnico / Consultor — agora SELECT com grupos */}
+                    {/* Nome Técnico / Consultor — agora SELECT com grupos ou input livre para Consultor */}
                     <div>
                         <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">
-                            Nome Técnico / Consultor <span className="text-emerald-500">*</span>
+                            Nome Técnico / Consultor {!isConsultor && <span className="text-emerald-500">*</span>}
+                            {isConsultor && <span className="text-slate-400 normal-case font-normal"> (opcional)</span>}
                         </label>
-                        <select
-                            value={nomeTecnico}
-                            onChange={e => handleTecnicoChange(e.target.value)}
-                            required
-                            className={selectClass}
-                        >
-                            <option value="">Selecione o técnico...</option>
-                            {Object.entries(grouped).map(([empresa, tecnicos]) => (
-                                <optgroup key={empresa} label={`— ${empresa} —`}>
-                                    {tecnicos.map(t => (
-                                        <option key={t.nome} value={t.nome}>{t.nome}</option>
-                                    ))}
-                                </optgroup>
-                            ))}
-                        </select>
+                        {isConsultor ? (
+                            <input
+                                type="text"
+                                value={nomeTecnico}
+                                onChange={e => setNomeTecnico(e.target.value)}
+                                placeholder="Digite o nome do consultor..."
+                                className={inputClass}
+                            />
+                        ) : (
+                            <select
+                                value={nomeTecnico}
+                                onChange={e => handleTecnicoChange(e.target.value)}
+                                required
+                                className={selectClass}
+                            >
+                                <option value="">Selecione o técnico...</option>
+                                {Object.entries(grouped).map(([empresa, tecnicos]) => (
+                                    <optgroup key={empresa} label={`— ${empresa} —`}>
+                                        {tecnicos.map(t => (
+                                            <option key={t.nome} value={t.nome}>{t.nome}</option>
+                                        ))}
+                                    </optgroup>
+                                ))}
+                            </select>
+                        )}
 
                         {/* Card de informações automáticas do técnico */}
                         {selectedTecnico && (
