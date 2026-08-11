@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Phone, Plus, RefreshCcw } from 'lucide-react';
+import { Phone, Plus, RefreshCcw, Download } from 'lucide-react';
 import { VozCampoFormModal } from '../components/VozCampoFormModal';
 import { VozCampoTable } from '../components/VozCampoTable';
 import { VozCampoProvider, useVozCampo } from '../contexts/VozCampoContext';
@@ -19,8 +19,38 @@ const getLastMonths = () => {
 };
 
 const VozCampoContent: React.FC = () => {
-    const { loadRecords, isLoading, period, setPeriod } = useVozCampo();
+    const { loadRecords, isLoading, period, setPeriod, records } = useVozCampo();
     const [isModalOpen, setIsModalOpen] = useState(false);
+
+    const handleExport = () => {
+        if (records.length === 0) return;
+
+        const headers = ['Data', 'Função', 'Sub-Campo', 'Nome Técnico/Consultor', 'Solicitação', 'Tempo Ligação', 'Qtd Casos', 'Registrado Por'];
+        const rows = records.map(r => [
+            r.date,
+            r.funcao,
+            r.sub_campo,
+            r.nome_tecnico_consultor,
+            r.solicitacao,
+            r.tempo_ligacao,
+            r.quantos_casos_ligacao,
+            r.registrado_por || ''
+        ]);
+
+        const csvContent = [headers, ...rows]
+            .map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(';'))
+            .join('\n');
+
+        const BOM = '\uFEFF';
+        const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        const periodLabel = period === 'today' ? 'Hoje' : period === 'week' ? 'Semana' : period === 'month' ? 'MesAtual' : period === 'all' ? 'Consolidado' : period;
+        link.href = url;
+        link.download = `VozCampo_${periodLabel}_${new Date().toISOString().slice(0,10)}.csv`;
+        link.click();
+        URL.revokeObjectURL(url);
+    };
 
     const monthOptions = getLastMonths();
     const isSpecificMonth = /^\d{4}-\d{2}$/.test(period);
@@ -58,6 +88,18 @@ const VozCampoContent: React.FC = () => {
                             title="Atualizar"
                         >
                             <RefreshCcw size={18} className={isLoading ? 'animate-spin' : ''} />
+                        </button>
+
+                        <button
+                            onClick={handleExport}
+                            disabled={records.length === 0}
+                            className="bg-white/10 hover:bg-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed text-white px-6 py-4 rounded-[2rem] font-black uppercase tracking-widest text-xs flex items-center gap-3 transition-all border border-white/20 hover:border-emerald-400 active:scale-95 group"
+                            title="Baixar relatório CSV"
+                        >
+                            <div className="bg-white/20 p-2 rounded-xl group-hover:scale-110 transition-transform">
+                                <Download size={18} />
+                            </div>
+                            Baixar Relatório
                         </button>
 
                         <button
