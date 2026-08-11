@@ -35,17 +35,30 @@ const N1_EXPERTS = [
     'CINDY HARIEL OLIVEIRA COSTA',
 ];
 
+const N1_MOTIVOS = [
+    'Erro De Direcionamento',
+    'Falta Relato',
+    'Falta De Script',
+    'Script Incorreto',
+    'Não Desmembrou o Caso',
+    'Envio E-mail Incorreto',
+    'Abrir Caso Nome da Loja Mas é Consumidor',
+    'Cadastro Incompleto (Falta De Dados)',
+];
+
 export const ErrosN1FormModal: React.FC<ErrosN1FormModalProps> = ({ isOpen, onClose }) => {
     const { addErro, isSaving } = useErrosN1();
 
     const [numeroCaso, setNumeroCaso] = useState('');
     const [expertName, setExpertName] = useState('');
+    const [motivo, setMotivo] = useState('');
     const [date, setDate] = useState(getTodayString());
 
     useEffect(() => {
         if (isOpen) {
             setNumeroCaso('');
             setExpertName('');
+            setMotivo('');
             setDate(getTodayString());
         }
     }, [isOpen]);
@@ -54,12 +67,13 @@ export const ErrosN1FormModal: React.FC<ErrosN1FormModalProps> = ({ isOpen, onCl
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!numeroCaso.trim() || !expertName || !date) return;
+        if (!numeroCaso.trim() || !expertName || !date || !motivo) return;
 
         const success = await addErro({
             date,
             numero_caso: numeroCaso.trim(),
             expert_name: expertName,
+            motivo,
         });
 
         if (success) onClose();
@@ -143,6 +157,24 @@ export const ErrosN1FormModal: React.FC<ErrosN1FormModalProps> = ({ isOpen, onCl
                         </select>
                     </div>
 
+                    {/* Tabulação / Motivo */}
+                    <div>
+                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">
+                            Tabulação <span className="text-rose-500">*</span>
+                        </label>
+                        <select
+                            value={motivo}
+                            onChange={e => setMotivo(e.target.value)}
+                            required
+                            className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl py-3 px-4 text-sm font-bold text-slate-700 dark:text-slate-200 focus:border-rose-400 focus:ring-2 focus:ring-rose-100 outline-none transition-all appearance-none cursor-pointer"
+                        >
+                            <option value="">Selecione a tabulação...</option>
+                            {N1_MOTIVOS.map(opt => (
+                                <option key={opt} value={opt}>{opt}</option>
+                            ))}
+                        </select>
+                    </div>
+
                     {/* Actions */}
                     <div className="flex gap-3 pt-2">
                         <button
@@ -154,7 +186,7 @@ export const ErrosN1FormModal: React.FC<ErrosN1FormModalProps> = ({ isOpen, onCl
                         </button>
                         <button
                             type="submit"
-                            disabled={isSaving || !numeroCaso || !expertName || !date}
+                            disabled={isSaving || !numeroCaso || !expertName || !date || !motivo}
                             className="flex-1 py-3 rounded-xl bg-rose-500 hover:bg-rose-600 disabled:bg-slate-200 disabled:text-slate-400 text-white font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 transition-all shadow-lg shadow-rose-200 active:scale-95"
                         >
                             {isSaving ? <Loader2 size={16} className="animate-spin" /> : <AlertTriangle size={16} />}

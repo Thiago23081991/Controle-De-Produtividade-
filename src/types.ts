@@ -139,6 +139,7 @@ export interface ErroN1Record {
   date: string;
   numero_caso: string;
   expert_name: string;
+  motivo?: string;
   registrado_por?: string;
   created_at?: string;
 }

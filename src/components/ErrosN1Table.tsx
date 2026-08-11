@@ -56,6 +56,7 @@ export const ErrosN1Table: React.FC = () => {
                                 <th className="px-5 py-3 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Data de Atendimento</th>
                                 <th className="px-5 py-3 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Nº do Caso</th>
                                 <th className="px-5 py-3 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Expert N1</th>
+                                <th className="px-5 py-3 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Tabulação</th>
                                 <th className="px-5 py-3 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Registrado por</th>
                                 {isAdmin && <th className="px-5 py-3 text-center text-[10px] font-black text-slate-400 uppercase tracking-widest">Ação</th>}
                             </tr>
@@ -83,6 +84,15 @@ export const ErrosN1Table: React.FC = () => {
                                                 {erro.expert_name}
                                             </span>
                                         </div>
+                                    </td>
+                                    <td className="px-5 py-4">
+                                        <span className={`inline-flex px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider ${
+                                            erro.motivo
+                                                ? 'bg-rose-50 text-rose-600 dark:bg-rose-900/20 dark:text-rose-400'
+                                                : 'text-slate-400'
+                                        }`}>
+                                            {erro.motivo || '—'}
+                                        </span>
                                     </td>
                                     <td className="px-5 py-4">
                                         <span className="text-[10px] font-bold text-slate-400 uppercase">
