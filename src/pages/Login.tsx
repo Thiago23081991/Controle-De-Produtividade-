@@ -43,6 +43,8 @@ const ALLOWED_MATRICULAS = [
     '372143',
     '372438',
     '372436',
+    '358255', // ROBERTA NICOLETTI PORTELA
+    '368131', // CAIO FELIPE DA SILVA
 ];
 
 export const LoginScreen: React.FC<LoginScreenProps> = ({ isDemoMode = false }) => {
