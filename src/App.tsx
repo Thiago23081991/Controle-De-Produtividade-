@@ -14,6 +14,7 @@ import { Backlog } from './pages/Backlog';
 import { BacklogProvider } from './contexts/BacklogContext';
 import { CasosBR01 } from './pages/CasosBR01';
 import { VozCampo } from './pages/VozCampo';
+import { ErrosN1 } from './pages/ErrosN1';
 
 function App() {
   const { currentUser, isAdmin } = useAuth();
@@ -82,6 +83,12 @@ function App() {
           isLoggedIn ? (
             <VozCampo />
           ) : <Navigate to="/login" replace />
+        } />
+
+        <Route path="/erros-n1" element={
+          isLoggedIn && (isAdmin || currentUser?.is_n1_expert) ? (
+            <ErrosN1 />
+          ) : <Navigate to="/" replace />
         } />
       </Route>
 

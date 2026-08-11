@@ -22,6 +22,7 @@ export interface ExpertInfo {
   active?: boolean;
   is_caso_perfeito_expert?: boolean;
   is_bko_expert?: boolean;
+  is_n1_expert?: boolean;
 }
 
 export interface CasoPerfeitoRecord {
@@ -129,6 +130,15 @@ export interface VozCampoRecord {
   solicitacao: string;
   tempo_ligacao: string;
   quantos_casos_ligacao: number;
+  registrado_por?: string;
+  created_at?: string;
+}
+
+export interface ErroN1Record {
+  id?: string;
+  date: string;
+  numero_caso: string;
+  expert_name: string;
   registrado_por?: string;
   created_at?: string;
 }

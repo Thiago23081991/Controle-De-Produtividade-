@@ -51,6 +51,14 @@ export const Header: React.FC = () => {
             show: isAdmin || !!currentUser?.is_bko_expert,
         },
         {
+            path: '/erros-n1',
+            label: 'Erros N1',
+            icon: <AlertTriangle size={15} />,
+            activeColor: 'bg-rose-100 text-rose-700 border-rose-300 dark:bg-rose-900/30 dark:text-rose-300 dark:border-rose-700',
+            inactiveColor: 'bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-transparent hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-900/20',
+            show: isAdmin || !!currentUser?.is_n1_expert,
+        },
+        {
             path: '/backlog',
             label: 'Backlog',
             icon: <ListTodo size={15} />,
