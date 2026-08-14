@@ -9,6 +9,7 @@ const FUNCAO_COLOR: Record<string, string> = {
     'Técnico Sherwin':       'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300',
     'Técnico da Distribuição': 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300',
     'Consultor':             'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300',
+    'Técnico Representação / Promotor': 'bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300',
 };
 
 const FUNCAO_DOT: Record<string, string> = {
@@ -16,6 +17,7 @@ const FUNCAO_DOT: Record<string, string> = {
     'Técnico Sherwin':       'bg-purple-500',
     'Técnico da Distribuição': 'bg-amber-500',
     'Consultor':             'bg-emerald-500',
+    'Técnico Representação / Promotor': 'bg-violet-500',
 };
 
 const FuncaoBadge: React.FC<{ funcao: string }> = ({ funcao }) => (

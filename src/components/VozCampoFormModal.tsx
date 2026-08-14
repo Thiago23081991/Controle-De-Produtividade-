@@ -87,9 +87,10 @@ const FUNCAO_OPTIONS = [
     'Técnico Sherwin',
     'Técnico da Distribuição',
     'Consultor',
+    'Técnico Representação / Promotor',
 ];
 
-const SOLICITACAO_OPTIONS = [
+const SOLICITACAO_OPTIONS_DEFAULT = [
     'Apoio no caso (Geral)',
     'Verificar andamento do caso',
     'Entender o caso',
@@ -112,6 +113,12 @@ const SOLICITACAO_OPTIONS = [
     'Ajuste de pagamento no Portal do Cliente em NC',
     'Ajuste de pagamento no Portal do Cliente em ND',
     'Atribuição de caso ao nome dele (a)'
+];
+
+const SOLICITACAO_OPTIONS_PROMOTOR = [
+    'Apoio com Cadastro de OP',
+    'Comunicação de nova Evidência(s) no caso',
+    'Comunicação da Evidência Faltante/Pendente no caso',
 ];
 
 const inputClass =
@@ -164,7 +171,9 @@ export const VozCampoFormModal: React.FC<VozCampoFormModalProps> = ({ isOpen, on
         }
     };
 
-    const isConsultor = funcao === 'Consultor' || funcao === 'Técnico da Distribuição';
+    const isConsultor = funcao === 'Consultor' || funcao === 'Técnico da Distribuição' || funcao === 'Técnico Representação / Promotor';
+    const isPromotor = funcao === 'Técnico Representação / Promotor';
+    const solicitacaoOptions = isPromotor ? SOLICITACAO_OPTIONS_PROMOTOR : SOLICITACAO_OPTIONS_DEFAULT;
 
     const isValid =
         funcao &&
@@ -174,6 +183,15 @@ export const VozCampoFormModal: React.FC<VozCampoFormModalProps> = ({ isOpen, on
         tempoLigacao.trim() &&
         quantosCasos !== '' &&
         Number(quantosCasos) >= 0;
+
+    // Limpa a solicitação ao trocar de função para evitar valor inválido
+    const handleFuncaoChange = (val: string) => {
+        setFuncao(val);
+        setSolicitacao('');
+        setNomeTecnico('');
+        setSelectedTecnico(null);
+        setSubCampo('');
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -245,7 +263,7 @@ export const VozCampoFormModal: React.FC<VozCampoFormModalProps> = ({ isOpen, on
                         </label>
                         <select
                             value={funcao}
-                            onChange={e => setFuncao(e.target.value)}
+                            onChange={e => handleFuncaoChange(e.target.value)}
                             required
                             className={selectClass}
                         >
@@ -259,8 +277,9 @@ export const VozCampoFormModal: React.FC<VozCampoFormModalProps> = ({ isOpen, on
                     {/* Nome Técnico / Consultor — agora SELECT com grupos ou input livre para Consultor */}
                     <div>
                         <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">
-                            Nome Técnico / Consultor {!isConsultor && <span className="text-emerald-500">*</span>}
-                            {isConsultor && <span className="text-slate-400 normal-case font-normal"> (opcional — digite livremente)</span>}
+                            Nome {isPromotor ? 'Promotor / Representante' : 'Técnico / Consultor'} {!isConsultor && <span className="text-emerald-500">*</span>}
+                            {isConsultor && !isPromotor && <span className="text-slate-400 normal-case font-normal"> (opcional — digite livremente)</span>}
+                            {isPromotor && <span className="text-slate-400 normal-case font-normal"> (opcional — digite livremente)</span>}
                         </label>
                         {isConsultor ? (
                             <input
@@ -369,7 +388,7 @@ export const VozCampoFormModal: React.FC<VozCampoFormModalProps> = ({ isOpen, on
                             className={selectClass}
                         >
                             <option value="">Selecione o motivo...</option>
-                            {SOLICITACAO_OPTIONS.map(opt => (
+                            {solicitacaoOptions.map(opt => (
                                 <option key={opt} value={opt}>{opt}</option>
                             ))}
                         </select>
