@@ -9,12 +9,11 @@ interface LoginScreenProps {
     isDemoMode?: boolean;
 }
 
-const ADMIN_MATRICULAS = ['301052', '322110'];
+const ADMIN_MATRICULAS = ['301052', '322110', '333596'];
 
 const ALLOWED_MATRICULAS = [
     // Experts Transferidos de Admin
     '221362',
-    '333596',
     '246794',
     // Experts Ressarcimento
     '308652',

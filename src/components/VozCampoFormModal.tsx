@@ -87,7 +87,8 @@ const FUNCAO_OPTIONS = [
     'Técnico Sherwin',
     'Técnico da Distribuição',
     'Consultor',
-    'Técnico Representação / Promotor',
+    'Técnico da Representação',
+    'Promotor',
 ];
 
 const SOLICITACAO_OPTIONS_DEFAULT = [
@@ -171,8 +172,8 @@ export const VozCampoFormModal: React.FC<VozCampoFormModalProps> = ({ isOpen, on
         }
     };
 
-    const isConsultor = funcao === 'Consultor' || funcao === 'Técnico da Distribuição' || funcao === 'Técnico Representação / Promotor';
-    const isPromotor = funcao === 'Técnico Representação / Promotor';
+    const isConsultor = funcao === 'Consultor' || funcao === 'Técnico da Distribuição' || funcao === 'Técnico da Representação' || funcao === 'Promotor';
+    const isPromotor = funcao === 'Promotor';
     const solicitacaoOptions = isPromotor ? SOLICITACAO_OPTIONS_PROMOTOR : SOLICITACAO_OPTIONS_DEFAULT;
 
     const isValid =
@@ -277,7 +278,7 @@ export const VozCampoFormModal: React.FC<VozCampoFormModalProps> = ({ isOpen, on
                     {/* Nome Técnico / Consultor — agora SELECT com grupos ou input livre para Consultor */}
                     <div>
                         <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">
-                            Nome {isPromotor ? 'Promotor / Representante' : 'Técnico / Consultor'} {!isConsultor && <span className="text-emerald-500">*</span>}
+                            Nome {isPromotor ? 'Promotor' : funcao === 'Técnico da Representação' ? 'Técnico / Representante' : 'Técnico / Consultor'} {!isConsultor && <span className="text-emerald-500">*</span>}
                             {isConsultor && !isPromotor && <span className="text-slate-400 normal-case font-normal"> (opcional — digite livremente)</span>}
                             {isPromotor && <span className="text-slate-400 normal-case font-normal"> (opcional — digite livremente)</span>}
                         </label>
