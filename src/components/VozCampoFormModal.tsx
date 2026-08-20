@@ -91,7 +91,7 @@ const FUNCAO_OPTIONS = [
     'Promotor',
 ];
 
-const SOLICITACAO_OPTIONS_DEFAULT = [
+const SOLICITACAO_OPTIONS = [
     'Apoio no caso (Geral)',
     'Verificar andamento do caso',
     'Entender o caso',
@@ -113,10 +113,7 @@ const SOLICITACAO_OPTIONS_DEFAULT = [
     'Ajuda com o Preenchimento dos 11 passos',
     'Ajuste de pagamento no Portal do Cliente em NC',
     'Ajuste de pagamento no Portal do Cliente em ND',
-    'Atribuição de caso ao nome dele (a)'
-];
-
-const SOLICITACAO_OPTIONS_PROMOTOR = [
+    'Atribuição de caso ao nome dele (a)',
     'Apoio com Cadastro de OP',
     'Comunicação de nova Evidência(s) no caso',
     'Comunicação da Evidência Faltante/Pendente no caso',
@@ -174,7 +171,7 @@ export const VozCampoFormModal: React.FC<VozCampoFormModalProps> = ({ isOpen, on
 
     const isConsultor = funcao === 'Consultor' || funcao === 'Técnico da Distribuição' || funcao === 'Técnico da Representação' || funcao === 'Promotor';
     const isPromotor = funcao === 'Promotor';
-    const solicitacaoOptions = isPromotor ? SOLICITACAO_OPTIONS_PROMOTOR : SOLICITACAO_OPTIONS_DEFAULT;
+    const solicitacaoOptions = SOLICITACAO_OPTIONS;
 
     const isValid =
         funcao &&
