@@ -130,6 +130,7 @@ export interface VozCampoRecord {
   solicitacao: string;
   tempo_ligacao: string;
   quantos_casos_ligacao: number;
+  relato_breve?: string;
   registrado_por?: string;
   created_at?: string;
 }

@@ -143,6 +143,7 @@ export const VozCampoFormModal: React.FC<VozCampoFormModalProps> = ({ isOpen, on
     const [solicitacao, setSolicitacao] = useState('');
     const [tempoLigacao, setTempoLigacao] = useState('');
     const [quantosCasos, setQuantosCasos] = useState<number | ''>('');
+    const [relatoBreve, setRelatoBreve] = useState('');
 
     useEffect(() => {
         if (isOpen) {
@@ -154,6 +155,7 @@ export const VozCampoFormModal: React.FC<VozCampoFormModalProps> = ({ isOpen, on
             setSolicitacao('');
             setTempoLigacao('');
             setQuantosCasos('');
+            setRelatoBreve('');
         }
     }, [isOpen]);
 
@@ -203,6 +205,7 @@ export const VozCampoFormModal: React.FC<VozCampoFormModalProps> = ({ isOpen, on
             solicitacao: solicitacao.trim(),
             tempo_ligacao: tempoLigacao.trim(),
             quantos_casos_ligacao: Number(quantosCasos),
+            relato_breve: relatoBreve.trim() || undefined,
         });
 
         if (success) onClose();
@@ -421,6 +424,20 @@ export const VozCampoFormModal: React.FC<VozCampoFormModalProps> = ({ isOpen, on
                                 className={inputClass}
                             />
                         </div>
+                    </div>
+
+                    {/* Relato Breve */}
+                    <div>
+                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">
+                            Relato Breve <span className="text-slate-400 normal-case font-normal">(opcional)</span>
+                        </label>
+                        <textarea
+                            value={relatoBreve}
+                            onChange={e => setRelatoBreve(e.target.value)}
+                            placeholder="Descreva brevemente o assunto da ligação..."
+                            rows={3}
+                            className={inputClass + ' resize-none'}
+                        />
                     </div>
 
                     {/* Actions */}
