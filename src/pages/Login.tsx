@@ -45,6 +45,8 @@ const ALLOWED_MATRICULAS = [
     '358255', // ROBERTA NICOLETTI PORTELA
     '368131', // CAIO FELIPE DA SILVA
     '382432', // BKO
+    // Experts N1
+    '363744', // EDUARDO NASCIMENTO E SILVA
 ];
 
 export const LoginScreen: React.FC<LoginScreenProps> = ({ isDemoMode = false }) => {
