@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Trash2, Phone, Clock, FileText, Loader2, ChevronDown, ChevronUp } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { Trash2, Phone, Clock, FileText, Loader2, ChevronDown, ChevronUp, Search, Trophy, BarChart2 } from 'lucide-react';
 import { useVozCampo } from '../contexts/VozCampoContext';
 import { useAuth } from '../contexts/AuthContext';
 import { VozCampoRecord } from '../types';
@@ -88,16 +88,25 @@ const Row: React.FC<RowProps> = ({ record, onDelete, isAdmin, isDeleting }) => {
             {expanded && (
                 <tr className="bg-emerald-50/50 dark:bg-emerald-900/10 border-b border-slate-100 dark:border-slate-800">
                     <td colSpan={8} className="px-6 py-4">
-                        <div className="flex flex-wrap gap-4">
-                            <div className="flex items-start gap-2">
+                        <div className="flex flex-wrap gap-6">
+                            <div className="flex items-start gap-2 flex-1 min-w-[200px]">
                                 <FileText size={14} className="text-emerald-500 mt-0.5 shrink-0" />
                                 <div>
                                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Solicitação Completa</p>
                                     <p className="text-sm text-slate-700 dark:text-slate-200 font-medium">{record.solicitacao}</p>
                                 </div>
                             </div>
+                            {record.relato_breve && (
+                                <div className="flex items-start gap-2 flex-1 min-w-[200px]">
+                                    <FileText size={14} className="text-teal-500 mt-0.5 shrink-0" />
+                                    <div>
+                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Relato Breve</p>
+                                        <p className="text-sm text-slate-700 dark:text-slate-200 font-medium">{record.relato_breve}</p>
+                                    </div>
+                                </div>
+                            )}
                             {record.registrado_por && (
-                                <div className="ml-auto text-right">
+                                <div className="ml-auto text-right shrink-0">
                                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Registrado por</p>
                                     <p className="text-xs font-bold text-slate-500">{record.registrado_por}</p>
                                 </div>
@@ -110,10 +119,14 @@ const Row: React.FC<RowProps> = ({ record, onDelete, isAdmin, isDeleting }) => {
     );
 };
 
+
 export const VozCampoTable: React.FC = () => {
     const { records, isLoading, deleteRecord } = useVozCampo();
     const { isAdmin } = useAuth();
     const [isDeleting, setIsDeleting] = useState<string | null>(null);
+    const [search, setSearch] = useState('');
+    const [sortKey, setSortKey] = useState<'date' | 'funcao' | 'nome_tecnico_consultor' | 'quantos_casos_ligacao'>('date');
+    const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
 
     const handleDelete = async (id: string) => {
         if (!window.confirm('Deseja remover este registro?')) return;
@@ -121,6 +134,18 @@ export const VozCampoTable: React.FC = () => {
         await deleteRecord(id);
         setIsDeleting(null);
     };
+
+    const handleSort = (key: typeof sortKey) => {
+        if (sortKey === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+        else { setSortKey(key); setSortDir('desc'); }
+    };
+
+    const SortIcon = ({ k }: { k: typeof sortKey }) =>
+        sortKey === k
+            ? (sortDir === 'desc' ? <ChevronDown size={11} className="inline ml-1 text-emerald-500" /> : <ChevronUp size={11} className="inline ml-1 text-emerald-500" />)
+            : <ChevronDown size={11} className="inline ml-1 text-slate-300" />;
+
+    const thClass = "px-4 py-3 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest cursor-pointer hover:text-emerald-600 transition-colors select-none whitespace-nowrap";
 
     if (isLoading) {
         return (
@@ -143,18 +168,51 @@ export const VozCampoTable: React.FC = () => {
         );
     }
 
+    // --- Métricas ---
+    const totalCasos = records.reduce((sum, r) => sum + (r.quantos_casos_ligacao || 0), 0);
+    const mediaCasos = records.length > 0 ? (totalCasos / records.length).toFixed(1) : '0';
+
+    // Técnico mais acionado
+    const tecnicoCount: Record<string, number> = {};
+    records.forEach(r => {
+        const k = r.nome_tecnico_consultor || '(Não informado)';
+        tecnicoCount[k] = (tecnicoCount[k] || 0) + 1;
+    });
+    const topTecnico = Object.entries(tecnicoCount).sort((a, b) => b[1] - a[1])[0];
+
     // Resumo por função
     const countByFuncao = records.reduce((acc, r) => {
         acc[r.funcao] = (acc[r.funcao] || 0) + 1;
         return acc;
     }, {} as Record<string, number>);
 
-    const totalCasos = records.reduce((sum, r) => sum + (r.quantos_casos_ligacao || 0), 0);
+    // --- Filtro + Ordenação ---
+    const filtered = useMemo(() => {
+        const q = search.toLowerCase();
+        return records.filter(r =>
+            r.nome_tecnico_consultor?.toLowerCase().includes(q) ||
+            r.solicitacao?.toLowerCase().includes(q) ||
+            r.funcao?.toLowerCase().includes(q) ||
+            r.sub_campo?.toLowerCase().includes(q)
+        );
+    }, [records, search]);
+
+    const sorted = useMemo(() => {
+        return [...filtered].sort((a, b) => {
+            let va: any = a[sortKey] ?? '';
+            let vb: any = b[sortKey] ?? '';
+            if (sortKey === 'quantos_casos_ligacao') { va = Number(va); vb = Number(vb); }
+            else { va = String(va).toLowerCase(); vb = String(vb).toLowerCase(); }
+            if (va < vb) return sortDir === 'asc' ? -1 : 1;
+            if (va > vb) return sortDir === 'asc' ? 1 : -1;
+            return 0;
+        });
+    }, [filtered, sortKey, sortDir]);
 
     return (
         <div className="space-y-4">
-            {/* Summary cards */}
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+            {/* Cards de resumo melhorados */}
+            <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-6 gap-3">
                 <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 p-4 flex flex-col gap-1 shadow">
                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total Ligações</p>
                     <p className="text-2xl font-black text-emerald-600">{records.length}</p>
@@ -163,7 +221,25 @@ export const VozCampoTable: React.FC = () => {
                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total Casos</p>
                     <p className="text-2xl font-black text-teal-600">{totalCasos}</p>
                 </div>
-                {Object.entries(countByFuncao).map(([funcao, count]) => (
+                <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 p-4 flex flex-col gap-1 shadow">
+                    <div className="flex items-center gap-1.5 mb-0.5">
+                        <BarChart2 size={11} className="text-slate-400" />
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Média / Lig.</p>
+                    </div>
+                    <p className="text-2xl font-black text-blue-600">{mediaCasos}</p>
+                    <p className="text-[10px] text-slate-400 font-bold">casos por ligação</p>
+                </div>
+                {topTecnico && (
+                    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 p-4 flex flex-col gap-1 shadow xl:col-span-2">
+                        <div className="flex items-center gap-1.5 mb-0.5">
+                            <Trophy size={11} className="text-amber-500" />
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">+ Acionado</p>
+                        </div>
+                        <p className="text-sm font-black text-slate-700 dark:text-white leading-tight truncate">{topTecnico[0]}</p>
+                        <p className="text-[10px] text-slate-400 font-bold">{topTecnico[1]} ligação{topTecnico[1] !== 1 ? 'ões' : ''}</p>
+                    </div>
+                )}
+                {Object.entries(countByFuncao).slice(0, 2).map(([funcao, count]) => (
                     <div key={funcao} className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 p-4 flex flex-col gap-1 shadow">
                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest truncate">{funcao}</p>
                         <div className="flex items-end gap-1">
@@ -174,24 +250,49 @@ export const VozCampoTable: React.FC = () => {
                 ))}
             </div>
 
-            {/* Table */}
+            {/* Tabela com busca e ordenação */}
             <div className="bg-white dark:bg-slate-900 rounded-[2rem] shadow-xl border border-slate-100 dark:border-slate-800 overflow-hidden">
+                {/* Barra de busca */}
+                <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex items-center gap-3">
+                    <div className="flex items-center gap-2 flex-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5">
+                        <Search size={14} className="text-slate-400 shrink-0" />
+                        <input
+                            type="text"
+                            value={search}
+                            onChange={e => setSearch(e.target.value)}
+                            placeholder="Buscar por nome, solicitação, função, sub-campo..."
+                            className="bg-transparent text-sm font-bold text-slate-700 dark:text-slate-200 outline-none w-full placeholder:font-normal placeholder:text-slate-300"
+                        />
+                    </div>
+                    {search && (
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">
+                            {sorted.length} resultado{sorted.length !== 1 ? 's' : ''}
+                        </span>
+                    )}
+                </div>
+
                 <div className="overflow-x-auto">
                     <table className="w-full">
                         <thead>
                             <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50">
-                                <th className="px-4 py-3 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Data</th>
-                                <th className="px-4 py-3 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Função</th>
-                                <th className="px-4 py-3 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Sub-Campo</th>
-                                <th className="px-4 py-3 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Nome</th>
+                                <th className={thClass} onClick={() => handleSort('date')}>Data <SortIcon k="date" /></th>
+                                <th className={thClass} onClick={() => handleSort('funcao')}>Função <SortIcon k="funcao" /></th>
+                                <th className="px-4 py-3 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">Sub-Campo</th>
+                                <th className={thClass} onClick={() => handleSort('nome_tecnico_consultor')}>Nome <SortIcon k="nome_tecnico_consultor" /></th>
                                 <th className="px-4 py-3 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Solicitação</th>
                                 <th className="px-4 py-3 text-center text-[10px] font-black text-slate-400 uppercase tracking-widest">Tempo</th>
-                                <th className="px-4 py-3 text-center text-[10px] font-black text-slate-400 uppercase tracking-widest">Casos</th>
+                                <th className={thClass + ' text-center'} onClick={() => handleSort('quantos_casos_ligacao')}>Casos <SortIcon k="quantos_casos_ligacao" /></th>
                                 <th className="px-4 py-3 text-center text-[10px] font-black text-slate-400 uppercase tracking-widest">Ações</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {records.map(record => (
+                            {sorted.length === 0 ? (
+                                <tr>
+                                    <td colSpan={8} className="px-4 py-12 text-center text-slate-400 text-sm font-bold">
+                                        Nenhum resultado para "{search}"
+                                    </td>
+                                </tr>
+                            ) : sorted.map(record => (
                                 <Row
                                     key={record.id}
                                     record={record}

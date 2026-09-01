@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
-import { Phone, Plus, RefreshCcw, Download } from 'lucide-react';
+import { Phone, Plus, RefreshCcw, Download, BarChart2, ChevronDown, ChevronUp } from 'lucide-react';
 import { VozCampoFormModal } from '../components/VozCampoFormModal';
 import { VozCampoTable } from '../components/VozCampoTable';
+import { VozCampoCharts } from '../components/VozCampoCharts';
+import { VozCampoPivot } from '../components/VozCampoPivot';
 import { VozCampoProvider, useVozCampo } from '../contexts/VozCampoContext';
 
 const MESES_PT = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
@@ -18,9 +20,12 @@ const getLastMonths = () => {
     return options;
 };
 
+
 const VozCampoContent: React.FC = () => {
     const { loadRecords, isLoading, period, setPeriod, records } = useVozCampo();
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [showCharts, setShowCharts] = useState(true);
+    const [showPivot, setShowPivot] = useState(false);
 
     const handleExport = () => {
         if (records.length === 0) return;
@@ -156,6 +161,56 @@ const VozCampoContent: React.FC = () => {
 
             {/* Tabela */}
             <VozCampoTable />
+
+            {/* Seção: Gráficos */}
+            {records.length > 0 && (
+                <div className="space-y-3">
+                    <button
+                        onClick={() => setShowCharts(p => !p)}
+                        className="w-full flex items-center justify-between bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 px-6 py-4 shadow hover:shadow-md transition-all group"
+                    >
+                        <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 flex items-center justify-center">
+                                <BarChart2 size={16} className="text-emerald-600" />
+                            </div>
+                            <div className="text-left">
+                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Análise Visual</p>
+                                <p className="text-sm font-black text-slate-700 dark:text-slate-200">Gráficos do Período</p>
+                            </div>
+                        </div>
+                        {showCharts
+                            ? <ChevronUp size={18} className="text-slate-400 group-hover:text-emerald-600 transition-colors" />
+                            : <ChevronDown size={18} className="text-slate-400 group-hover:text-emerald-600 transition-colors" />
+                        }
+                    </button>
+                    {showCharts && <VozCampoCharts records={records} />}
+                </div>
+            )}
+
+            {/* Seção: Consolidado por Técnico */}
+            {records.length > 0 && (
+                <div className="space-y-3">
+                    <button
+                        onClick={() => setShowPivot(p => !p)}
+                        className="w-full flex items-center justify-between bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 px-6 py-4 shadow hover:shadow-md transition-all group"
+                    >
+                        <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-xl bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center">
+                                <Phone size={16} className="text-blue-600" />
+                            </div>
+                            <div className="text-left">
+                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Relatório</p>
+                                <p className="text-sm font-black text-slate-700 dark:text-slate-200">Consolidado por Técnico</p>
+                            </div>
+                        </div>
+                        {showPivot
+                            ? <ChevronUp size={18} className="text-slate-400 group-hover:text-blue-600 transition-colors" />
+                            : <ChevronDown size={18} className="text-slate-400 group-hover:text-blue-600 transition-colors" />
+                        }
+                    </button>
+                    {showPivot && <VozCampoPivot records={records} />}
+                </div>
+            )}
 
             {/* FAB — Botão flutuante fixo */}
             <button
