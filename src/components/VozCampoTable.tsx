@@ -147,46 +147,25 @@ export const VozCampoTable: React.FC = () => {
 
     const thClass = "px-4 py-3 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest cursor-pointer hover:text-emerald-600 transition-colors select-none whitespace-nowrap";
 
-    if (isLoading) {
-        return (
-            <div className="bg-white dark:bg-slate-900 rounded-[2rem] shadow-xl border border-slate-100 dark:border-slate-800 p-16 flex flex-col items-center gap-4">
-                <Loader2 size={36} className="animate-spin text-emerald-500" />
-                <p className="text-slate-400 font-bold text-sm uppercase tracking-widest">Carregando registros...</p>
-            </div>
-        );
-    }
+    // --- Métricas (hooks ANTES dos early returns) ---
+    const totalCasos = useMemo(() => records.reduce((sum, r) => sum + (r.quantos_casos_ligacao || 0), 0), [records]);
+    const mediaCasos = useMemo(() => records.length > 0 ? (totalCasos / records.length).toFixed(1) : '0', [totalCasos, records.length]);
 
-    if (records.length === 0) {
-        return (
-            <div className="bg-white dark:bg-slate-900 rounded-[2rem] shadow-xl border border-slate-100 dark:border-slate-800 p-16 flex flex-col items-center gap-4 text-center">
-                <div className="w-16 h-16 rounded-full bg-emerald-50 dark:bg-emerald-900/20 flex items-center justify-center">
-                    <Phone size={28} className="text-emerald-300" />
-                </div>
-                <p className="text-slate-500 font-black text-sm uppercase tracking-widest">Nenhuma ligação registrada</p>
-                <p className="text-slate-400 text-xs">Use o botão "Registrar Ligação" para adicionar</p>
-            </div>
-        );
-    }
+    const topTecnico = useMemo(() => {
+        const count: Record<string, number> = {};
+        records.forEach(r => {
+            const k = r.nome_tecnico_consultor || '(Não informado)';
+            count[k] = (count[k] || 0) + 1;
+        });
+        return Object.entries(count).sort((a, b) => b[1] - a[1])[0];
+    }, [records]);
 
-    // --- Métricas ---
-    const totalCasos = records.reduce((sum, r) => sum + (r.quantos_casos_ligacao || 0), 0);
-    const mediaCasos = records.length > 0 ? (totalCasos / records.length).toFixed(1) : '0';
-
-    // Técnico mais acionado
-    const tecnicoCount: Record<string, number> = {};
-    records.forEach(r => {
-        const k = r.nome_tecnico_consultor || '(Não informado)';
-        tecnicoCount[k] = (tecnicoCount[k] || 0) + 1;
-    });
-    const topTecnico = Object.entries(tecnicoCount).sort((a, b) => b[1] - a[1])[0];
-
-    // Resumo por função
-    const countByFuncao = records.reduce((acc, r) => {
+    const countByFuncao = useMemo(() => records.reduce((acc, r) => {
         acc[r.funcao] = (acc[r.funcao] || 0) + 1;
         return acc;
-    }, {} as Record<string, number>);
+    }, {} as Record<string, number>), [records]);
 
-    // --- Filtro + Ordenação ---
+    // --- Filtro + Ordenação (hooks ANTES dos early returns) ---
     const filtered = useMemo(() => {
         const q = search.toLowerCase();
         return records.filter(r =>
@@ -208,6 +187,28 @@ export const VozCampoTable: React.FC = () => {
             return 0;
         });
     }, [filtered, sortKey, sortDir]);
+
+    // Early returns DEPOIS de todos os hooks
+    if (isLoading) {
+        return (
+            <div className="bg-white dark:bg-slate-900 rounded-[2rem] shadow-xl border border-slate-100 dark:border-slate-800 p-16 flex flex-col items-center gap-4">
+                <Loader2 size={36} className="animate-spin text-emerald-500" />
+                <p className="text-slate-400 font-bold text-sm uppercase tracking-widest">Carregando registros...</p>
+            </div>
+        );
+    }
+
+    if (records.length === 0) {
+        return (
+            <div className="bg-white dark:bg-slate-900 rounded-[2rem] shadow-xl border border-slate-100 dark:border-slate-800 p-16 flex flex-col items-center gap-4 text-center">
+                <div className="w-16 h-16 rounded-full bg-emerald-50 dark:bg-emerald-900/20 flex items-center justify-center">
+                    <Phone size={28} className="text-emerald-300" />
+                </div>
+                <p className="text-slate-500 font-black text-sm uppercase tracking-widest">Nenhuma ligação registrada</p>
+                <p className="text-slate-400 text-xs">Use o botão "Registrar Ligação" para adicionar</p>
+            </div>
+        );
+    }
 
     return (
         <div className="space-y-4">
