@@ -47,6 +47,10 @@ const ALLOWED_MATRICULAS = [
     '382432', // BKO
     // Experts N1
     '363744', // EDUARDO NASCIMENTO E SILVA
+    '360691', // TATIANE APARECIDA DE ARAUJO JACINTO
+    '349577', // KETLYN DAIANE DA SILVA FREIRE
+    '330636', // CRISLANE LIMA DE SOUZA
+    '333601', // LUIZ FERNANDO DE SOUZA DA SILVA
 ];
 
 export const LoginScreen: React.FC<LoginScreenProps> = ({ isDemoMode = false }) => {
