@@ -1,8 +1,9 @@
 import React, { useState, useMemo } from 'react';
-import { Trash2, Phone, Clock, FileText, Loader2, ChevronDown, ChevronUp, Search, Trophy, BarChart2 } from 'lucide-react';
+import { Trash2, Phone, Clock, FileText, Loader2, ChevronDown, ChevronUp, Search, Trophy, BarChart2, Timer } from 'lucide-react';
 import { useVozCampo } from '../contexts/VozCampoContext';
 import { useAuth } from '../contexts/AuthContext';
 import { VozCampoRecord } from '../types';
+import { parseTimeToSeconds, formatSecondsToHuman } from '../utils/timeHelpers';
 
 const FUNCAO_COLOR: Record<string, string> = {
     'Técnico Suvinil':           'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300',
@@ -151,14 +152,35 @@ export const VozCampoTable: React.FC = () => {
     const totalCasos = useMemo(() => records.reduce((sum, r) => sum + (r.quantos_casos_ligacao || 0), 0), [records]);
     const mediaCasos = useMemo(() => records.length > 0 ? (totalCasos / records.length).toFixed(1) : '0', [totalCasos, records.length]);
 
-    const topTecnico = useMemo(() => {
-        const count: Record<string, number> = {};
+    // Métricas de Tempo
+    const totalSeconds = useMemo(() => records.reduce((sum, r) => sum + parseTimeToSeconds(r.tempo_ligacao), 0), [records]);
+    const avgSeconds = useMemo(() => records.length > 0 ? Math.round(totalSeconds / records.length) : 0, [totalSeconds, records.length]);
+
+    // Estatísticas por Técnico (Ligações e Tempo)
+    const statsTecnico = useMemo(() => {
+        const stats: Record<string, { nome: string; funcao: string; count: number; totalSeconds: number }> = {};
         records.forEach(r => {
             const k = r.nome_tecnico_consultor || '(Não informado)';
-            count[k] = (count[k] || 0) + 1;
+            if (!stats[k]) {
+                stats[k] = { nome: k, funcao: r.funcao, count: 0, totalSeconds: 0 };
+            }
+            stats[k].count += 1;
+            stats[k].totalSeconds += parseTimeToSeconds(r.tempo_ligacao);
         });
-        return Object.entries(count).sort((a, b) => b[1] - a[1])[0];
+        return stats;
     }, [records]);
+
+    // Técnico que mais ligou (ordenado por qtd de ligações, desempate por tempo)
+    const topTecnico = useMemo(() => {
+        const list = Object.values(statsTecnico);
+        return list.sort((a, b) => b.count - a.count || b.totalSeconds - a.totalSeconds)[0];
+    }, [statsTecnico]);
+
+    // Técnico com maior tempo em ligação
+    const topTecnicoTempo = useMemo(() => {
+        const list = Object.values(statsTecnico);
+        return list.sort((a, b) => b.totalSeconds - a.totalSeconds)[0];
+    }, [statsTecnico]);
 
     const countByFuncao = useMemo(() => records.reduce((acc, r) => {
         acc[r.funcao] = (acc[r.funcao] || 0) + 1;
@@ -212,43 +234,82 @@ export const VozCampoTable: React.FC = () => {
 
     return (
         <div className="space-y-4">
-            {/* Cards de resumo melhorados */}
-            <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-6 gap-3">
+            {/* Cards de resumo com Técnico que mais ligou e Tempo em linha */}
+            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
                 <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 p-4 flex flex-col gap-1 shadow">
                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total Ligações</p>
                     <p className="text-2xl font-black text-emerald-600">{records.length}</p>
+                    <p className="text-[10px] text-slate-400 font-bold">no período</p>
                 </div>
                 <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 p-4 flex flex-col gap-1 shadow">
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total Casos</p>
-                    <p className="text-2xl font-black text-teal-600">{totalCasos}</p>
+                    <div className="flex items-center gap-1.5 mb-0.5">
+                        <Timer size={11} className="text-emerald-500" />
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Tempo em Linha</p>
+                    </div>
+                    <p className="text-2xl font-black text-emerald-700 dark:text-emerald-400">{formatSecondsToHuman(totalSeconds)}</p>
+                    <p className="text-[10px] text-slate-400 font-bold">Média: {formatSecondsToHuman(avgSeconds)} / lig.</p>
                 </div>
                 <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 p-4 flex flex-col gap-1 shadow">
                     <div className="flex items-center gap-1.5 mb-0.5">
                         <BarChart2 size={11} className="text-slate-400" />
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Média / Lig.</p>
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total Casos</p>
                     </div>
-                    <p className="text-2xl font-black text-blue-600">{mediaCasos}</p>
-                    <p className="text-[10px] text-slate-400 font-bold">casos por ligação</p>
+                    <p className="text-2xl font-black text-teal-600">{totalCasos}</p>
+                    <p className="text-[10px] text-slate-400 font-bold">{mediaCasos} casos por ligação</p>
                 </div>
+
+                {/* Card do Técnico que Mais Ligou */}
                 {topTecnico && (
-                    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 p-4 flex flex-col gap-1 shadow xl:col-span-2">
-                        <div className="flex items-center gap-1.5 mb-0.5">
-                            <Trophy size={11} className="text-amber-500" />
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">+ Acionado</p>
+                    <div className="bg-white dark:bg-slate-900 rounded-2xl border-2 border-amber-500/30 dark:border-amber-500/20 p-4 flex flex-col gap-1 shadow xl:col-span-2 relative overflow-hidden">
+                        <div className="flex items-center justify-between mb-0.5">
+                            <div className="flex items-center gap-1.5">
+                                <Trophy size={13} className="text-amber-500 animate-pulse" />
+                                <p className="text-[10px] font-black text-amber-600 dark:text-amber-400 uppercase tracking-widest">Técnico + Acionado</p>
+                            </div>
+                            <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">
+                                {topTecnico.funcao}
+                            </span>
                         </div>
-                        <p className="text-sm font-black text-slate-700 dark:text-white leading-tight truncate">{topTecnico[0]}</p>
-                        <p className="text-[10px] text-slate-400 font-bold">{topTecnico[1]} ligação{topTecnico[1] !== 1 ? 'ões' : ''}</p>
+                        <p className="text-sm font-black text-slate-800 dark:text-white leading-tight truncate" title={topTecnico.nome}>
+                            {topTecnico.nome}
+                        </p>
+                        <div className="flex items-center gap-2 mt-1 text-[11px] font-bold text-slate-600 dark:text-slate-300">
+                            <span className="bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 px-2 py-0.5 rounded-md font-black">
+                                {topTecnico.count} ligação{topTecnico.count !== 1 ? 'ões' : ''}
+                            </span>
+                            <span className="text-slate-400">•</span>
+                            <span className="flex items-center gap-1 text-slate-500 dark:text-slate-400">
+                                <Clock size={12} className="text-amber-500" />
+                                {formatSecondsToHuman(topTecnico.totalSeconds)} em linha
+                            </span>
+                        </div>
                     </div>
                 )}
-                {Object.entries(countByFuncao).slice(0, 2).map(([funcao, count]) => (
-                    <div key={funcao} className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 p-4 flex flex-col gap-1 shadow">
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest truncate">{funcao}</p>
-                        <div className="flex items-end gap-1">
-                            <p className="text-2xl font-black text-slate-700 dark:text-white">{count}</p>
-                            <span className="text-[10px] font-bold text-slate-400 mb-1">lig.</span>
+
+                {/* Card de maior tempo em ligação (ou resumo por função) */}
+                {topTecnicoTempo && topTecnicoTempo.nome !== topTecnico?.nome ? (
+                    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 p-4 flex flex-col gap-1 shadow">
+                        <div className="flex items-center gap-1.5 mb-0.5">
+                            <Clock size={11} className="text-blue-500" />
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">+ Tempo em Linha</p>
                         </div>
+                        <p className="text-xs font-black text-slate-700 dark:text-white leading-tight truncate" title={topTecnicoTempo.nome}>
+                            {topTecnicoTempo.nome}
+                        </p>
+                        <p className="text-sm font-black text-blue-600">{formatSecondsToHuman(topTecnicoTempo.totalSeconds)}</p>
+                        <p className="text-[10px] text-slate-400 font-bold">{topTecnicoTempo.count} lig.</p>
                     </div>
-                ))}
+                ) : (
+                    Object.entries(countByFuncao).slice(0, 1).map(([funcao, count]) => (
+                        <div key={funcao} className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 p-4 flex flex-col gap-1 shadow">
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest truncate">{funcao}</p>
+                            <div className="flex items-end gap-1">
+                                <p className="text-2xl font-black text-slate-700 dark:text-white">{count}</p>
+                                <span className="text-[10px] font-bold text-slate-400 mb-1">lig.</span>
+                            </div>
+                        </div>
+                    ))
+                )}
             </div>
 
             {/* Tabela com busca e ordenação */}
