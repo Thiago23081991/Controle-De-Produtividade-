@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { AlertTriangle, Plus, RefreshCcw } from 'lucide-react';
 import { ErrosN1FormModal } from '../components/ErrosN1FormModal';
 import { ErrosN1RankingCards } from '../components/ErrosN1RankingCards';
+import { ErrosN1Chart } from '../components/ErrosN1Chart';
 import { ErrosN1Table } from '../components/ErrosN1Table';
 import { ErrosN1Provider, useErrosN1 } from '../contexts/ErrosN1Context';
 import { useAuth } from '../contexts/AuthContext';
@@ -128,6 +129,9 @@ const ErrosN1Content: React.FC = () => {
 
             {/* Ranking — Apenas Admin */}
             {isAdmin && <ErrosN1RankingCards />}
+
+            {/* Gráficos (Comparativo + Top 5 Motivos) — Apenas Admin */}
+            {isAdmin && <ErrosN1Chart />}
 
             {/* Tabela */}
             <ErrosN1Table />
