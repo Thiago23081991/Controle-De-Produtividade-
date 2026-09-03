@@ -144,3 +144,30 @@ export interface ErroN1Record {
   registrado_por?: string;
   created_at?: string;
 }
+
+export interface ReclameAquiRecord {
+  id?: string;
+  registro_ra?: string;
+  nota_fiscal?: string;
+  data_postagem?: string;
+  consumidor?: string;
+  entrada?: string;
+  status_atual?: string;
+  chamado?: string;
+  email?: string;
+  data_contato?: string;
+  resposta_publica?: string;
+  patologia_causa?: string;
+  voltaria_fazer_negocio?: string;
+  resolvido?: string;
+  nota_avaliacao?: string;
+  moderacao?: string;
+  visita_tecnica?: string;
+  data_replica?: string;
+  data_treplica?: string;
+  procedente?: string;
+  mo?: string;
+  produto?: string;
+  registrado_por?: string;
+  created_at?: string;
+}

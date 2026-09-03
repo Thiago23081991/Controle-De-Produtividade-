@@ -15,6 +15,7 @@ import { BacklogProvider } from './contexts/BacklogContext';
 import { CasosBR01 } from './pages/CasosBR01';
 import { VozCampo } from './pages/VozCampo';
 import { ErrosN1 } from './pages/ErrosN1';
+import { ReclameAqui } from './pages/ReclameAqui';
 
 function App() {
   const { currentUser, isAdmin } = useAuth();
@@ -89,6 +90,12 @@ function App() {
           isLoggedIn && (isAdmin || currentUser?.is_n1_expert) ? (
             <ErrosN1 />
           ) : <Navigate to="/" replace />
+        } />
+
+        <Route path="/reclame-aqui" element={
+          isLoggedIn ? (
+            <ReclameAqui />
+          ) : <Navigate to="/login" replace />
         } />
       </Route>
 

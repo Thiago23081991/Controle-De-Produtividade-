@@ -1,5 +1,5 @@
 import React from 'react';
-import { LogOut, Sun, Moon, Calendar, LayoutGrid, List, Award, RefreshCcw, Download, Shield, ShieldCheck, AlertTriangle, ListTodo, PackageSearch, Phone, LayoutDashboard } from 'lucide-react';
+import { LogOut, Sun, Moon, Calendar, LayoutGrid, List, Award, RefreshCcw, Download, Shield, ShieldCheck, AlertTriangle, ListTodo, PackageSearch, Phone, LayoutDashboard, MessageSquare } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useProductivity } from '../contexts/ProductivityContext';
@@ -80,6 +80,14 @@ export const Header: React.FC = () => {
             icon: <Phone size={15} />,
             activeColor: 'bg-emerald-100 text-emerald-700 border-emerald-300 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-700',
             inactiveColor: 'bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-transparent hover:bg-emerald-50 hover:text-emerald-600 dark:hover:bg-emerald-900/20',
+            show: true,
+        },
+        {
+            path: '/reclame-aqui',
+            label: 'Reclame Aqui',
+            icon: <MessageSquare size={15} />,
+            activeColor: 'bg-red-100 text-red-700 border-red-300 dark:bg-red-900/30 dark:text-red-300 dark:border-red-700',
+            inactiveColor: 'bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-transparent hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20',
             show: true,
         },
         {
