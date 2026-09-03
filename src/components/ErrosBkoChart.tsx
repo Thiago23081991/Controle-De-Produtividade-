@@ -51,8 +51,9 @@ export const ErrosBkoChart: React.FC = () => {
     const submotivoRanking = useMemo(() => {
         const counts: Record<string, number> = {};
         erros.forEach(e => {
-            if (e.submotivo) {
-                counts[e.submotivo] = (counts[e.submotivo] || 0) + 1;
+            const key = e.motivo || e.submotivo;
+            if (key) {
+                counts[key] = (counts[key] || 0) + 1;
             }
         });
         const total = Object.values(counts).reduce((a, b) => a + b, 0);
@@ -207,16 +208,16 @@ export const ErrosBkoChart: React.FC = () => {
                             <BarChart3 size={18} />
                         </div>
                         <div>
-                            <h3 className="font-black text-slate-800 dark:text-white text-sm tracking-tight">Top 5 Submotivos</h3>
+                            <h3 className="font-black text-slate-800 dark:text-white text-sm tracking-tight">Top 5 Motivos</h3>
                             <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
-                                {isAll ? 'Consolidado — Todo o histórico' : 'Submotivos mais recorrentes'}
+                                {isAll ? 'Consolidado — Todo o histórico' : 'Motivos mais recorrentes'}
                             </p>
                         </div>
                     </div>
 
                     <div className="space-y-4 flex-1 flex flex-col justify-center">
                         {submotivoRanking.length === 0 ? (
-                            <p className="text-xs text-slate-400 font-bold text-center py-8">Nenhum submotivo registrado no período</p>
+                            <p className="text-xs text-slate-400 font-bold text-center py-8">Nenhum motivo registrado no período</p>
                         ) : (
                             submotivoRanking.map((d, idx) => {
                                 const maxCount = submotivoRanking[0]?.count || 1;
