@@ -23,6 +23,7 @@ export interface ExpertInfo {
   is_caso_perfeito_expert?: boolean;
   is_bko_expert?: boolean;
   is_n1_expert?: boolean;
+  is_obras_paradas_expert?: boolean;
 }
 
 export interface CasoPerfeitoRecord {

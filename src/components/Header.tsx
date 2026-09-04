@@ -96,7 +96,7 @@ export const Header: React.FC = () => {
             icon: <HardHat size={15} />,
             activeColor: 'bg-amber-100 text-amber-700 border-amber-300 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-700',
             inactiveColor: 'bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-transparent hover:bg-amber-50 hover:text-amber-600 dark:hover:bg-amber-900/20',
-            show: true,
+            show: isAdmin || !!currentUser?.is_obras_paradas_expert,
         },
         {
             path: '/admin',

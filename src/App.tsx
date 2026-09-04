@@ -101,9 +101,9 @@ function App() {
         } />
 
         <Route path="/obras-paradas" element={
-          isLoggedIn ? (
+          isLoggedIn && (isAdmin || currentUser?.is_obras_paradas_expert) ? (
             <ObraParada />
-          ) : <Navigate to="/login" replace />
+          ) : <Navigate to="/" replace />
         } />
       </Route>
 
