@@ -1,5 +1,5 @@
 import React from 'react';
-import { LogOut, Sun, Moon, Calendar, LayoutGrid, List, Award, RefreshCcw, Download, Shield, ShieldCheck, AlertTriangle, ListTodo, PackageSearch, Phone, LayoutDashboard, MessageSquare } from 'lucide-react';
+import { LogOut, Sun, Moon, Calendar, LayoutGrid, List, Award, RefreshCcw, Download, Shield, ShieldCheck, AlertTriangle, ListTodo, PackageSearch, Phone, LayoutDashboard, MessageSquare, HardHat } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useProductivity } from '../contexts/ProductivityContext';
@@ -88,6 +88,14 @@ export const Header: React.FC = () => {
             icon: <MessageSquare size={15} />,
             activeColor: 'bg-red-100 text-red-700 border-red-300 dark:bg-red-900/30 dark:text-red-300 dark:border-red-700',
             inactiveColor: 'bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-transparent hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20',
+            show: true,
+        },
+        {
+            path: '/obras-paradas',
+            label: 'Obras Paradas',
+            icon: <HardHat size={15} />,
+            activeColor: 'bg-amber-100 text-amber-700 border-amber-300 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-700',
+            inactiveColor: 'bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-transparent hover:bg-amber-50 hover:text-amber-600 dark:hover:bg-amber-900/20',
             show: true,
         },
         {

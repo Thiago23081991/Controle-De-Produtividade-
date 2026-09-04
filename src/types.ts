@@ -145,6 +145,18 @@ export interface ErroN1Record {
   created_at?: string;
 }
 
+export interface ObraParadaRecord {
+  id?: string;
+  date: string;
+  numero_caso: string;
+  obra_parada: boolean;
+  tempo_parada?: string;
+  tempo_ligacao?: string;
+  tipo_caso: 'Novo' | 'Rechamada';
+  registrado_por?: string;
+  created_at?: string;
+}
+
 export interface ReclameAquiRecord {
   id?: string;
   registro_ra?: string;

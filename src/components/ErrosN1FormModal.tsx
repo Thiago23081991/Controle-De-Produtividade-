@@ -44,6 +44,7 @@ const N1_MOTIVOS = [
     'Envio E-mail Incorreto',
     'Abrir Caso Nome da Loja Mas é Consumidor',
     'Cadastro Incompleto (Falta De Dados)',
+    'Produto Vencido',
 ];
 
 export const ErrosN1FormModal: React.FC<ErrosN1FormModalProps> = ({ isOpen, onClose }) => {

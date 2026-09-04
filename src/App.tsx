@@ -16,6 +16,8 @@ import { CasosBR01 } from './pages/CasosBR01';
 import { VozCampo } from './pages/VozCampo';
 import { ErrosN1 } from './pages/ErrosN1';
 import { ReclameAqui } from './pages/ReclameAqui';
+import { ObraParada } from './pages/ObraParada';
+
 
 function App() {
   const { currentUser, isAdmin } = useAuth();
@@ -95,6 +97,12 @@ function App() {
         <Route path="/reclame-aqui" element={
           isLoggedIn ? (
             <ReclameAqui />
+          ) : <Navigate to="/login" replace />
+        } />
+
+        <Route path="/obras-paradas" element={
+          isLoggedIn ? (
+            <ObraParada />
           ) : <Navigate to="/login" replace />
         } />
       </Route>
